@@ -7,24 +7,32 @@ import { ProductCard } from "@/components/ProductCard";
 export const revalidate = 0;
 
 export default async function ShopHomePage() {
-  // 1. Consulta RSC directa a Neon Postgres vía Prisma ORM
+  // 1. Consulta RSC a Neon Postgres con timeout protector de 3.5s para Vercel Serverless
   let dbProducts: any[] = [];
   try {
-    dbProducts = await prisma.product.findMany({
-      where: { isActive: true },
-      include: {
-        images: true,
-        category: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    if (process.env.DATABASE_URL) {
+      const fetchPromise = prisma.product.findMany({
+        where: { isActive: true },
+        include: {
+          images: true,
+          category: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Timeout conectando a Neon DB")), 3500)
+      );
+
+      dbProducts = (await Promise.race([fetchPromise, timeoutPromise])) as any[];
+    }
   } catch (error) {
-    console.error("Error consultando productos de Neon DB:", error);
+    console.error("Nota: No se pudo consultar Neon DB en el servidor o la DB estuvo inactiva:", error);
   }
 
-  // 2. Mock items de respaldo si la base de datos es nueva o no tiene productos guardados aún
+  // 2. Productos de demostración si la base de datos es nueva o no responde a tiempo
   const mockProducts = [
     {
       id: "demo-1",
@@ -58,26 +66,27 @@ export default async function ShopHomePage() {
     },
   ];
 
-  // Combinar los productos reales de Neon DB con los de exhibición si la DB está vacía
-  const displayProducts = dbProducts.length > 0
-    ? dbProducts.map((p) => ({
-        id: p.id,
-        title: p.title,
-        price: Number(p.basePrice),
-        compareAtPrice: p.compareAtPrice ? Number(p.compareAtPrice) : null,
-        imageUrl: p.images[0]?.url || null,
-        categoryName: p.category?.name || "Accesorios TCG",
-        badge: p.isFeatured ? "DESTACADO" : undefined,
-        badgeColor: "bg-accent-cyan text-black",
-      }))
-    : mockProducts;
+  // Combinar los productos de la DB con los de respaldo
+  const displayProducts =
+    dbProducts && dbProducts.length > 0
+      ? dbProducts.map((p) => ({
+          id: p.id,
+          title: p.title,
+          price: Number(p.basePrice),
+          compareAtPrice: p.compareAtPrice ? Number(p.compareAtPrice) : null,
+          imageUrl: p.images[0]?.url || null,
+          categoryName: p.category?.name || "Accesorios TCG",
+          badge: p.isFeatured ? "DESTACADO" : undefined,
+          badgeColor: "bg-accent-cyan text-black",
+        }))
+      : mockProducts;
 
   return (
     <div className="space-y-16">
       {/* Hero Section Público */}
       <section className="relative overflow-hidden py-24 px-6 border-b border-surface-muted">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-accent-cyan/10 blur-[120px] rounded-full pointer-events-none" />
-        
+
         <div className="max-w-5xl mx-auto text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface-elevated border border-neutral-800 text-xs font-mono text-accent-cyan mb-8">
             <Sparkles className="w-4 h-4 text-accent-pink" />
@@ -144,7 +153,7 @@ export default async function ShopHomePage() {
         </div>
       </section>
 
-      {/* Paso 3: El Catálogo Principal (Grilla Responsiva CSS Grid) */}
+      {/* Catálogo Principal */}
       <section id="catalog" className="py-12 px-6 max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
           <div>
@@ -162,7 +171,7 @@ export default async function ShopHomePage() {
           </div>
         </div>
 
-        {/* Grilla Responsiva (CSS Grid sin posiciones absolutas) */}
+        {/* Grilla Responsiva (CSS Grid) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {displayProducts.map((product) => (
             <ProductCard
