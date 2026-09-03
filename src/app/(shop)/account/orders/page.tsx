@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
-import { ArrowLeft, ShoppingBag, CheckCircle2, Clock, Truck, XCircle, FileText } from "lucide-react";
+import { ArrowLeft, ShoppingBag, CheckCircle2, Clock, Truck, XCircle, FileText, ExternalLink } from "lucide-react";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/prisma";
 
@@ -62,9 +62,9 @@ export default async function CustomerOrdersPage() {
       </Link>
 
       <div>
-        <h1 className="text-3xl font-extrabold uppercase tracking-tight text-white">Historial de Compras & Pedidos</h1>
+        <h1 className="text-3xl font-extrabold uppercase tracking-tight text-white">Historial de Compras & Envíos</h1>
         <p className="text-xs text-neutral-400 mt-1">
-          Consulta todos tus pedidos procesados e historial de entregas.
+          Consulta todos tus pedidos procesados, números de seguimiento y recibos imprimibles.
         </p>
       </div>
 
@@ -92,21 +92,53 @@ export default async function CustomerOrdersPage() {
             <div key={order.id} className="bg-surface rounded-2xl border border-neutral-800 overflow-hidden shadow-lg p-6 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-800">
                 <div>
-                  <span className="text-xs font-mono text-accent-cyan font-bold block">
-                    {order.orderNumber}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono text-accent-cyan font-bold block">
+                      {order.orderNumber}
+                    </span>
+                    {getStatusBadge(order.status)}
+                  </div>
                   <span className="text-xs text-neutral-400 font-mono">
                     Realizado el {new Date(order.createdAt).toLocaleString()}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {getStatusBadge(order.status)}
                   <span className="text-lg font-black text-white font-mono">
                     ${Number(order.totalAmount).toFixed(2)} USD
                   </span>
+                  <Link
+                    href={`/account/orders/${order.id}/receipt`}
+                    target="_blank"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-xs font-bold text-neutral-300 hover:text-white transition-colors"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-accent-cyan" />
+                    <span>Recibo PDF</span>
+                  </Link>
                 </div>
               </div>
+
+              {/* Información de Rastreo / Tracking */}
+              {order.trackingNumber && (
+                <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl flex items-center justify-between text-xs text-blue-300 font-mono">
+                  <div className="flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-blue-400" />
+                    <span>Código de Seguimiento: <strong>{order.trackingNumber}</strong></span>
+                  </div>
+
+                  {order.trackingUrl && (
+                    <a
+                      href={order.trackingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-accent-cyan hover:underline font-bold"
+                    >
+                      <span>Rastrear Envío</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                </div>
+              )}
 
               {/* Lista de Ítems Comprados */}
               <div className="space-y-2">
