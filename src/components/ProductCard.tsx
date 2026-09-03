@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ShoppingBag, Image as ImageIcon } from "lucide-react";
+import { useCartStore } from "@/store/cartStore";
 import { hoverScaleProps, smoothEase } from "@/lib/motion";
 
 export interface ProductCardProps {
@@ -27,12 +28,28 @@ export function ProductCard({
   badge,
   badgeColor = "bg-accent-cyan text-black",
 }: ProductCardProps) {
-  const formattedPrice = typeof price === "number" ? `$${price.toFixed(2)}` : price;
+  const addToCart = useCartStore((state) => state.addToCart);
+
+  const numericPrice = typeof price === "number" ? price : parseFloat(price.replace(/[^0-9.]/g, ""));
+  const formattedPrice = `$${numericPrice.toFixed(2)}`;
+  
   const formattedCompareAt = compareAtPrice
     ? typeof compareAtPrice === "number"
       ? `$${compareAtPrice.toFixed(2)}`
       : compareAtPrice
     : null;
+
+  const handleQuickAdd = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart({
+      id: id,
+      productId: id,
+      title: title,
+      price: isNaN(numericPrice) ? 0 : numericPrice,
+      imageUrl: imageUrl,
+    });
+  };
 
   return (
     <motion.div
@@ -82,7 +99,7 @@ export function ProductCard({
         </div>
       </Link>
 
-      {/* Pie de Tarjeta - Precio y Botón de Acción */}
+      {/* Pie de Tarjeta - Precio y Botón de Acción Zustand */}
       <div className="p-6 pt-0 flex items-center justify-between mt-auto">
         <div>
           <span className="text-xl font-black text-white">{formattedPrice}</span>
@@ -95,11 +112,7 @@ export function ProductCard({
 
         <motion.button
           {...hoverScaleProps}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log(`Agregar producto ${id} - ${title} al carrito`);
-          }}
+          onClick={handleQuickAdd}
           className="btn-pill bg-white text-black font-bold hover:bg-accent-cyan transition-colors flex items-center gap-2"
         >
           <ShoppingBag className="w-4 h-4" />

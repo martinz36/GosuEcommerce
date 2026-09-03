@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Sparkles, Zap, ShieldCheck, Users, Tag } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/ProductCard";
+import { BundleSection } from "@/components/BundleSection";
 
 export const revalidate = 0;
 
@@ -29,16 +30,16 @@ export default async function ShopHomePage() {
       dbProducts = (await Promise.race([fetchPromise, timeoutPromise])) as any[];
     }
   } catch (error) {
-    console.error("Nota: No se pudo consultar Neon DB en el servidor o la DB estuvo inactiva:", error);
+    console.error("Nota: Consulta a Neon DB en proceso:", error);
   }
 
-  // 2. Productos de demostración si la base de datos es nueva o no responde a tiempo
+  // 2. Productos de demostración si la base de datos es nueva
   const mockProducts = [
     {
       id: "demo-1",
       title: "GOSU® Armor Sleeves - Japanese Size (Matte Black)",
-      price: "$14.99",
-      compareAtPrice: "$19.99",
+      price: 14.99,
+      compareAtPrice: 19.99,
       badge: "BESTSELLER",
       badgeColor: "bg-accent-cyan text-black",
       categoryName: "Sleeves",
@@ -47,8 +48,8 @@ export default async function ShopHomePage() {
     {
       id: "demo-2",
       title: "PRO Collector Bundle (3x Sleeves + 1x Binder + Deck Box)",
-      price: "$49.99",
-      compareAtPrice: "$69.99",
+      price: 49.99,
+      compareAtPrice: 69.99,
       badge: "PACK / BUNDLE -28%",
       badgeColor: "bg-accent-pink text-white font-bold",
       categoryName: "Bundles",
@@ -57,7 +58,7 @@ export default async function ShopHomePage() {
     {
       id: "demo-3",
       title: "GOSU® Toploader Binder (9-Pocket Zip Armor)",
-      price: "$34.99",
+      price: 34.99,
       compareAtPrice: null,
       badge: "AFFILIATE SPECIAL",
       badgeColor: "bg-accent-yellow text-black",
@@ -66,7 +67,6 @@ export default async function ShopHomePage() {
     },
   ];
 
-  // Combinar los productos de la DB con los de respaldo
   const displayProducts =
     dbProducts && dbProducts.length > 0
       ? dbProducts.map((p) => ({
@@ -90,15 +90,15 @@ export default async function ShopHomePage() {
         <div className="max-w-5xl mx-auto text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface-elevated border border-neutral-800 text-xs font-mono text-accent-cyan mb-8">
             <Sparkles className="w-4 h-4 text-accent-pink" />
-            <span>PRODUCTOS REALES DESDE NEON POSTGRES (PRISMA RSC)</span>
+            <span>EQUIPAMIENTO TCG ALIMENTADO POR NEON POSTGRES</span>
           </div>
 
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight uppercase leading-none mb-6">
-            EQUIPAMIENTO <span className="text-accent-cyan">PREMIUM</span> PARA COLECCIONISTAS TCG
+            PROTECCIÓN <span className="text-accent-cyan">PREMIUM</span> PARA TUS CARTAS MÁS VALIOSAS
           </h1>
 
           <p className="text-lg md:text-xl text-neutral-400 max-w-2xl mx-auto mb-10">
-            Protección de nivel competitivo, fundas ultra-claras, carpetas toploader y packs agrupados.
+            Fundas de corte competitivo, carpetas toploader acolchadas y bundles exclusivos diseñados para jugadores y coleccionistas.
           </p>
 
           <div className="flex flex-wrap justify-center gap-4">
@@ -108,12 +108,12 @@ export default async function ShopHomePage() {
             >
               Ver Catálogo Completo
             </a>
-            <Link
-              href="/dashboard/products/new"
+            <a
+              href="#bundles"
               className="btn-pill glass-panel text-white font-medium border border-neutral-700 hover:border-accent-pink transition-colors"
             >
-              + Agregar Productos (Panel Admin)
-            </Link>
+              Packs & Bundles
+            </a>
           </div>
         </div>
       </section>
@@ -153,13 +153,16 @@ export default async function ShopHomePage() {
         </div>
       </section>
 
-      {/* Catálogo Principal */}
-      <section id="catalog" className="py-12 px-6 max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
+      {/* Paso 2: Componente de Packs (BundleSection) */}
+      <BundleSection />
+
+      {/* Paso 3: El Catálogo Principal (Grilla Responsiva CSS Grid) */}
+      <section id="catalog" className="py-12 px-6 max-w-7xl mx-auto space-y-12">
+        <div className="flex flex-col md:flex-row md:items-end justify-between">
           <div>
-            <h2 className="text-3xl font-extrabold uppercase tracking-tight">CATÁLOGO DE PRODUCTOS</h2>
+            <h2 className="text-3xl font-extrabold uppercase tracking-tight">CATÁLOGO COMPLETO</h2>
             <p className="text-neutral-400 text-sm mt-1">
-              Consultados directamente desde la base de datos Neon vía Prisma ORM
+              Productos consultados directamente desde la base de datos Neon vía Prisma ORM
             </p>
           </div>
 
@@ -171,7 +174,7 @@ export default async function ShopHomePage() {
           </div>
         </div>
 
-        {/* Grilla Responsiva (CSS Grid) */}
+        {/* Grilla Responsiva (CSS Grid) con ProductCard */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {displayProducts.map((product) => (
             <ProductCard

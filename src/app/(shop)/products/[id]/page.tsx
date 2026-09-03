@@ -6,7 +6,8 @@ import {
   ShieldCheck,
   Truck,
   Image as ImageIcon,
-  CheckCircle2
+  CheckCircle2,
+  Sparkles
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/ProductCard";
@@ -118,15 +119,15 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
         <span>Volver al Catálogo</span>
       </Link>
 
-      {/* Grid Principal de Producto */}
+      {/* Paso 4: Layout de 2 Columnas en Desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-        {/* Imagen del Producto */}
-        <div className="bg-surface rounded-card border border-neutral-800 overflow-hidden relative aspect-square flex items-center justify-center">
+        {/* Columna Izquierda: Imagen Gigante de Cloudinary */}
+        <div className="bg-surface rounded-2xl border border-neutral-800 overflow-hidden relative aspect-square flex items-center justify-center group shadow-2xl">
           {mainImage ? (
             <img
               src={mainImage}
               alt={product.title}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
           ) : (
             <div className="flex flex-col items-center gap-3 text-neutral-600">
@@ -136,13 +137,13 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
           )}
 
           <div className="absolute top-4 left-4">
-            <span className="px-3 py-1 text-xs font-mono font-bold rounded-full bg-accent-cyan text-black uppercase tracking-wider">
+            <span className="px-3.5 py-1.5 text-xs font-mono font-extrabold rounded-full bg-accent-cyan text-black uppercase tracking-wider shadow-lg">
               {product.category?.name || "Accesorios TCG"}
             </span>
           </div>
         </div>
 
-        {/* Ficha Técnica e Información */}
+        {/* Columna Derecha: Ficha Técnica, Precio y Botón Zustand */}
         <div className="space-y-8">
           <div>
             <span className="text-xs font-mono text-accent-cyan uppercase tracking-widest block mb-2">
@@ -180,6 +181,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
               productId={product.id}
               productTitle={product.title}
               price={formattedPrice}
+              imageUrl={mainImage}
             />
 
             <div className="grid grid-cols-2 gap-4 pt-4 text-xs text-neutral-400 border-t border-surface-muted">
