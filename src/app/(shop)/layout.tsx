@@ -9,6 +9,7 @@ import { StoreProvider } from "@/providers/StoreProvider";
 import { CartButton } from "@/components/CartButton";
 import { CartDrawer } from "@/components/CartDrawer";
 import { CurrencySwitcher } from "@/components/CurrencySwitcher";
+import { HeaderSearch } from "@/components/HeaderSearch";
 
 export const revalidate = 0;
 
@@ -83,35 +84,24 @@ export default async function ShopLayout({
 
         {/* Navbar Público Estilo Framer / GOSU® */}
         <header className="sticky top-0 z-50 glass-panel border-b border-surface-muted backdrop-blur-md bg-black/80">
-          <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-4">
             {/* Logo Brand */}
-            <Link href="/" className="flex items-center gap-3 group">
-              <span className="text-3xl font-extrabold tracking-tighter bg-gradient-to-r from-white via-accent-cyan to-accent-pink bg-clip-text text-transparent group-hover:opacity-90 transition-opacity">
+            <Link href="/" className="flex items-center gap-3 group shrink-0">
+              <span className="text-2xl sm:text-3xl font-extrabold tracking-tighter bg-gradient-to-r from-white via-accent-cyan to-accent-pink bg-clip-text text-transparent group-hover:opacity-90 transition-opacity">
                 GOSU®
               </span>
-              <span className="text-[10px] bg-surface-elevated border border-neutral-700 px-2 py-0.5 rounded-full text-accent-cyan font-mono tracking-widest uppercase">
+              <span className="hidden sm:inline-block text-[10px] bg-surface-elevated border border-neutral-700 px-2 py-0.5 rounded-full text-accent-cyan font-mono tracking-widest uppercase">
                 TCG GEAR
               </span>
             </Link>
 
-            {/* Enlaces de Categorías */}
-            <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-              <Link href="/" className="hover:text-accent-cyan transition-colors">
-                Inicio
-              </Link>
-              <Link href="/#catalog" className="hover:text-accent-cyan transition-colors">
-                Catálogo
-              </Link>
-              <Link href="/#bundles" className="hover:text-accent-pink transition-colors">
-                Packs & Bundles
-              </Link>
-              <Link href="/#affiliates" className="hover:text-accent-yellow transition-colors">
-                Afiliados
-              </Link>
-            </nav>
+            {/* Buscador Predictivo en Vivo */}
+            <div className="flex-1 max-w-sm">
+              <HeaderSearch />
+            </div>
 
             {/* Acciones: Selector de Moneda, Mi Cuenta, Carrito y Panel Admin */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <CurrencySwitcher />
 
               {/* Botón Mi Cuenta / Login */}
@@ -121,14 +111,14 @@ export default async function ShopLayout({
                 title={session ? "Mi Cuenta" : "Iniciar Sesión"}
               >
                 <User className="w-5 h-5 text-accent-pink" />
-                <span className="hidden sm:inline pr-1">
+                <span className="hidden lg:inline pr-1">
                   {session ? session.user?.name?.split(" ")[0] || "Cuenta" : "Cuenta"}
                 </span>
               </Link>
 
               <Link
                 href="/dashboard"
-                className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-elevated hover:bg-neutral-800 border border-neutral-700 text-xs font-semibold transition-colors"
+                className="hidden xl:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-elevated hover:bg-neutral-800 border border-neutral-700 text-xs font-semibold transition-colors"
               >
                 <LayoutDashboard className="w-3.5 h-3.5 text-accent-cyan" />
                 <span>Admin</span>

@@ -246,12 +246,17 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
             {relatedProducts.map((rel) => (
               <ProductCard
                 key={rel.id}
-                id={rel.id}
-                title={rel.title}
-                price={isPEN ? Number(rel.pricePEN || (Number(rel.basePrice) * 3.75).toFixed(2)) : Number(rel.priceUSD || rel.basePrice)}
-                compareAtPrice={rel.compareAtPrice ? Number(rel.compareAtPrice) : null}
-                imageUrl={rel.images[0]?.url || null}
-                categoryName={rel.category?.name || "Accesorios TCG"}
+                product={{
+                  id: rel.id,
+                  title: rel.title,
+                  priceUSD: Number(rel.priceUSD || rel.basePrice),
+                  pricePEN: Number(rel.pricePEN || (Number(rel.basePrice) * 3.75).toFixed(2)),
+                  stock: rel.stock,
+                  imageUrl: rel.images[0]?.url || null,
+                  isFamily: rel.isFamily,
+                  familyId: rel.familyId,
+                  categoryName: rel.category?.name || "Accesorios TCG",
+                }}
               />
             ))}
           </div>

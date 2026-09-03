@@ -137,19 +137,20 @@ export default async function HomePage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {products.map((product) => {
-            const displayPrice = isPEN
-              ? Number(product.pricePEN || (Number(product.basePrice) * 3.75).toFixed(2))
-              : Number(product.priceUSD || product.basePrice);
-
             return (
               <ProductCard
                 key={product.id}
-                id={product.id}
-                title={product.title}
-                price={displayPrice}
-                compareAtPrice={product.compareAtPrice ? Number(product.compareAtPrice) : null}
-                imageUrl={product.images?.[0]?.url || null}
-                categoryName={product.category?.name || "Accesorios TCG"}
+                product={{
+                  id: product.id,
+                  title: product.title,
+                  priceUSD: Number(product.priceUSD || product.basePrice),
+                  pricePEN: Number(product.pricePEN || (Number(product.basePrice) * 3.75).toFixed(2)),
+                  stock: product.stock,
+                  imageUrl: product.images?.[0]?.url || null,
+                  isFamily: product.isFamily,
+                  familyId: product.familyId,
+                  categoryName: product.category?.name || "Accesorios TCG",
+                }}
               />
             );
           })}
