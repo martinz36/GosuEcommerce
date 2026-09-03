@@ -52,7 +52,9 @@ export default function ExcelImportPage() {
             title,
             category,
             costPerItem,
+            cost: costPerItem,
             basePrice,
+            price: basePrice,
             imageUrl,
             productType,
           };

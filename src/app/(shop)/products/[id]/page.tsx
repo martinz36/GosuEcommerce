@@ -31,23 +31,8 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   const userCountry = cookieStore.get("user-country")?.value || "PE";
   const userCurrencyPref = cookieStore.get("user-currency")?.value;
 
-  let currencySymbol = userCurrencyPref === "PEN" || (userCountry === "PE" && !userCurrencyPref) ? "S/." : "$";
-  let exchangeRate = userCurrencyPref === "PEN" || (userCountry === "PE" && !userCurrencyPref) ? 3.75 : 1.00;
-
-  // Consultar Neon DB para obtener la tasa de cambio exacta de la región
-  try {
-    if (process.env.DATABASE_URL) {
-      const region = await prisma.regionConfig.findUnique({
-        where: { countryCode: userCountry },
-      });
-      if (region && region.isActive && !userCurrencyPref) {
-        currencySymbol = region.currencySymbol;
-        exchangeRate = Number(region.exchangeRate);
-      }
-    }
-  } catch (err) {
-    console.error("Error al consultar RegionConfig en PDP:", err);
-  }
+  const activeCurrency = userCurrencyPref || (userCountry === "PE" ? "PEN" : "USD");
+  const isPEN = activeCurrency === "PEN";
 
   // 2. Fetch del producto desde Neon Postgres vía Prisma ORM
   let product: any = null;
@@ -98,38 +83,26 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     console.error("Error buscando detalle del producto en Neon DB:", err);
   }
 
-  // Respaldo para productos de demostración estáticos
-  if (!product && id.startsWith("demo-")) {
-    const mockCatalog: Record<string, any> = {
-      "demo-1": {
-        id: "demo-1",
-        title: "GOSU® Armor Sleeves - Japanese Size (Matte Black)",
-        description: "Fundas protectoras de nivel profesional para juegos TCG (Yu-Gi-Oh!, Cardfight!! Vanguard). Textura Matte antideslizante en la parte trasera y frente ultra transparente libre de PVC y ácido para máxima durabilidad en torneos.",
-        basePrice: "14.99",
-        compareAtPrice: "19.99",
-        stock: 50,
-        sku: "GOSU-SLV-001",
-        isFamily: true,
-        familyId: "FAM-SLEEVES-MATTE",
-        category: { name: "Sleeves" },
-        images: [{ url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=60" }],
-      },
-    };
-
-    product = mockCatalog[id] || null;
-  }
-
   if (!product) {
     notFound();
   }
 
   const mainImage = product.images?.[0]?.url || null;
-  const rawBasePriceUSD = Number(product.basePrice);
-  const rawCompareAtUSD = product.compareAtPrice ? Number(product.compareAtPrice) : null;
 
-  // Formatear precio para la moneda activa de la región (S/. o $)
-  const displayPrice = `${currencySymbol}${(rawBasePriceUSD * exchangeRate).toFixed(2)}`;
-  const displayCompareAt = rawCompareAtUSD ? `${currencySymbol}${(rawCompareAtUSD * exchangeRate).toFixed(2)}` : null;
+  // Precios duales explícitos (sin depender de cálculos flotantes)
+  const priceUSD = Number(product.priceUSD || product.basePrice);
+  const pricePEN = Number(product.pricePEN || (priceUSD * 3.75).toFixed(2));
+
+  const compareUSD = product.compareAtPriceUSD || product.compareAtPrice ? Number(product.compareAtPriceUSD || product.compareAtPrice) : null;
+  const comparePEN = product.compareAtPricePEN ? Number(product.compareAtPricePEN) : (compareUSD ? Number((compareUSD * 3.75).toFixed(2)) : null);
+
+  const displayPrice = isPEN ? `S/. ${pricePEN.toFixed(2)}` : `$${priceUSD.toFixed(2)}`;
+  const displayCompareAt = isPEN
+    ? (comparePEN ? `S/. ${comparePEN.toFixed(2)}` : null)
+    : (compareUSD ? `$${compareUSD.toFixed(2)}` : null);
+
+  // Precio a enviar al carrito según la moneda activa
+  const cartPrice = isPEN ? pricePEN : priceUSD;
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 space-y-16">
@@ -144,7 +117,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
       {/* Layout de 2 Columnas en Desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-        {/* Columna Izquierda: Imagen Gigante de Cloudinary */}
+        {/* Columna Izquierda: Imagen Gigante */}
         <div className="bg-surface rounded-2xl border border-neutral-800 overflow-hidden relative aspect-square flex items-center justify-center group shadow-2xl">
           {mainImage ? (
             <img
@@ -171,7 +144,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
           </div>
         </div>
 
-        {/* Columna Derecha: Ficha Técnica, Precio Multi-Moneda y Botón Zustand */}
+        {/* Columna Derecha: Ficha Técnica, Precio Explícito (PEN / USD) y Botón Zustand */}
         <div className="space-y-8">
           <div>
             <span className="text-xs font-mono text-accent-cyan uppercase tracking-widest block mb-2">
@@ -242,12 +215,12 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
             <span>En Stock ({product.stock} unidades disponibles en inventario)</span>
           </div>
 
-          {/* Componente Cliente del Botón de Agregar al Carrito (Pasa el precio base USD) */}
+          {/* Componente Cliente del Botón de Agregar al Carrito */}
           <div className="space-y-4 pt-2">
             <AddToCartButton
               productId={product.id}
               productTitle={product.title}
-              price={rawBasePriceUSD}
+              price={cartPrice}
               imageUrl={mainImage}
             />
 
@@ -275,7 +248,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                 key={rel.id}
                 id={rel.id}
                 title={rel.title}
-                price={Number(rel.basePrice)}
+                price={isPEN ? Number(rel.pricePEN || (Number(rel.basePrice) * 3.75).toFixed(2)) : Number(rel.priceUSD || rel.basePrice)}
                 compareAtPrice={rel.compareAtPrice ? Number(rel.compareAtPrice) : null}
                 imageUrl={rel.images[0]?.url || null}
                 categoryName={rel.category?.name || "Accesorios TCG"}

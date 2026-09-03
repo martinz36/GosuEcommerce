@@ -101,8 +101,10 @@ export async function updateProductFullAction(id: string, formData: FormData): P
   try {
     const title = formData.get("title") as string;
     const sku = formData.get("sku") as string;
-    const basePriceStr = formData.get("basePrice") as string;
-    const costPerItemStr = formData.get("costPerItem") as string;
+    const priceUSDStr = formData.get("priceUSD") as string;
+    const pricePENStr = formData.get("pricePEN") as string;
+    const costUSDStr = formData.get("costUSD") as string;
+    const costPENStr = formData.get("costPEN") as string;
     const stockStr = formData.get("stock") as string;
     const uniqueId = formData.get("uniqueId") as string;
     const familyId = formData.get("familyId") as string;
@@ -110,10 +112,12 @@ export async function updateProductFullAction(id: string, formData: FormData): P
     const productType = formData.get("productType") as string;
     const description = formData.get("description") as string;
 
-    if (!title || !sku || !basePriceStr) return;
+    if (!title || !sku || !priceUSDStr || !pricePENStr) return;
 
-    const basePrice = parseFloat(basePriceStr);
-    const costPerItem = costPerItemStr ? parseFloat(costPerItemStr) : null;
+    const priceUSD = parseFloat(priceUSDStr);
+    const pricePEN = parseFloat(pricePENStr);
+    const costUSD = costUSDStr ? parseFloat(costUSDStr) : null;
+    const costPEN = costPENStr ? parseFloat(costPENStr) : null;
     const stock = stockStr ? parseInt(stockStr, 10) : 0;
     const isFamily = isFamilyStr === "true" || isFamilyStr === "on";
 
@@ -122,8 +126,12 @@ export async function updateProductFullAction(id: string, formData: FormData): P
       data: {
         title: title.trim(),
         sku: sku.trim(),
-        basePrice,
-        costPerItem,
+        priceUSD,
+        pricePEN,
+        basePrice: priceUSD,
+        costUSD,
+        costPEN,
+        costPerItem: costUSD,
         stock: Math.max(0, stock),
         uniqueId: uniqueId ? uniqueId.trim() : null,
         familyId: familyId ? familyId.trim() : null,
@@ -145,19 +153,19 @@ export async function createProductAction(formData: FormData) {
   try {
     const title = formData.get("title") as string;
     const sku = formData.get("sku") as string;
-    const basePriceStr = formData.get("basePrice") as string;
-    const costPerItemStr = formData.get("costPerItem") as string;
+    const priceUSDStr = formData.get("priceUSD") as string;
+    const pricePENStr = formData.get("pricePEN") as string;
     const stockStr = formData.get("stock") as string;
     const description = formData.get("description") as string;
     const categoryName = (formData.get("category") as string) || "General";
     const imageUrl = formData.get("imageUrl") as string;
 
-    if (!title || !sku || !basePriceStr) {
+    if (!title || !sku || !priceUSDStr) {
       return { success: false, error: "El título, SKU y precio son obligatorios." };
     }
 
-    const basePrice = parseFloat(basePriceStr);
-    const costPerItem = costPerItemStr ? parseFloat(costPerItemStr) : null;
+    const priceUSD = parseFloat(priceUSDStr);
+    const pricePEN = pricePENStr ? parseFloat(pricePENStr) : Math.round(priceUSD * 3.75 * 100) / 100;
     const stock = stockStr ? parseInt(stockStr, 10) : 100;
     const slug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${sku.toLowerCase()}`;
 
@@ -179,8 +187,9 @@ export async function createProductAction(formData: FormData) {
         title: title.trim(),
         sku: sku.trim(),
         slug: slug,
-        basePrice,
-        costPerItem,
+        priceUSD,
+        pricePEN,
+        basePrice: priceUSD,
         stock: Math.max(0, stock),
         description: description ? description.trim() : title,
         categoryId: category.id,

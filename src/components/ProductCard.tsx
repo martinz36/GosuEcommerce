@@ -6,17 +6,15 @@ import { motion } from "framer-motion";
 import { ShoppingBag, Image as ImageIcon } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { useStoreSettings } from "@/providers/StoreProvider";
-import { hoverScaleProps, smoothEase } from "@/lib/motion";
 
 export interface ProductCardProps {
   id: string;
   title: string;
-  price: string | number;
-  compareAtPrice?: string | number | null;
+  price: number; // Precio listo en la moneda activa (S/. o USD)
+  compareAtPrice?: number | null;
   imageUrl?: string | null;
   categoryName?: string;
-  badge?: string;
-  badgeColor?: string;
+  isFeatured?: boolean;
 }
 
 export function ProductCard({
@@ -26,21 +24,12 @@ export function ProductCard({
   compareAtPrice,
   imageUrl,
   categoryName = "Accesorios TCG",
-  badge,
-  badgeColor = "bg-accent-cyan text-black",
 }: ProductCardProps) {
   const addToCart = useCartStore((state) => state.addToCart);
-  const { formatPrice } = useStoreSettings();
+  const { currencySymbol } = useStoreSettings();
 
-  const numericPrice = typeof price === "number" ? price : parseFloat(price.replace(/[^0-9.]/g, ""));
-  const numericCompareAt = compareAtPrice
-    ? typeof compareAtPrice === "number"
-      ? compareAtPrice
-      : parseFloat(compareAtPrice.replace(/[^0-9.]/g, ""))
-    : null;
-
-  const formattedPrice = formatPrice(isNaN(numericPrice) ? 0 : numericPrice);
-  const formattedCompareAt = numericCompareAt && !isNaN(numericCompareAt) ? formatPrice(numericCompareAt) : null;
+  const formattedPrice = `${currencySymbol}${price.toFixed(2)}`;
+  const formattedCompareAt = compareAtPrice ? `${currencySymbol}${compareAtPrice.toFixed(2)}` : null;
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -49,79 +38,65 @@ export function ProductCard({
       id: id,
       productId: id,
       title: title,
-      price: isNaN(numericPrice) ? 0 : numericPrice,
-      imageUrl: imageUrl,
+      price: price,
+      imageUrl: imageUrl || undefined,
     });
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 25 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={smoothEase}
-      whileHover={{ y: -6 }}
-      className="group bg-surface rounded-card border border-neutral-800 overflow-hidden flex flex-col justify-between transition-all duration-300 hover:border-neutral-600 hover:shadow-card"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="group relative bg-surface rounded-2xl border border-neutral-800 hover:border-neutral-700 transition-all duration-300 overflow-hidden flex flex-col justify-between shadow-lg font-body"
     >
-      <Link href={`/products/${id}`} className="block flex-1">
-        {/* Contenedor de Imagen de Cloudinary con Zoom Framer Motion */}
-        <div className="relative aspect-square overflow-hidden bg-neutral-950 flex items-center justify-center">
+      <Link href={`/products/${id}`} className="block">
+        {/* Contenedor de Imagen con Efecto Hover Zoom */}
+        <div className="relative aspect-square w-full bg-neutral-950 overflow-hidden flex items-center justify-center">
           {imageUrl ? (
-            <motion.img
+            <img
               src={imageUrl}
               alt={title}
-              whileHover={{ scale: 1.05 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
           ) : (
             <div className="flex flex-col items-center gap-2 text-neutral-600">
               <ImageIcon className="w-10 h-10 stroke-[1.5]" />
-              <span className="text-[11px] font-mono uppercase tracking-wider">Sin Imagen</span>
+              <span className="text-[10px] font-mono uppercase tracking-widest">Sin Imagen</span>
             </div>
           )}
 
-          {/* Badge del Producto */}
-          {badge && (
-            <div className="absolute top-3 left-3 z-10">
-              <span className={`px-2.5 py-1 text-[11px] font-bold rounded-full uppercase tracking-wider shadow-sm ${badgeColor}`}>
-                {badge}
-              </span>
-            </div>
-          )}
+          {/* Categoría Badge */}
+          <div className="absolute top-3 left-3">
+            <span className="px-2.5 py-1 text-[10px] font-mono font-bold rounded-full bg-black/80 backdrop-blur-md border border-neutral-700 text-accent-cyan tracking-wider uppercase">
+              {categoryName}
+            </span>
+          </div>
+
+          {/* Botón Flotante Rápido de 'Agregar al Carrito' */}
+          <button
+            onClick={handleQuickAdd}
+            className="absolute bottom-3 right-3 p-3 rounded-full bg-white text-black font-bold shadow-xl opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 hover:bg-accent-cyan hover:scale-110"
+            title="Agregar rápido al carrito"
+          >
+            <ShoppingBag className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Ficha Técnica Corta */}
-        <div className="p-6">
-          <span className="text-xs font-mono text-accent-cyan uppercase tracking-widest block mb-2">
-            {categoryName}
-          </span>
-          <h3 className="font-bold text-lg leading-snug group-hover:text-accent-cyan transition-colors line-clamp-2">
+        {/* Ficha Corta del Producto */}
+        <div className="p-5 space-y-2">
+          <h3 className="font-bold text-sm text-white group-hover:text-accent-cyan transition-colors line-clamp-2 leading-snug">
             {title}
           </h3>
+
+          <div className="flex items-baseline gap-2 pt-1 font-mono">
+            <span className="text-base font-extrabold text-white">{formattedPrice}</span>
+            {formattedCompareAt && (
+              <span className="text-xs text-neutral-500 line-through">{formattedCompareAt}</span>
+            )}
+          </div>
         </div>
       </Link>
-
-      {/* Pie de Tarjeta - Precio Formateado en Moneda Local y Botón de Acción */}
-      <div className="p-6 pt-0 flex items-center justify-between mt-auto">
-        <div>
-          <span className="text-xl font-black text-white font-mono">{formattedPrice}</span>
-          {formattedCompareAt && (
-            <span className="text-sm text-neutral-500 line-through ml-2 font-mono">
-              {formattedCompareAt}
-            </span>
-          )}
-        </div>
-
-        <motion.button
-          {...hoverScaleProps}
-          onClick={handleQuickAdd}
-          className="btn-pill bg-white text-black font-bold hover:bg-accent-cyan transition-colors flex items-center gap-2"
-        >
-          <ShoppingBag className="w-4 h-4" />
-          <span>Agregar</span>
-        </motion.button>
-      </div>
     </motion.div>
   );
 }
