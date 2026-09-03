@@ -2,7 +2,46 @@
 
 import { prisma } from "@/lib/prisma";
 
-export async function validateDiscountCodeAction(code: string, subtotal: number) {
+/**
+ * Server Action para sincronizar silenciosamente la sesión del carrito abandonado en Neon DB.
+ */
+export async function syncCartSessionAction(
+  sessionId: string,
+  items: any[],
+  subtotal: number,
+  userEmail?: string | null
+) {
+  try {
+    if (!sessionId || !process.env.DATABASE_URL) return { success: false };
+
+    await prisma.cartSession.upsert({
+      where: { sessionId: sessionId },
+      update: {
+        itemsJson: items,
+        subtotal: subtotal,
+        userEmail: userEmail || undefined,
+        lastActiveAt: new Date(),
+      },
+      create: {
+        sessionId: sessionId,
+        itemsJson: items,
+        subtotal: subtotal,
+        userEmail: userEmail || undefined,
+        isConverted: false,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error sincronizando sesión del carrito en Neon DB:", error);
+    return { success: false };
+  }
+}
+
+/**
+ * Server Action para validar cupones de descuento y afiliados con reglas reales de Neon DB.
+ */
+export async function validateCouponAction(code: string, subtotal: number) {
   try {
     if (!code || !code.trim()) {
       return { success: false, error: "Por favor ingresa un código de descuento." };
@@ -22,7 +61,7 @@ export async function validateDiscountCodeAction(code: string, subtotal: number)
       console.error("Error consultando cupones en Neon DB:", dbErr);
     }
 
-    // 2. Soporte para códigos promocionales estáticos de prueba (GOSU10, PROMO20, ALEX_TCG) si no están creados aún en DB
+    // 2. Respaldo para códigos de demostración si no existen aún en la base de datos
     if (!discountCode) {
       const demoCodes: Record<string, any> = {
         GOSU10: { code: "GOSU10", type: "PERCENTAGE", value: 10, minPurchaseAmount: 10, isActive: true },
@@ -37,7 +76,7 @@ export async function validateDiscountCodeAction(code: string, subtotal: number)
       return { success: false, error: `El código "${cleanCode}" no existe o ha expirado.` };
     }
 
-    // 3. Validar estado del cupón
+    // 3. Validar estado y reglas de negocio del cupón
     if (!discountCode.isActive) {
       return { success: false, error: "Este código de descuento se encuentra inactivo." };
     }
@@ -59,7 +98,7 @@ export async function validateDiscountCodeAction(code: string, subtotal: number)
       };
     }
 
-    // 5. Calcular monto de descuento
+    // 5. Calcular monto de descuento y nuevo total
     const value = Number(discountCode.value);
     let discountAmount = 0;
 
@@ -71,8 +110,11 @@ export async function validateDiscountCodeAction(code: string, subtotal: number)
     } else if (discountCode.type === "FIXED_AMOUNT") {
       discountAmount = Math.min(subtotal, value);
     } else if (discountCode.type === "FREE_SHIPPING") {
-      discountAmount = 0; // Envío gratis
+      discountAmount = 0;
     }
+
+    const finalDiscount = Number(discountAmount.toFixed(2));
+    const newTotal = Math.max(0, subtotal - finalDiscount);
 
     return {
       success: true,
@@ -80,7 +122,8 @@ export async function validateDiscountCodeAction(code: string, subtotal: number)
         code: discountCode.code,
         type: discountCode.type as "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING",
         value: value,
-        discountAmount: Number(discountAmount.toFixed(2)),
+        discountAmount: finalDiscount,
+        newTotal: Number(newTotal.toFixed(2)),
       },
     };
   } catch (error: any) {

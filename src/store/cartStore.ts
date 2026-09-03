@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { syncCartSessionAction } from "@/app/(shop)/actions";
 
 export interface CartItem {
   id: string; // SKU o ID de combinación
@@ -19,9 +20,11 @@ export interface AppliedDiscount {
 }
 
 interface CartState {
+  sessionId: string;
   items: CartItem[];
   isOpen: boolean;
   discount: AppliedDiscount | null;
+  userEmail: string | null;
 
   // Acciones
   addToCart: (item: Omit<CartItem, "quantity">, quantity?: number) => void;
@@ -29,6 +32,7 @@ interface CartState {
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
   toggleCart: (open?: boolean) => void;
+  setUserEmail: (email: string) => void;
   applyDiscount: (discount: AppliedDiscount) => void;
   removeDiscount: () => void;
 
@@ -39,12 +43,35 @@ interface CartState {
   getTotal: () => number;
 }
 
+const getOrCreateSessionId = () => {
+  if (typeof window === "undefined") return "server_session";
+  let id = localStorage.getItem("gosu_session_id");
+  if (!id) {
+    id = `gosu_session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    localStorage.setItem("gosu_session_id", id);
+  }
+  return id;
+};
+
+// Función auxiliar para sincronizar silenciosamente con Neon DB
+const triggerCartSync = (sessionId: string, items: CartItem[], userEmail?: string | null) => {
+  if (typeof window === "undefined") return;
+  const subtotal = items.reduce((sub, item) => sub + item.price * item.quantity, 0);
+  
+  // Ejecutar Server Action en segundo plano (fire and forget)
+  syncCartSessionAction(sessionId, items, subtotal, userEmail).catch((err) => {
+    console.error("Error en sincronización silenciosa del carrito:", err);
+  });
+};
+
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
+      sessionId: getOrCreateSessionId(),
       items: [],
       isOpen: false,
       discount: null,
+      userEmail: null,
 
       addToCart: (itemData, quantity = 1) => {
         set((state) => {
@@ -57,36 +84,43 @@ export const useCartStore = create<CartState>()(
             newItems.push({ ...itemData, quantity });
           }
 
+          // Sincronización silenciosa con Neon DB
+          triggerCartSync(state.sessionId, newItems, state.userEmail);
+
           return {
             items: newItems,
-            isOpen: true, // Abrir automáticamente el drawer al agregar
+            isOpen: true,
           };
         });
       },
 
       removeFromCart: (id) => {
-        set((state) => ({
-          items: state.items.filter((item) => item.id !== id),
-        }));
+        set((state) => {
+          const newItems = state.items.filter((item) => item.id !== id);
+          triggerCartSync(state.sessionId, newItems, state.userEmail);
+          return { items: newItems };
+        });
       },
 
       updateQuantity: (id, quantity) => {
         set((state) => {
+          let newItems: CartItem[];
           if (quantity <= 0) {
-            return {
-              items: state.items.filter((item) => item.id !== id),
-            };
+            newItems = state.items.filter((item) => item.id !== id);
+          } else {
+            newItems = state.items.map((item) =>
+              item.id === id ? { ...item, quantity } : item
+            );
           }
 
-          return {
-            items: state.items.map((item) =>
-              item.id === id ? { ...item, quantity } : item
-            ),
-          };
+          triggerCartSync(state.sessionId, newItems, state.userEmail);
+          return { items: newItems };
         });
       },
 
       clearCart: () => {
+        const sessionId = get().sessionId;
+        triggerCartSync(sessionId, [], null);
         set({ items: [], discount: null });
       },
 
@@ -94,6 +128,13 @@ export const useCartStore = create<CartState>()(
         set((state) => ({
           isOpen: open !== undefined ? open : !state.isOpen,
         }));
+      },
+
+      setUserEmail: (email) => {
+        set((state) => {
+          triggerCartSync(state.sessionId, state.items, email);
+          return { userEmail: email };
+        });
       },
 
       applyDiscount: (discount) => {
@@ -135,8 +176,10 @@ export const useCartStore = create<CartState>()(
       name: "gosu-cart-storage",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
+        sessionId: state.sessionId,
         items: state.items,
         discount: state.discount,
+        userEmail: state.userEmail,
       }),
     }
   )
