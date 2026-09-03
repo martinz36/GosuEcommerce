@@ -1,0 +1,291 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ------------------------------------------------------
+// USER & AFFILIATES SYSTEM
+// ------------------------------------------------------
+enum Role {
+  CUSTOMER
+  AFFILIATE
+  ADMIN
+}
+
+model User {
+  id               String         @id @default(cuid())
+  email            String         @unique
+  passwordHash     String?
+  firstName        String?
+  lastName         String?
+  phone            String?
+  avatarUrl        String?        // Cloudinary URL
+  role             Role           @default(CUSTOMER)
+  
+  // Sistema de Referidos (Usuario invita Usuario)
+  referralCode     String?        @unique
+  referredById     String?
+  referredBy       User?          @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals        User[]         @relation("UserReferrals")
+  
+  // Relaciones E-commerce
+  addresses        Address[]
+  orders           Order[]
+  createdDiscounts DiscountCode[]  @relation("CreatedByAffiliate")
+  commissions      CommissionLog[]@relation("AffiliateCommissions")
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+model Address {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  street       String
+  city         String
+  state        String
+  postalCode   String
+  country      String
+  isDefault    Boolean  @default(false)
+  
+  orders       Order[]  @relation("ShippingAddress")
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ------------------------------------------------------
+// PRODUCTS & CATEGORIES (Cloudinary Ready)
+// ------------------------------------------------------
+model Category {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String?
+  imageUrl    String?    // Cloudinary URL
+  
+  parentId    String?
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+
+  products    Product[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Product {
+  id             String           @id @default(cuid())
+  title          String
+  slug           String           @unique
+  description    String
+  basePrice      Decimal          @db.Decimal(10, 2)
+  compareAtPrice Decimal?         @db.Decimal(10, 2)
+  costPerItem    Decimal?         @db.Decimal(10, 2)
+  sku            String           @unique
+  barcode        String?
+  stock          Int              @default(0)
+  isActive       Boolean          @default(true)
+  isFeatured     Boolean          @default(false)
+  
+  // Cloudinary Galería de Imágenes
+  images         ProductImage[]
+  
+  categoryId     String
+  category       Category         @relation(fields: [categoryId], references: [id])
+
+  variants       ProductVariant[]
+  bundleItems    BundleItem[]
+  orderItems     OrderItem[]
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String   // Cloudinary secure URL
+  publicId  String   // Cloudinary public ID para borrado/transformaciones
+  altText   String?
+  position  Int      @default(0)
+
+  createdAt DateTime @default(now())
+}
+
+model ProductVariant {
+  id             String      @id @default(cuid())
+  productId      String
+  product        Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name           String      // Ej: "Matte Black / Japanese Size"
+  sku            String      @unique
+  price          Decimal     @db.Decimal(10, 2)
+  stock          Int         @default(0)
+  imageUrl       String?     // Cloudinary URL específica de variante
+
+  orderItems     OrderItem[]
+  bundleItems    BundleItem[]
+
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+// ------------------------------------------------------
+// BUNDLES & PACKS (Promociones Agrupadas)
+// ------------------------------------------------------
+model Bundle {
+  id             String       @id @default(cuid())
+  title          String
+  slug           String       @unique
+  description    String
+  bundlePrice    Decimal      @db.Decimal(10, 2)
+  compareAtPrice Decimal?     @db.Decimal(10, 2)
+  imageUrl       String?      // Cloudinary URL del Pack
+  isActive       Boolean      @default(true)
+  startDate      DateTime?
+  endDate        DateTime?
+
+  items          BundleItem[]
+  orderItems     OrderItem[]
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model BundleItem {
+  id          String          @id @default(cuid())
+  bundleId    String
+  bundle      Bundle          @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product         @relation(fields: [productId], references: [id])
+  variantId   String?
+  variant     ProductVariant? @relation(fields: [variantId], references: [id])
+  quantity    Int             @default(1)
+}
+
+// ------------------------------------------------------
+// PROMOTIONS, REFERRALS & AFFILIATE CODES
+// ------------------------------------------------------
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  FREE_SHIPPING
+}
+
+enum DiscountCategory {
+  PROMO       // Cupón estándar de tienda
+  REFERRAL    // Descuento otorgado por programa de referidos
+  AFFILIATE   // Código de creador/afiliado con comisión
+}
+
+model DiscountCode {
+  id                String           @id @default(cuid())
+  code              String           @unique // Ej: "GOSU10", "ALEX_TCG"
+  type              DiscountType
+  category          DiscountCategory @default(PROMO)
+  value             Decimal          @db.Decimal(10, 2) // % o Monto Fijo
+  minPurchaseAmount Decimal?         @db.Decimal(10, 2)
+  maxDiscountAmount Decimal?         @db.Decimal(10, 2)
+  usageLimit        Int?             // Máximo de usos globales
+  usageCount        Int              @default(0)
+  isActive          Boolean          @default(true)
+  expiresAt         DateTime?
+  
+  // Afiliado o Creador dueño del código
+  createdById       String?
+  createdBy         User?            @relation("CreatedByAffiliate", fields: [createdById], references: [id], onDelete: SetNull)
+  commissionRate    Decimal?         @default(10.00) @db.Decimal(5, 2) // % de comisión para el afiliado
+
+  orders            Order[]
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+}
+
+// ------------------------------------------------------
+// ORDERS & STRIPE PAYMENTS ENGINE
+// ------------------------------------------------------
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+model Order {
+  id                      String         @id @default(cuid())
+  orderNumber             String         @unique // Ej: "GOSU-10001"
+  
+  // Cliente (opcional para Guest Checkout)
+  userId                  String?
+  user                    User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  guestEmail              String?
+
+  // Estado del Pedido y Stripe
+  status                  OrderStatus    @default(PENDING)
+  stripePaymentIntentId   String?        @unique
+  stripeCheckoutSessionId String?        @unique
+
+  // Desglose Financiero
+  subtotal                Decimal        @db.Decimal(10, 2)
+  discountAmount          Decimal        @default(0.00) @db.Decimal(10, 2)
+  taxAmount               Decimal        @default(0.00) @db.Decimal(10, 2)
+  shippingAmount          Decimal        @default(0.00) @db.Decimal(10, 2)
+  totalAmount             Decimal        @db.Decimal(10, 2)
+
+  // Descuento Aplicado
+  discountCodeId          String?
+  discountCode            DiscountCode?  @relation(fields: [discountCodeId], references: [id])
+
+  // Envío y Seguimiento
+  shippingAddressId       String?
+  shippingAddress         Address?       @relation("ShippingAddress", fields: [shippingAddressId], references: [id])
+  shippingAddressJson     Json?          // Snapshot de dirección en el momento de la compra
+  trackingNumber          String?
+  trackingUrl             String?
+
+  items                   OrderItem[]
+  commissions             CommissionLog[]
+
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+}
+
+model OrderItem {
+  id              String          @id @default(cuid())
+  orderId         String
+  order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  productId       String?
+  product         Product?        @relation(fields: [productId], references: [id])
+  variantId       String?
+  variant         ProductVariant? @relation(fields: [variantId], references: [id])
+  bundleId        String?
+  bundle          Bundle?         @relation(fields: [bundleId], references: [id])
+
+  quantity        Int
+  unitPrice       Decimal         @db.Decimal(10, 2)
+  totalPrice      Decimal         @db.Decimal(10, 2)
+}
+
+model CommissionLog {
+  id               String   @id @default(cuid())
+  orderId          String
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  affiliateId      String
+  affiliate        User     @relation("AffiliateCommissions", fields: [affiliateId], references: [id])
+  commissionAmount Decimal  @db.Decimal(10, 2)
+  isPaid           Boolean  @default(false)
+  paidAt           DateTime?
+
+  createdAt        DateTime @default(now())
+}

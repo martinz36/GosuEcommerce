@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-inter: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-open-sauce: 'Open Sauce One', sans-serif;
+    --font-sigher: 'Sigher Regular', cursive;
+  }
+
+  body {
+    @apply bg-black text-white font-body antialiased selection:bg-accent-cyan selection:text-black;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
+  }
+}
+
+/* Custom UI Utilities */
+.glass-panel {
+  background: rgba(17, 17, 17, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.brutalist-border {
+  border: 1px solid #FFFFFF;
+}
+
+.btn-pill {
+  @apply rounded-full px-6 py-3 font-semibold text-sm transition-all duration-200 ease-out active:scale-95;
+}
