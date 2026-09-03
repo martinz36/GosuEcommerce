@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -15,24 +16,31 @@ import {
   Loader2,
   Image as ImageIcon,
   Truck,
-  Sparkles
+  Sparkles,
+  Award,
+  Gift
 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { useStoreSettings } from "@/providers/StoreProvider";
 import { validateCouponAction } from "@/app/(shop)/actions";
 
 export function CartDrawer() {
+  const { data: session } = useSession();
   const {
     items,
     isOpen,
     discount,
+    loyaltyPointsUsed,
     toggleCart,
     updateQuantity,
     removeFromCart,
     applyDiscount,
     removeDiscount,
+    applyLoyaltyPoints,
+    removeLoyaltyPoints,
     getSubtotal,
     getDiscountAmount,
+    getLoyaltyDiscountAmount,
     getTotalItems,
   } = useCartStore();
 
@@ -46,18 +54,20 @@ export function CartDrawer() {
     formatPrice,
   } = useStoreSettings();
 
+  const isPEN = currency === "PEN";
+
   // Estados locales para validación de cupones
   const [couponInput, setCouponInput] = useState("");
   const [isValidating, setIsValidating] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponSuccess, setCouponSuccess] = useState<string | null>(null);
 
-  const rawSubtotalUSD = getSubtotal();
-  const rawDiscountUSD = getDiscountAmount();
+  const displaySubtotal = getSubtotal();
+  const displayDiscount = getDiscountAmount();
 
-  // Convertir montos según la moneda activa de la región (PEN / USD)
-  const displaySubtotal = rawSubtotalUSD * exchangeRate;
-  const displayDiscount = rawDiscountUSD * exchangeRate;
+  // Puntos disponibles del usuario autenticado
+  const userLoyaltyPoints = (session?.user as any)?.loyaltyPoints || 0;
+  const displayLoyaltyDiscount = getLoyaltyDiscountAmount(exchangeRate, isPEN);
 
   // Cálculo dinámico de Envío Gratis según la meta de la Región
   const isFreeShipping = displaySubtotal >= freeShippingThreshold;
@@ -65,7 +75,7 @@ export function CartDrawer() {
   const remainingForFreeShipping = Math.max(0, freeShippingThreshold - displaySubtotal);
   const shippingProgress = Math.min(100, (displaySubtotal / freeShippingThreshold) * 100);
 
-  const displayFinalTotal = Math.max(0, displaySubtotal - displayDiscount + displayShippingCost);
+  const displayFinalTotal = Math.max(0, displaySubtotal - displayDiscount - displayLoyaltyDiscount + displayShippingCost);
   const totalItems = getTotalItems();
 
   const handleApplyCoupon = async (e: React.FormEvent) => {
@@ -76,7 +86,7 @@ export function CartDrawer() {
     setCouponError(null);
     setCouponSuccess(null);
 
-    const result = await validateCouponAction(couponInput, rawSubtotalUSD);
+    const result = await validateCouponAction(couponInput, displaySubtotal);
 
     if (result.success && result.discount) {
       applyDiscount({
@@ -92,6 +102,14 @@ export function CartDrawer() {
     }
 
     setIsValidating(false);
+  };
+
+  const handleToggleLoyaltyPoints = () => {
+    if (loyaltyPointsUsed > 0) {
+      removeLoyaltyPoints();
+    } else {
+      applyLoyaltyPoints(userLoyaltyPoints > 0 ? userLoyaltyPoints : 50);
+    }
   };
 
   return (
@@ -205,7 +223,7 @@ export function CartDrawer() {
                         {item.title}
                       </h4>
                       <span className="text-xs font-mono text-accent-cyan block">
-                        {formatPrice(item.price)}
+                        {currencySymbol}{item.price.toFixed(2)}
                       </span>
 
                       {/* Controles + / - */}
@@ -241,9 +259,35 @@ export function CartDrawer() {
               )}
             </div>
 
-            {/* Pie del Carrito: Descuentos, Totales por Región y Checkout */}
+            {/* Pie del Carrito: Puntos GOSU, Cupones, Totales y Checkout */}
             {items.length > 0 && (
               <div className="p-6 border-t border-neutral-800 bg-surface space-y-4">
+                {/* Caja de Canje de Puntos GOSU Loyalty */}
+                <div className="p-3 bg-gradient-to-r from-accent-pink/10 to-purple-900/10 border border-accent-pink/30 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <Award className="w-5 h-5 text-accent-pink shrink-0" />
+                    <div>
+                      <span className="font-mono font-bold text-xs text-white block leading-tight">
+                        Puntos GOSU®: {userLoyaltyPoints || 50} pts
+                      </span>
+                      <span className="text-[11px] text-neutral-400">
+                        {isPEN ? "Descuento de S/. 5.00 PEN" : "Descuento de $1.25 USD"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleToggleLoyaltyPoints}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-colors ${
+                      loyaltyPointsUsed > 0
+                        ? "bg-accent-pink text-white hover:bg-rose-600"
+                        : "bg-white text-black hover:bg-accent-pink hover:text-white"
+                    }`}
+                  >
+                    {loyaltyPointsUsed > 0 ? "Aplicado" : "Canjear"}
+                  </button>
+                </div>
+
                 {/* Formulario de Código de Descuento */}
                 <div>
                   <form onSubmit={handleApplyCoupon} className="flex gap-2">
@@ -314,8 +358,15 @@ export function CartDrawer() {
 
                   {displayDiscount > 0 && (
                     <div className="flex justify-between text-accent-pink font-semibold">
-                      <span>Descuento aplicado</span>
+                      <span>Descuento Cupón</span>
                       <span className="font-mono">-{currencySymbol}{displayDiscount.toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  {displayLoyaltyDiscount > 0 && (
+                    <div className="flex justify-between text-purple-400 font-semibold">
+                      <span>Descuento Puntos GOSU®</span>
+                      <span className="font-mono">-{currencySymbol}{displayLoyaltyDiscount.toFixed(2)}</span>
                     </div>
                   )}
 
@@ -328,7 +379,7 @@ export function CartDrawer() {
                 {/* Botón de Checkout */}
                 <button
                   onClick={() => {
-                    alert(`Iniciando Checkout Stripe por ${currencySymbol}${displayFinalTotal.toFixed(2)} ${currency} (${countryCode})`);
+                    alert(`Iniciando Checkout GOSU por ${currencySymbol}${displayFinalTotal.toFixed(2)} ${currency} (${countryCode})`);
                   }}
                   className="w-full btn-pill bg-white text-black font-extrabold text-sm py-3.5 hover:bg-accent-cyan transition-colors flex items-center justify-center gap-2 shadow-lg shadow-white/10"
                 >

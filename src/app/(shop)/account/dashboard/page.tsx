@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
-import { User, Award, ShoppingBag, LogOut, Shield, ChevronRight } from "lucide-react";
+import { User, Award, ShoppingBag, LogOut, Shield, ChevronRight, Sparkles, Trophy, Flame } from "lucide-react";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/prisma";
 import { SignOutButton } from "@/components/SignOutButton";
@@ -46,6 +46,26 @@ export default async function CustomerDashboardPage() {
   const loyaltyPoints = dbUser?.loyaltyPoints || (session.user as any).loyaltyPoints || 0;
   const role = dbUser?.role || (session.user as any).role || "CUSTOMER";
 
+  // Lógica de Rangos Gamificados GOSU Master TCG
+  let rankTitle = "Nivel ROOKIE 🥉";
+  let rankBadgeColor = "border-emerald-500/30 text-emerald-400 bg-emerald-500/10";
+  let nextRankPoints = 100;
+  let rankProgress = Math.min(100, (loyaltyPoints / 100) * 100);
+
+  if (loyaltyPoints >= 500) {
+    rankTitle = "Nivel GOSU MASTER 🥇";
+    rankBadgeColor = "border-amber-500/50 text-amber-400 bg-amber-500/10 font-bold shadow-lg shadow-amber-500/10";
+    nextRankPoints = 500;
+    rankProgress = 100;
+  } else if (loyaltyPoints >= 100) {
+    rankTitle = "Nivel COMPETITIVE 🥈";
+    rankBadgeColor = "border-purple-500/40 text-purple-300 bg-purple-500/10";
+    nextRankPoints = 500;
+    rankProgress = Math.min(100, ((loyaltyPoints - 100) / 400) * 100);
+  }
+
+  const ptsNeeded = Math.max(0, nextRankPoints - loyaltyPoints);
+
   return (
     <div className="max-w-5xl mx-auto px-6 py-12 space-y-8 font-body">
       {/* Header del Cliente */}
@@ -55,10 +75,15 @@ export default async function CustomerDashboardPage() {
             {userName.substring(0, 2)}
           </div>
           <div>
-            <span className="text-xs font-mono text-accent-cyan uppercase tracking-widest block">
-              BIENVENIDO DE VUELTA
-            </span>
-            <h1 className="text-2xl md:text-3xl font-extrabold uppercase tracking-tight text-white">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-accent-cyan uppercase tracking-widest">
+                JUGADOR TCG
+              </span>
+              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono border ${rankBadgeColor}`}>
+                {rankTitle}
+              </span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-extrabold uppercase tracking-tight text-white mt-0.5">
               {userName}
             </h1>
             <span className="text-xs text-neutral-400 font-mono">{userEmail}</span>
@@ -70,23 +95,40 @@ export default async function CustomerDashboardPage() {
         </div>
       </div>
 
-      {/* Tarjetas de Estadísticas & Puntos de Fidelidad */}
+      {/* Tarjetas de Estadísticas & Rangos Gamificados */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        {/* Tarjeta de Puntos de Fidelización */}
-        <div className="p-6 bg-gradient-to-br from-neutral-900 to-black rounded-2xl border border-accent-pink/30 shadow-lg relative overflow-hidden">
-          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-accent-pink/10 rounded-full blur-xl pointer-events-none" />
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-mono font-bold text-accent-pink uppercase tracking-widest">
-              PROGRAMA GOSU® LOYALTY
+        {/* Tarjeta de Puntos de Fidelización & Rango */}
+        <div className="p-6 bg-gradient-to-br from-neutral-900 via-black to-neutral-950 rounded-2xl border border-accent-pink/40 shadow-xl relative overflow-hidden space-y-3">
+          <div className="absolute -right-4 -bottom-4 w-28 h-28 bg-accent-pink/10 rounded-full blur-xl pointer-events-none" />
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono font-bold text-accent-pink uppercase tracking-widest flex items-center gap-1.5">
+              <Trophy className="w-4 h-4" /> GOSU® LOYALTY
             </span>
             <Award className="w-6 h-6 text-accent-pink" />
           </div>
-          <span className="text-4xl font-black text-white font-mono block">
-            {loyaltyPoints}
-          </span>
-          <span className="text-xs text-neutral-400 block mt-1">
-            Puntos acumulados para canjear en tus próximas compras.
-          </span>
+
+          <div>
+            <span className="text-4xl font-black text-white font-mono block">
+              {loyaltyPoints} <span className="text-xs text-neutral-400 font-normal">pts</span>
+            </span>
+            <span className="text-xs text-neutral-300 block font-semibold mt-0.5">
+              = S/. {(loyaltyPoints / 10).toFixed(2)} PEN de descuento en carrito
+            </span>
+          </div>
+
+          {/* Barra de Progreso del Rango */}
+          <div className="pt-2 border-t border-neutral-800 space-y-1">
+            <div className="flex justify-between text-[11px] font-mono text-neutral-400">
+              <span>Rango Actual</span>
+              <span>{loyaltyPoints >= 500 ? "Nivel Máximo GOSU" : `Faltan ${ptsNeeded} pts`}</span>
+            </div>
+            <div className="w-full h-2 bg-neutral-900 rounded-full overflow-hidden border border-neutral-800">
+              <div
+                className="h-full bg-gradient-to-r from-accent-cyan via-accent-pink to-accent-yellow transition-all duration-500"
+                style={{ width: `${rankProgress}%` }}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Tarjeta de Historial de Órdenes */}
@@ -111,20 +153,20 @@ export default async function CustomerDashboardPage() {
           </div>
         </div>
 
-        {/* Tarjeta de Nivel / Rol */}
+        {/* Tarjeta de Rango TCG */}
         <div className="p-6 bg-surface rounded-2xl border border-neutral-800 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-mono font-bold text-neutral-400 uppercase tracking-widest">
-              TIPO DE CUENTA
+              NIVEL DE JUGADOR
             </span>
-            <Shield className="w-5 h-5 text-accent-yellow" />
+            <Flame className="w-5 h-5 text-accent-yellow" />
           </div>
           <div>
-            <span className="text-xl font-extrabold text-white font-mono uppercase block">
-              {role}
+            <span className="text-lg font-extrabold text-white font-mono uppercase block">
+              {rankTitle}
             </span>
             <span className="text-xs text-neutral-400 block mt-1">
-              Miembro desde {dbUser ? new Date(dbUser.createdAt).toLocaleDateString() : "2026"}
+              Miembro registrado • Rol: {role}
             </span>
           </div>
         </div>
