@@ -16,7 +16,11 @@ export interface ExcelProductInput {
   productType?: string;
 }
 
-export async function bulkImportProductsAction(products: ExcelProductInput[]) {
+export async function bulkImportProductsAction(
+  products: ExcelProductInput[],
+  sourceCurrency: "PEN" | "USD" = "USD",
+  exchangeRate: number = 3.75
+) {
   try {
     if (!products || products.length === 0) {
       return { success: false, error: "No se enviaron productos para importar." };
@@ -25,12 +29,18 @@ export async function bulkImportProductsAction(products: ExcelProductInput[]) {
     let createdCount = 0;
     let updatedCount = 0;
 
+    const rate = exchangeRate && exchangeRate > 0 ? exchangeRate : 3.75;
+
     for (const p of products) {
       if (!p.sku || !p.title || !p.basePrice) continue;
 
       const cleanSku = p.sku.trim();
       const categoryName = p.category?.trim() || "General";
       const slug = `${p.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${cleanSku.toLowerCase()}`;
+
+      // Convertir precios a USD base si el Excel está en PEN (Soles)
+      const basePriceUSD = sourceCurrency === "PEN" ? p.basePrice / rate : p.basePrice;
+      const costPerItemUSD = p.costPerItem ? (sourceCurrency === "PEN" ? p.costPerItem / rate : p.costPerItem) : null;
 
       // 1. Asegurar la existencia de la categoría
       let category = await prisma.category.findFirst({
@@ -58,8 +68,8 @@ export async function bulkImportProductsAction(products: ExcelProductInput[]) {
           where: { id: existingProduct.id },
           data: {
             title: p.title,
-            basePrice: p.basePrice,
-            costPerItem: p.costPerItem || null,
+            basePrice: Number(basePriceUSD.toFixed(2)),
+            costPerItem: costPerItemUSD ? Number(costPerItemUSD.toFixed(2)) : null,
             uniqueId: p.uniqueId ? p.uniqueId.trim() : null,
             isFamily: p.isFamily || false,
             familyId: p.familyId ? p.familyId.trim() : null,
@@ -68,7 +78,7 @@ export async function bulkImportProductsAction(products: ExcelProductInput[]) {
           },
         });
 
-        if (p.imageUrl) {
+        if (p.imageUrl && p.imageUrl.startsWith("http")) {
           await prisma.productImage.create({
             data: {
               productId: existingProduct.id,
@@ -86,8 +96,8 @@ export async function bulkImportProductsAction(products: ExcelProductInput[]) {
             slug: slug,
             title: p.title,
             description: `${p.title} - ${p.productType || 'Accesorio TCG'}`,
-            basePrice: p.basePrice,
-            costPerItem: p.costPerItem || null,
+            basePrice: Number(basePriceUSD.toFixed(2)),
+            costPerItem: costPerItemUSD ? Number(costPerItemUSD.toFixed(2)) : null,
             stock: 100,
             uniqueId: p.uniqueId ? p.uniqueId.trim() : null,
             isFamily: p.isFamily || false,
@@ -98,7 +108,7 @@ export async function bulkImportProductsAction(products: ExcelProductInput[]) {
           },
         });
 
-        if (p.imageUrl) {
+        if (p.imageUrl && p.imageUrl.startsWith("http")) {
           await prisma.productImage.create({
             data: {
               productId: newProduct.id,
@@ -115,12 +125,13 @@ export async function bulkImportProductsAction(products: ExcelProductInput[]) {
     revalidatePath("/dashboard/products");
     revalidatePath("/");
 
+    const currencyLabel = sourceCurrency === "PEN" ? `Soles PEN (Tasa: ${rate})` : "Dólares USD";
     return {
       success: true,
-      message: `Importación completada en Neon DB: ${createdCount} creados, ${updatedCount} actualizados.`,
+      message: `Importación completada en Neon DB en ${currencyLabel}: ${createdCount} creados, ${updatedCount} actualizados.`,
     };
   } catch (error: any) {
     console.error("Error en importación masiva desde Excel:", error);
-    return { success: false, error: error?.message || "Ocurrió un error al procesar el archivo Excel." };
+    return { success: false, error: error?.message || "Ocurrió un error al procesar la importación en Neon DB." };
   }
 }
