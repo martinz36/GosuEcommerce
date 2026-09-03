@@ -1,10 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ShoppingBag, Zap, ShieldCheck, Sparkles, Tag, Users } from "lucide-react";
+import { ShoppingBag, Zap, ShieldCheck, Sparkles, Tag, Users, LayoutDashboard } from "lucide-react";
+import Link from "next/link";
 import { hoverScaleProps, staggerContainerVariants, cardFadeUpVariants } from "@/lib/motion";
 
-export default function Home() {
+export default function StoreHomePage() {
   const featuredProducts = [
     {
       id: "prod-1",
@@ -59,6 +60,14 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-4">
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-surface-elevated hover:bg-neutral-800 border border-neutral-700 text-xs font-semibold transition-colors"
+            >
+              <LayoutDashboard className="w-4 h-4 text-accent-cyan" />
+              <span>Panel Admin</span>
+            </Link>
+
             <motion.button
               {...hoverScaleProps}
               className="relative p-2.5 bg-surface-elevated hover:bg-neutral-800 rounded-full border border-neutral-800 transition-colors"
@@ -118,13 +127,12 @@ export default function Home() {
             >
               Explorar Productos
             </motion.a>
-            <motion.a
-              href="#affiliates"
-              {...hoverScaleProps}
+            <Link
+              href="/dashboard/products/new"
               className="btn-pill glass-panel text-white font-medium border border-neutral-700 hover:border-accent-pink transition-colors"
             >
-              Ver Packs & Afiliados
-            </motion.a>
+              + Crear Producto (Admin)
+            </Link>
           </motion.div>
         </div>
       </section>
@@ -170,12 +178,6 @@ export default function Home() {
           <div>
             <h2 className="text-3xl font-extrabold uppercase tracking-tight">PRODUCTOS DESTACADOS</h2>
             <p className="text-neutral-400 text-sm mt-1">Diseño de tarjetas de producto con tokens extraídos del Design System de Framer</p>
-          </div>
-          <div className="mt-4 md:mt-0 flex gap-2 font-mono text-xs">
-            <button className="px-4 py-2 rounded-full bg-white text-black font-bold">TODOS</button>
-            <button className="px-4 py-2 rounded-full bg-surface-elevated text-neutral-300 hover:text-white border border-neutral-800">SLEEVES</button>
-            <button className="px-4 py-2 rounded-full bg-surface-elevated text-neutral-300 hover:text-white border border-neutral-800">BINDERS</button>
-            <button className="px-4 py-2 rounded-full bg-surface-elevated text-neutral-300 hover:text-white border border-neutral-800">PACKS</button>
           </div>
         </div>
 
@@ -237,40 +239,6 @@ export default function Home() {
             </motion.div>
           ))}
         </motion.div>
-      </section>
-
-      {/* Code Demo Banner / Referral System Showcase */}
-      <section id="affiliates" className="py-16 px-6 bg-surface border-t border-surface-muted">
-        <div className="max-w-7xl mx-auto bg-black rounded-2xl border border-neutral-800 p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
-          <div className="absolute right-0 top-0 w-96 h-96 bg-accent-pink/10 blur-[100px] pointer-events-none" />
-
-          <div className="max-w-xl">
-            <div className="inline-flex items-center gap-2 text-accent-pink text-xs font-mono mb-4">
-              <Tag className="w-4 h-4" />
-              <span>MOTOR DE DESCUENTOS Y AFILIADOS</span>
-            </div>
-            <h2 className="text-3xl font-extrabold uppercase mb-4">
-              APLICA TU CÓDIGO DE CREADOR O REFERIDO
-            </h2>
-            <p className="text-neutral-400 text-sm leading-relaxed">
-              El esquema Prisma implementa validaciones de cupones por porcentaje, monto fijo o comisión de afiliado en tiempo real.
-            </p>
-          </div>
-
-          <div className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
-            <input
-              type="text"
-              placeholder="Ej: GOSU10 o ALEX_TCG"
-              className="px-5 py-3.5 bg-surface-elevated border border-neutral-700 rounded-full text-sm font-mono focus:outline-none focus:border-accent-cyan uppercase text-white placeholder:text-neutral-600"
-            />
-            <motion.button
-              {...hoverScaleProps}
-              className="btn-pill bg-accent-cyan text-black font-extrabold hover:bg-white transition-colors"
-            >
-              Aplicar Código
-            </motion.button>
-          </div>
-        </div>
       </section>
 
       {/* Footer */}
