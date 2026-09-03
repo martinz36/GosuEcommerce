@@ -24,7 +24,8 @@ import { useStoreSettings } from "@/providers/StoreProvider";
 import { validateCouponAction } from "@/app/(shop)/actions";
 
 export function CartDrawer() {
-  const { data: session } = useSession();
+  const sessionResult = useSession();
+  const session = sessionResult?.data;
   const {
     items,
     isOpen,

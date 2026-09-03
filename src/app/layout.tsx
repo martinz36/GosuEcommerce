@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { NextAuthProvider } from "@/providers/NextAuthProvider";
 
 export const metadata: Metadata = {
   title: "GOSU® | Premium TCG Accessories for Players & Collectors",
@@ -14,7 +15,9 @@ export default function RootLayout({
   return (
     <html lang="es" className="dark">
       <body className="min-h-screen bg-black text-white selection:bg-accent-cyan selection:text-black">
-        {children}
+        <NextAuthProvider>
+          {children}
+        </NextAuthProvider>
       </body>
     </html>
   );
