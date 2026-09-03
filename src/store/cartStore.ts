@@ -3,10 +3,10 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { syncCartSessionAction } from "@/app/(shop)/actions";
 
 export interface CartItem {
-  id: string; // SKU o ID de variante
+  id: string;
   productId: string;
   title: string;
-  price: number; // Precio base en la moneda activa
+  price: number;
   imageUrl?: string | null;
   quantity: number;
 }
@@ -24,7 +24,6 @@ interface CartState {
   discount: AppliedDiscount | null;
   loyaltyPointsUsed: number;
 
-  // Acciones principales
   addToCart: (product: Omit<CartItem, "quantity">) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
@@ -35,14 +34,12 @@ interface CartState {
   applyLoyaltyPoints: (points: number) => void;
   removeLoyaltyPoints: () => void;
 
-  // Cálculos dinámicos
   getSubtotal: () => number;
   getDiscountAmount: () => number;
   getLoyaltyDiscountAmount: (exchangeRate: number, isPEN: boolean) => number;
   getTotalItems: () => number;
 }
 
-// Helper para sincronizar sesión en segundo plano silenciosamente
 const triggerSilentSync = (items: CartItem[], subtotal: number) => {
   if (typeof window !== "undefined") {
     let sessionId = localStorage.getItem("gosu_session_id");
@@ -144,14 +141,15 @@ export const useCartStore = create<CartState>()(
         return discount.discountAmount;
       },
 
-      // 10 Puntos = S/. 1.00 PEN de descuento (o $0.25 USD)
+      // NUEVA REGLA ESTRICTA DE CASHBACK DE NEGOCIO: 40 PUNTOS = S/. 1.00 PEN DE DESCUENTO (2.5%)
       getLoyaltyDiscountAmount: (exchangeRate: number, isPEN: boolean) => {
         const points = get().loyaltyPointsUsed;
         if (!points || points <= 0) return 0;
+        const discountInPEN = points / 40; // 40 pts = S/. 1.00 PEN
         if (isPEN) {
-          return points / 10; // 50 pts = S/. 5.00 PEN
+          return discountInPEN;
         } else {
-          return (points / 10) / exchangeRate; // 50 pts en USD
+          return exchangeRate > 0 ? discountInPEN / exchangeRate : discountInPEN;
         }
       },
 

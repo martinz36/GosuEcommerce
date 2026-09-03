@@ -17,8 +17,7 @@ import {
   Image as ImageIcon,
   Truck,
   Sparkles,
-  Award,
-  Gift
+  Award
 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { useStoreSettings } from "@/providers/StoreProvider";
@@ -51,7 +50,6 @@ export function CartDrawer() {
     currency,
     exchangeRate,
     countryCode,
-    formatPrice,
   } = useStoreSettings();
 
   const isPEN = currency === "PEN";
@@ -67,6 +65,12 @@ export function CartDrawer() {
 
   // Puntos disponibles del usuario autenticado
   const userLoyaltyPoints = (session?.user as any)?.loyaltyPoints || 0;
+  const activePointsToRedeem = userLoyaltyPoints > 0 ? userLoyaltyPoints : 50;
+
+  // Nueva regla estricta: 40 Puntos = S/. 1.00 PEN de descuento (2.5%)
+  const calculatedPointsDiscountPEN = activePointsToRedeem / 40;
+  const calculatedPointsDiscountUSD = exchangeRate > 0 ? calculatedPointsDiscountPEN / exchangeRate : calculatedPointsDiscountPEN;
+
   const displayLoyaltyDiscount = getLoyaltyDiscountAmount(exchangeRate, isPEN);
 
   // Cálculo dinámico de Envío Gratis según la meta de la Región
@@ -108,7 +112,7 @@ export function CartDrawer() {
     if (loyaltyPointsUsed > 0) {
       removeLoyaltyPoints();
     } else {
-      applyLoyaltyPoints(userLoyaltyPoints > 0 ? userLoyaltyPoints : 50);
+      applyLoyaltyPoints(activePointsToRedeem);
     }
   };
 
@@ -259,19 +263,21 @@ export function CartDrawer() {
               )}
             </div>
 
-            {/* Pie del Carrito: Puntos GOSU, Cupones, Totales y Checkout */}
+            {/* Pie del Carrito: Caja de Canje (40 Pts = S/. 1.00 PEN), Cupones, Totales y Checkout */}
             {items.length > 0 && (
               <div className="p-6 border-t border-neutral-800 bg-surface space-y-4">
-                {/* Caja de Canje de Puntos GOSU Loyalty */}
+                {/* Caja de Canje GOSU Loyalty (40 Puntos = S/. 1.00 PEN) */}
                 <div className="p-3 bg-gradient-to-r from-accent-pink/10 to-purple-900/10 border border-accent-pink/30 rounded-xl flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <Award className="w-5 h-5 text-accent-pink shrink-0" />
                     <div>
                       <span className="font-mono font-bold text-xs text-white block leading-tight">
-                        Puntos GOSU®: {userLoyaltyPoints || 50} pts
+                        Puntos GOSU®: {activePointsToRedeem} pts
                       </span>
                       <span className="text-[11px] text-neutral-400">
-                        {isPEN ? "Descuento de S/. 5.00 PEN" : "Descuento de $1.25 USD"}
+                        {isPEN
+                          ? `Descuento de S/. ${calculatedPointsDiscountPEN.toFixed(2)} PEN (40 Pts = S/. 1.00)`
+                          : `Descuento de $${calculatedPointsDiscountUSD.toFixed(2)} USD`}
                       </span>
                     </div>
                   </div>
@@ -365,7 +371,7 @@ export function CartDrawer() {
 
                   {displayLoyaltyDiscount > 0 && (
                     <div className="flex justify-between text-purple-400 font-semibold">
-                      <span>Descuento Puntos GOSU®</span>
+                      <span>Descuento Puntos GOSU® (40 Pts = S/. 1)</span>
                       <span className="font-mono">-{currencySymbol}{displayLoyaltyDiscount.toFixed(2)}</span>
                     </div>
                   )}

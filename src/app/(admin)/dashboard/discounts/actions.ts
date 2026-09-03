@@ -5,34 +5,48 @@ import { revalidatePath } from "next/cache";
 
 export async function createDiscountCodeAction(formData: FormData): Promise<void> {
   try {
-    const codeInput = formData.get("code") as string;
-    const type = (formData.get("type") as string) || "PERCENTAGE";
-    const category = (formData.get("category") as string) || "PROMO";
+    const codeStr = formData.get("code") as string;
+    const type = (formData.get("type") as any) || "PERCENTAGE";
+    const category = (formData.get("category") as any) || "PROMO";
     const valueStr = formData.get("value") as string;
     const minPurchaseStr = formData.get("minPurchaseAmount") as string;
-    const usageLimitStr = formData.get("usageLimit") as string;
-    const expiresAtStr = formData.get("expiresAt") as string;
     const commissionRateStr = formData.get("commissionRate") as string;
+    const userEmail = formData.get("userEmail") as string;
 
-    if (!codeInput || !valueStr) return;
+    if (!codeStr || !valueStr) return;
 
-    const code = codeInput.trim().toUpperCase();
+    const code = codeStr.trim().toUpperCase();
     const value = parseFloat(valueStr);
     const minPurchaseAmount = minPurchaseStr ? parseFloat(minPurchaseStr) : null;
-    const usageLimit = usageLimitStr ? parseInt(usageLimitStr, 10) : null;
-    const expiresAt = expiresAtStr ? new Date(expiresAtStr) : null;
     const commissionRate = commissionRateStr ? parseFloat(commissionRateStr) : 10.0;
+
+    let createdById: string | null = null;
+
+    if (userEmail) {
+      const user = await prisma.user.findUnique({
+        where: { email: userEmail.trim().toLowerCase() },
+      });
+      if (user) {
+        createdById = user.id;
+        // Promover a rol AFILIADO
+        if (user.role === "CUSTOMER") {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { role: "AFFILIATE" },
+          });
+        }
+      }
+    }
 
     await prisma.discountCode.create({
       data: {
         code,
-        type: type as any,
-        category: category as any,
+        type,
+        category,
         value,
         minPurchaseAmount,
-        usageLimit,
-        expiresAt,
         commissionRate,
+        createdById,
         isActive: true,
       },
     });
@@ -40,6 +54,19 @@ export async function createDiscountCodeAction(formData: FormData): Promise<void
     revalidatePath("/dashboard/discounts");
     revalidatePath("/");
   } catch (error: any) {
-    console.error("Error al crear código de descuento:", error);
+    console.error("Error al crear código de descuento o afiliado:", error);
+  }
+}
+
+export async function deleteDiscountCodeAction(id: string): Promise<void> {
+  try {
+    await prisma.discountCode.delete({
+      where: { id },
+    });
+
+    revalidatePath("/dashboard/discounts");
+    revalidatePath("/");
+  } catch (error: any) {
+    console.error("Error al eliminar código de descuento:", error);
   }
 }
