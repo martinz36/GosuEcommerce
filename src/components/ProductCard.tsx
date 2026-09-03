@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ShoppingBag, Image as ImageIcon } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
+import { useStoreSettings } from "@/providers/StoreProvider";
 import { hoverScaleProps, smoothEase } from "@/lib/motion";
 
 export interface ProductCardProps {
@@ -29,15 +30,17 @@ export function ProductCard({
   badgeColor = "bg-accent-cyan text-black",
 }: ProductCardProps) {
   const addToCart = useCartStore((state) => state.addToCart);
+  const { formatPrice } = useStoreSettings();
 
   const numericPrice = typeof price === "number" ? price : parseFloat(price.replace(/[^0-9.]/g, ""));
-  const formattedPrice = `$${numericPrice.toFixed(2)}`;
-  
-  const formattedCompareAt = compareAtPrice
+  const numericCompareAt = compareAtPrice
     ? typeof compareAtPrice === "number"
-      ? `$${compareAtPrice.toFixed(2)}`
-      : compareAtPrice
+      ? compareAtPrice
+      : parseFloat(compareAtPrice.replace(/[^0-9.]/g, ""))
     : null;
+
+  const formattedPrice = formatPrice(isNaN(numericPrice) ? 0 : numericPrice);
+  const formattedCompareAt = numericCompareAt && !isNaN(numericCompareAt) ? formatPrice(numericCompareAt) : null;
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -99,10 +102,10 @@ export function ProductCard({
         </div>
       </Link>
 
-      {/* Pie de Tarjeta - Precio y Botón de Acción Zustand */}
+      {/* Pie de Tarjeta - Precio Formateado en Moneda Local y Botón de Acción */}
       <div className="p-6 pt-0 flex items-center justify-between mt-auto">
         <div>
-          <span className="text-xl font-black text-white">{formattedPrice}</span>
+          <span className="text-xl font-black text-white font-mono">{formattedPrice}</span>
           {formattedCompareAt && (
             <span className="text-sm text-neutral-500 line-through ml-2 font-mono">
               {formattedCompareAt}

@@ -1,10 +1,12 @@
 import React from "react";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { LayoutDashboard } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StoreProvider } from "@/providers/StoreProvider";
 import { CartButton } from "@/components/CartButton";
 import { CartDrawer } from "@/components/CartDrawer";
+import { CurrencySwitcher } from "@/components/CurrencySwitcher";
 
 export const revalidate = 0;
 
@@ -13,28 +15,45 @@ export default async function ShopLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Consultar configuraciones globales dinámicas de Neon DB
+  // 1. Leer cookies geolocalizadas generadas por Middleware
+  const cookieStore = cookies();
+  const userCountry = cookieStore.get("user-country")?.value || "PE";
+  const userCurrencyPref = cookieStore.get("user-currency")?.value;
+
+  // 2. Valores por defecto
   let storeSettings = {
     freeShippingThreshold: 50.00,
     standardShippingCost: 4.99,
-    currency: "USD",
+    currency: userCurrencyPref || (userCountry === "PE" ? "PEN" : "USD"),
+    currencySymbol: userCurrencyPref === "PEN" || (userCountry === "PE" && !userCurrencyPref) ? "S/." : "$",
+    exchangeRate: userCurrencyPref === "PEN" || (userCountry === "PE" && !userCurrencyPref) ? 3.75 : 1.00,
+    countryCode: userCountry,
   };
 
+  // 3. Consultar Neon DB (StoreSettings & RegionConfig)
   try {
     if (process.env.DATABASE_URL) {
       const dbSettings = await prisma.storeSettings.findUnique({
         where: { id: "default" },
       });
       if (dbSettings) {
-        storeSettings = {
-          freeShippingThreshold: Number(dbSettings.freeShippingThreshold),
-          standardShippingCost: Number(dbSettings.standardShippingCost),
-          currency: dbSettings.currency,
-        };
+        storeSettings.freeShippingThreshold = Number(dbSettings.freeShippingThreshold);
+        storeSettings.standardShippingCost = Number(dbSettings.standardShippingCost);
+      }
+
+      // Buscar configuración regional específica
+      const region = await prisma.regionConfig.findUnique({
+        where: { countryCode: userCountry },
+      });
+
+      if (region && region.isActive && !userCurrencyPref) {
+        storeSettings.currency = region.currency;
+        storeSettings.currencySymbol = region.currencySymbol;
+        storeSettings.exchangeRate = Number(region.exchangeRate);
       }
     }
   } catch (err) {
-    console.error("Error al obtener StoreSettings de Neon DB:", err);
+    console.error("Error al consultar RegionConfig de Neon DB:", err);
   }
 
   return (
@@ -72,8 +91,10 @@ export default async function ShopLayout({
               </Link>
             </nav>
 
-            {/* Acciones: Carrito y Panel Admin */}
-            <div className="flex items-center gap-4">
+            {/* Acciones: Selector de Moneda, Carrito y Panel Admin */}
+            <div className="flex items-center gap-3">
+              <CurrencySwitcher />
+
               <Link
                 href="/dashboard"
                 className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-elevated hover:bg-neutral-800 border border-neutral-700 text-xs font-semibold transition-colors"
@@ -99,7 +120,7 @@ export default async function ShopLayout({
                 Panel Admin
               </Link>
               <span>•</span>
-              <span className="text-neutral-600">Privacy & Terms</span>
+              <span className="text-neutral-600">Region: {storeSettings.countryCode} ({storeSettings.currency})</span>
             </div>
           </div>
         </footer>

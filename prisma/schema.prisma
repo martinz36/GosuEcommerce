@@ -8,6 +8,21 @@ generator client {
 }
 
 // ------------------------------------------------------
+// REGIONES Y MULTI-MONEDA DINÁMICA (Vercel Geo + Neon DB)
+// ------------------------------------------------------
+model RegionConfig {
+  id             String   @id @default(cuid())
+  countryCode    String   @unique // Ej: 'PE', 'US', 'CO', 'MX'
+  countryName    String   // Ej: 'Perú', 'Estados Unidos'
+  currency       String   // Ej: 'PEN', 'USD'
+  currencySymbol String   @default("$") // Ej: 'S/.', '$'
+  exchangeRate   Decimal  @default(1.00) @db.Decimal(10, 4) // Tasa de cambio respecto a USD
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// ------------------------------------------------------
 // CONFIGURACIÓN GLOBAL Y ENVÍOS DINÁMICOS
 // ------------------------------------------------------
 model StoreSettings {

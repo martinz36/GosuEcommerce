@@ -3,16 +3,15 @@ import Link from "next/link";
 import {
   LayoutDashboard,
   Package,
-  Boxes,
   Percent,
   ShoppingCart,
-  Settings,
   Store,
   Bell,
   Search,
   Users,
   Truck,
-  ShoppingBag
+  ShoppingBag,
+  Globe
 } from "lucide-react";
 
 export default function AdminDashboardLayout({
@@ -28,6 +27,7 @@ export default function AdminDashboardLayout({
     { name: "Directorio de Clientes", href: "/dashboard/customers", icon: Users },
     { name: "Carritos Abandonados", href: "/dashboard/abandoned-carts", icon: ShoppingBag },
     { name: "Configurar Envíos", href: "/dashboard/settings/shipping", icon: Truck },
+    { name: "Regiones Multi-Moneda", href: "/dashboard/settings/regions", icon: Globe },
   ];
 
   return (
