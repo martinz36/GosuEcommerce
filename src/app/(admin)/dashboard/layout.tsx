@@ -10,7 +10,9 @@ import {
   Store,
   Bell,
   Search,
-  UserCheck
+  Users,
+  Truck,
+  ShoppingBag
 } from "lucide-react";
 
 export default function AdminDashboardLayout({
@@ -21,10 +23,11 @@ export default function AdminDashboardLayout({
   const navigationItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Productos", href: "/dashboard/products", icon: Package },
-    { name: "Packs & Bundles", href: "/dashboard/bundles", icon: Boxes },
     { name: "Descuentos & Afiliados", href: "/dashboard/discounts", icon: Percent },
-    { name: "Pedidos", href: "/dashboard/orders", icon: ShoppingCart },
-    { name: "Configuración", href: "/dashboard/settings", icon: Settings },
+    { name: "Pedidos & Recibos", href: "/dashboard/orders", icon: ShoppingCart },
+    { name: "Directorio de Clientes", href: "/dashboard/customers", icon: Users },
+    { name: "Carritos Abandonados", href: "/dashboard/abandoned-carts", icon: ShoppingBag },
+    { name: "Configurar Envíos", href: "/dashboard/settings/shipping", icon: Truck },
   ];
 
   return (

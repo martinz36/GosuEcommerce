@@ -8,6 +8,43 @@ generator client {
 }
 
 // ------------------------------------------------------
+// CONFIGURACIÓN GLOBAL Y ENVÍOS DINÁMICOS
+// ------------------------------------------------------
+model StoreSettings {
+  id                    String   @id @default("default")
+  storeName             String   @default("GOSU® TCG")
+  freeShippingThreshold Decimal  @default(50.00) @db.Decimal(10, 2)
+  standardShippingCost  Decimal  @default(4.99) @db.Decimal(10, 2)
+  currency              String   @default("USD")
+  updatedAt             DateTime @updatedAt
+}
+
+model ShippingMethod {
+  id                 String   @id @default(cuid())
+  name               String   // Ej: "Envío Estándar (3-5 días)"
+  cost               Decimal  @db.Decimal(10, 2)
+  minPurchaseForFree Decimal? @db.Decimal(10, 2)
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+// ------------------------------------------------------
+// CARRITOS ABANDONADOS (CartSession)
+// ------------------------------------------------------
+model CartSession {
+  id           String   @id @default(cuid())
+  sessionId    String   @unique
+  userId       String?
+  userEmail    String?
+  itemsJson    Json     // Array de productos guardados temporalmente
+  subtotal     Decimal  @db.Decimal(10, 2)
+  isConverted  Boolean  @default(false) // true cuando se transforma en Order
+  lastActiveAt DateTime @default(now()) @updatedAt
+  createdAt    DateTime @default(now())
+}
+
+// ------------------------------------------------------
 // USER & AFFILIATES SYSTEM
 // ------------------------------------------------------
 enum Role {
@@ -17,29 +54,29 @@ enum Role {
 }
 
 model User {
-  id               String         @id @default(cuid())
-  email            String         @unique
+  id               String          @id @default(cuid())
+  email            String          @unique
   passwordHash     String?
   firstName        String?
   lastName         String?
   phone            String?
-  avatarUrl        String?        // Cloudinary URL
-  role             Role           @default(CUSTOMER)
+  avatarUrl        String?         // Cloudinary URL
+  role             Role            @default(CUSTOMER)
   
   // Sistema de Referidos (Usuario invita Usuario)
-  referralCode     String?        @unique
+  referralCode     String?         @unique
   referredById     String?
-  referredBy       User?          @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
-  referrals        User[]         @relation("UserReferrals")
+  referredBy       User?           @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals        User[]          @relation("UserReferrals")
   
   // Relaciones E-commerce
   addresses        Address[]
   orders           Order[]
-  createdDiscounts DiscountCode[]  @relation("CreatedByAffiliate")
-  commissions      CommissionLog[]@relation("AffiliateCommissions")
+  createdDiscounts DiscountCode[]   @relation("CreatedByAffiliate")
+  commissions      CommissionLog[] @relation("AffiliateCommissions")
 
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 }
 
 model Address {
@@ -112,7 +149,7 @@ model ProductImage {
   productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   url       String   // Cloudinary secure URL
-  publicId  String   // Cloudinary public ID para borrado/transformaciones
+  publicId  String   // Cloudinary public ID
   altText   String?
   position  Int      @default(0)
 
