@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { LayoutDashboard } from "lucide-react";
 import { CartButton } from "@/components/CartButton";
+import { CartDrawer } from "@/components/CartDrawer";
 
 export default function ShopLayout({
   children,
@@ -10,6 +11,9 @@ export default function ShopLayout({
 }) {
   return (
     <div className="min-h-screen bg-black text-white font-body selection:bg-accent-cyan selection:text-black flex flex-col justify-between">
+      {/* Drawer del Carrito Global */}
+      <CartDrawer />
+
       {/* Navbar Público Estilo Framer / GOSU® */}
       <header className="sticky top-0 z-50 glass-panel border-b border-surface-muted backdrop-blur-md bg-black/80">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">

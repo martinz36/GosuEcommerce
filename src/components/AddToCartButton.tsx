@@ -2,17 +2,28 @@
 
 import React from "react";
 import { ShoppingBag } from "lucide-react";
+import { useCartStore } from "@/store/cartStore";
 
 interface AddToCartButtonProps {
   productId: string;
   productTitle: string;
-  price: string;
+  price: string | number;
+  imageUrl?: string | null;
 }
 
-export function AddToCartButton({ productId, productTitle, price }: AddToCartButtonProps) {
+export function AddToCartButton({ productId, productTitle, price, imageUrl }: AddToCartButtonProps) {
+  const addToCart = useCartStore((state) => state.addToCart);
+
+  const numericPrice = typeof price === "number" ? price : parseFloat(price.replace(/[^0-9.]/g, ""));
+
   const handleAddToCart = () => {
-    console.log(`[CARRITO] Producto agregado: ID=${productId}, Título="${productTitle}", Precio=${price}`);
-    alert(`¡"${productTitle}" fue agregado al carrito exitosamente! (Revisa la consola F12)`);
+    addToCart({
+      id: productId,
+      productId: productId,
+      title: productTitle,
+      price: isNaN(numericPrice) ? 0 : numericPrice,
+      imageUrl: imageUrl,
+    });
   };
 
   return (
