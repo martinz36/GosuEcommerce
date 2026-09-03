@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Search, Loader2, Image as ImageIcon, Sparkles, AlertTriangle } from "lucide-react";
+import { Search, Loader2, Image as ImageIcon, AlertTriangle } from "lucide-react";
 import { useStoreSettings } from "@/providers/StoreProvider";
 
 interface SearchResult {
@@ -90,7 +90,8 @@ export function HeaderSearch() {
 
           <div className="max-h-80 overflow-y-auto">
             {results.map((product) => {
-              const displayPrice = isPEN ? product.pricePEN : product.priceUSD;
+              const displayPrice = isPEN ? (product.pricePEN || 0) : (product.priceUSD || 0);
+              const safePrice = isNaN(displayPrice) ? 0 : displayPrice;
 
               return (
                 <Link
@@ -121,7 +122,7 @@ export function HeaderSearch() {
                   {/* Precio & Badge de Escasez */}
                   <div className="text-right shrink-0">
                     <span className="font-mono font-bold text-xs text-accent-cyan block">
-                      {currencySymbol}{displayPrice.toFixed(2)}
+                      {currencySymbol}{safePrice.toFixed(2)}
                     </span>
                     {product.stock <= 3 && product.stock > 0 ? (
                       <span className="text-[10px] text-amber-400 font-bold flex items-center justify-end gap-0.5">

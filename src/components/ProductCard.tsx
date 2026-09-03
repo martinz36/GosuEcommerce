@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ShoppingCart, Layers, Image as ImageIcon, Flame, AlertTriangle } from "lucide-react";
+import { Layers, Image as ImageIcon, Flame } from "lucide-react";
 import { AddToCartButton } from "./AddToCartButton";
 import { useStoreSettings } from "@/providers/StoreProvider";
 
@@ -12,25 +12,27 @@ interface ProductCardProps {
     id: string;
     title: string;
     description?: string | null;
-    priceUSD: number;
-    pricePEN: number;
-    basePrice?: number; // Para compatibilidad retroactiva
-    stock: number;
+    priceUSD?: number | null;
+    pricePEN?: number | null;
+    basePrice?: number | null;
+    stock?: number | null;
     imageUrl?: string | null;
-    isFamily?: boolean;
+    isFamily?: boolean | null;
     familyId?: string | null;
-    categoryName?: string;
+    categoryName?: string | null;
   };
 }
 
 export function ProductCard({ product }: ProductCardProps) {
   const { currency, currencySymbol } = useStoreSettings();
 
-  // Selección de precio explícito según la moneda activa de la región
   const isPEN = currency === "PEN";
-  const displayPrice = isPEN
-    ? product.pricePEN || (product.priceUSD * 3.75)
-    : product.priceUSD || product.basePrice || 0;
+  const rawPriceUSD = Number(product.priceUSD || product.basePrice || 0);
+  const rawPricePEN = Number(product.pricePEN || (rawPriceUSD ? rawPriceUSD * 3.75 : 0));
+
+  const displayPrice = isPEN ? rawPricePEN : rawPriceUSD;
+  const safePrice = isNaN(displayPrice) ? 0 : displayPrice;
+  const stock = typeof product.stock === "number" ? product.stock : 10;
 
   return (
     <motion.div
@@ -46,7 +48,7 @@ export function ProductCard({ product }: ProductCardProps) {
           {product.imageUrl ? (
             <motion.img
               src={product.imageUrl}
-              alt={product.title}
+              alt={product.title || "Producto GOSU"}
               whileHover={{ scale: 1.08 }}
               transition={{ duration: 0.4 }}
               className="w-full h-full object-cover"
@@ -66,13 +68,13 @@ export function ProductCard({ product }: ProductCardProps) {
               </span>
             )}
 
-            {product.stock <= 3 && product.stock > 0 && (
+            {stock <= 3 && stock > 0 && (
               <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-500 text-black shadow-lg flex items-center gap-1 animate-pulse">
-                <Flame className="w-3 h-3 text-black" /> ¡Últimas {product.stock} un.!
+                <Flame className="w-3 h-3 text-black" /> ¡Últimas {stock} un.!
               </span>
             )}
 
-            {product.stock <= 0 && (
+            {stock <= 0 && (
               <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-rose-600 text-white shadow-lg">
                 Agotado
               </span>
@@ -90,7 +92,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
           <Link href={`/products/${product.id}`} className="block">
             <h3 className="font-extrabold text-sm text-white group-hover:text-accent-cyan transition-colors line-clamp-2 leading-snug">
-              {product.title}
+              {product.title || "Producto GOSU® TCG"}
             </h3>
           </Link>
         </div>
@@ -103,15 +105,15 @@ export function ProductCard({ product }: ProductCardProps) {
             Precio ({currency})
           </span>
           <span className="text-lg font-black font-mono text-white">
-            {currencySymbol}{displayPrice.toFixed(2)}
+            {currencySymbol}{safePrice.toFixed(2)}
           </span>
         </div>
 
-        {/* Botón Rápido 'Agregar al Carrito' que almacena el precio exacto */}
+        {/* Botón Rápido 'Agregar al Carrito' */}
         <AddToCartButton
           productId={product.id}
-          productTitle={product.title}
-          price={displayPrice}
+          productTitle={product.title || "Producto GOSU® TCG"}
+          price={safePrice}
           imageUrl={product.imageUrl}
         />
       </div>
