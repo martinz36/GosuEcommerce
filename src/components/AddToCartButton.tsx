@@ -3,25 +3,39 @@
 import React from "react";
 import { ShoppingBag } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
+import { useStoreSettings } from "@/providers/StoreProvider";
 
 interface AddToCartButtonProps {
   productId: string;
   productTitle: string;
-  price: string | number;
+  price: string | number; // Se acepta precio numérico en USD o formateado
   imageUrl?: string | null;
 }
 
 export function AddToCartButton({ productId, productTitle, price, imageUrl }: AddToCartButtonProps) {
   const addToCart = useCartStore((state) => state.addToCart);
+  const { exchangeRate } = useStoreSettings();
 
-  const numericPrice = typeof price === "number" ? price : parseFloat(price.replace(/[^0-9.]/g, ""));
+  // Si el precio viene como número, se asume USD base. Si viene como string formateado, extraer número.
+  let numericPriceUSD = 0;
+  if (typeof price === "number") {
+    numericPriceUSD = price;
+  } else {
+    const rawNum = parseFloat(price.replace(/[^0-9.]/g, ""));
+    // Si la cadena formateada incluye S/., revertir la tasa de cambio para guardar USD base en el store
+    if (price.includes("S/.") && exchangeRate > 0) {
+      numericPriceUSD = rawNum / exchangeRate;
+    } else {
+      numericPriceUSD = rawNum;
+    }
+  }
 
   const handleAddToCart = () => {
     addToCart({
       id: productId,
       productId: productId,
       title: productTitle,
-      price: isNaN(numericPrice) ? 0 : numericPrice,
+      price: isNaN(numericPriceUSD) ? 0 : numericPriceUSD,
       imageUrl: imageUrl,
     });
   };

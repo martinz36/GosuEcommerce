@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Save, Package, Layers, DollarSign } from "lucide-react";
+import { ArrowLeft, Save, Package, Layers, DollarSign, RefreshCw } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { updateProductFullAction } from "../../actions";
 
@@ -18,6 +18,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
 
   let product: any = null;
   let categories: any[] = [];
+  let exchangeRate = 3.75;
 
   try {
     if (process.env.DATABASE_URL) {
@@ -32,6 +33,13 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
       categories = await prisma.category.findMany({
         orderBy: { name: "asc" },
       });
+
+      const peRegion = await prisma.regionConfig.findUnique({
+        where: { countryCode: "PE" },
+      });
+      if (peRegion) {
+        exchangeRate = Number(peRegion.exchangeRate);
+      }
     }
   } catch (err) {
     console.error("Error al obtener producto para editar de Neon DB:", err);
@@ -40,6 +48,11 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
   if (!product) {
     notFound();
   }
+
+  const basePriceUSD = Number(product.basePrice);
+  const equivPricePEN = (basePriceUSD * exchangeRate).toFixed(2);
+  const costUSD = product.costPerItem ? Number(product.costPerItem) : 0;
+  const equivCostPEN = (costUSD * exchangeRate).toFixed(2);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-12 font-body">
@@ -53,7 +66,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         </Link>
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Editar Producto: {product.title}</h1>
         <p className="text-sm text-slate-500">
-          Modifica el inventario, precios, SKU y configuraciones de familia en Neon DB.
+          Modifica el inventario, precios en USD/PEN, SKU y configuraciones de familia en Neon DB.
         </p>
       </div>
 
@@ -71,6 +84,16 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
             <Save className="w-4 h-4" />
             <span>Guardar Cambios</span>
           </button>
+        </div>
+
+        {/* Banner Informativo de Conversión Multi-Moneda */}
+        <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-900 flex items-center justify-between">
+          <div className="flex items-center gap-2 font-medium">
+            <RefreshCw className="w-4 h-4 text-purple-600" />
+            <span>
+              <strong>Conversión Automática:</strong> Los precios se guardan en USD base en Neon DB. Para Perú (`S/.`), el precio de <strong>${basePriceUSD.toFixed(2)} USD</strong> equivale a <strong>S/. {equivPricePEN} PEN</strong> (Tasa: {exchangeRate}).
+            </span>
+          </div>
         </div>
 
         {/* Datos Principales */}
@@ -111,15 +134,20 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         {/* Precios e Inventario */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4 border-t border-slate-100">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Precio Base ($ USD) *</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Precio Base ($ USD) *
+            </label>
             <input
               type="number"
               step="0.01"
               name="basePrice"
-              defaultValue={Number(product.basePrice)}
+              defaultValue={basePriceUSD}
               required
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:bg-white"
             />
+            <span className="text-[11px] text-slate-500 font-mono mt-1 block">
+              = S/. {equivPricePEN} PEN en Perú
+            </span>
           </div>
 
           <div>
@@ -128,9 +156,14 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
               type="number"
               step="0.01"
               name="costPerItem"
-              defaultValue={product.costPerItem ? Number(product.costPerItem) : ""}
+              defaultValue={costUSD || ""}
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:bg-white"
             />
+            {costUSD > 0 && (
+              <span className="text-[11px] text-slate-500 font-mono mt-1 block">
+                = S/. {equivCostPEN} PEN
+              </span>
+            )}
           </div>
 
           <div>

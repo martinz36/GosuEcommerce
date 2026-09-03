@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
@@ -25,7 +26,30 @@ interface ProductDetailPageProps {
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
   const { id } = params;
 
-  // 1. Fetch del producto desde Neon Postgres vía Prisma ORM
+  // 1. Leer cookies de geolocalización y preferencia de moneda
+  const cookieStore = cookies();
+  const userCountry = cookieStore.get("user-country")?.value || "PE";
+  const userCurrencyPref = cookieStore.get("user-currency")?.value;
+
+  let currencySymbol = userCurrencyPref === "PEN" || (userCountry === "PE" && !userCurrencyPref) ? "S/." : "$";
+  let exchangeRate = userCurrencyPref === "PEN" || (userCountry === "PE" && !userCurrencyPref) ? 3.75 : 1.00;
+
+  // Consultar Neon DB para obtener la tasa de cambio exacta de la región
+  try {
+    if (process.env.DATABASE_URL) {
+      const region = await prisma.regionConfig.findUnique({
+        where: { countryCode: userCountry },
+      });
+      if (region && region.isActive && !userCurrencyPref) {
+        currencySymbol = region.currencySymbol;
+        exchangeRate = Number(region.exchangeRate);
+      }
+    }
+  } catch (err) {
+    console.error("Error al consultar RegionConfig en PDP:", err);
+  }
+
+  // 2. Fetch del producto desde Neon Postgres vía Prisma ORM
   let product: any = null;
   let familyVariants: any[] = [];
   let relatedProducts: any[] = [];
@@ -44,7 +68,6 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
       });
 
       if (product) {
-        // Consultar variantes pertenecientes a la misma familia (si isFamily === true o familyId existe)
         if (product.familyId) {
           familyVariants = await prisma.product.findMany({
             where: {
@@ -75,7 +98,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     console.error("Error buscando detalle del producto en Neon DB:", err);
   }
 
-  // 2. Respaldo para productos de demostración estáticos si se consulta por demo-id
+  // Respaldo para productos de demostración estáticos
   if (!product && id.startsWith("demo-")) {
     const mockCatalog: Record<string, any> = {
       "demo-1": {
@@ -91,39 +114,9 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
         category: { name: "Sleeves" },
         images: [{ url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=60" }],
       },
-      "demo-2": {
-        id: "demo-2",
-        title: "PRO Collector Bundle (3x Sleeves + 1x Binder + Deck Box)",
-        description: "Pack especial promocional que incluye 3 paquetes de fundas Armor Matte, 1 carpeta Zip Armor de 9 bolsillos y 1 Deck Box magnética con capacidad para 100+ cartas con doble funda.",
-        basePrice: "49.99",
-        compareAtPrice: "69.99",
-        stock: 20,
-        sku: "GOSU-BDL-001",
-        category: { name: "Bundles" },
-        images: [{ url: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=60" }],
-      },
-      "demo-3": {
-        id: "demo-3",
-        title: "GOSU® Toploader Binder (9-Pocket Zip Armor)",
-        description: "Carpetas de almacenamiento con cremallera acolchada de alta resistencia. Diseñada especialmente para almacenar cartas dentro de toploaders rígidos sin doblar las esquinas.",
-        basePrice: "34.99",
-        compareAtPrice: null,
-        stock: 15,
-        sku: "GOSU-BND-001",
-        category: { name: "Binders" },
-        images: [{ url: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&auto=format&fit=crop&q=60" }],
-      },
     };
 
     product = mockCatalog[id] || null;
-
-    if (product && product.familyId === "FAM-SLEEVES-MATTE") {
-      familyVariants = [
-        { id: "demo-1", title: "Matte Black", images: [{ url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=60" }] },
-        { id: "demo-1-red", title: "Crimson Red", images: [{ url: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&auto=format&fit=crop&q=60" }] },
-        { id: "demo-1-cyan", title: "Cyber Cyan", images: [{ url: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=60" }] },
-      ];
-    }
   }
 
   if (!product) {
@@ -131,8 +124,12 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   }
 
   const mainImage = product.images?.[0]?.url || null;
-  const formattedPrice = `$${Number(product.basePrice).toFixed(2)}`;
-  const formattedCompareAt = product.compareAtPrice ? `$${Number(product.compareAtPrice).toFixed(2)}` : null;
+  const rawBasePriceUSD = Number(product.basePrice);
+  const rawCompareAtUSD = product.compareAtPrice ? Number(product.compareAtPrice) : null;
+
+  // Formatear precio para la moneda activa de la región (S/. o $)
+  const displayPrice = `${currencySymbol}${(rawBasePriceUSD * exchangeRate).toFixed(2)}`;
+  const displayCompareAt = rawCompareAtUSD ? `${currencySymbol}${(rawCompareAtUSD * exchangeRate).toFixed(2)}` : null;
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 space-y-16">
@@ -174,7 +171,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
           </div>
         </div>
 
-        {/* Columna Derecha: Ficha Técnica, Selector de Familia y Botón Zustand */}
+        {/* Columna Derecha: Ficha Técnica, Precio Multi-Moneda y Botón Zustand */}
         <div className="space-y-8">
           <div>
             <span className="text-xs font-mono text-accent-cyan uppercase tracking-widest block mb-2">
@@ -184,10 +181,10 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
               {product.title}
             </h1>
             <div className="flex items-baseline gap-3">
-              <span className="text-4xl font-black text-white">{formattedPrice}</span>
-              {formattedCompareAt && (
+              <span className="text-4xl font-black text-white font-mono">{displayPrice}</span>
+              {displayCompareAt && (
                 <span className="text-lg text-neutral-500 line-through font-mono">
-                  {formattedCompareAt}
+                  {displayCompareAt}
                 </span>
               )}
             </div>
@@ -245,12 +242,12 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
             <span>En Stock ({product.stock} unidades disponibles en inventario)</span>
           </div>
 
-          {/* Componente Cliente del Botón de Agregar al Carrito */}
+          {/* Componente Cliente del Botón de Agregar al Carrito (Pasa el precio base USD) */}
           <div className="space-y-4 pt-2">
             <AddToCartButton
               productId={product.id}
               productTitle={product.title}
-              price={formattedPrice}
+              price={rawBasePriceUSD}
               imageUrl={mainImage}
             />
 
