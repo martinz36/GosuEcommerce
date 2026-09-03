@@ -3,15 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  ShoppingBag,
   ShieldCheck,
   Truck,
-  Sparkles,
   Image as ImageIcon,
   CheckCircle2
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/ProductCard";
+import { AddToCartButton } from "@/components/AddToCartButton";
 
 export const revalidate = 0;
 
@@ -29,29 +28,31 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   let relatedProducts: any[] = [];
 
   try {
-    product = await prisma.product.findFirst({
-      where: {
-        OR: [{ id: id }, { slug: id }],
-      },
-      include: {
-        images: true,
-        category: true,
-        variants: true,
-      },
-    });
-
-    if (product) {
-      relatedProducts = await prisma.product.findMany({
+    if (process.env.DATABASE_URL) {
+      product = await prisma.product.findFirst({
         where: {
-          id: { not: product.id },
-          isActive: true,
+          OR: [{ id: id }, { slug: id }],
         },
         include: {
           images: true,
           category: true,
+          variants: true,
         },
-        take: 3,
       });
+
+      if (product) {
+        relatedProducts = await prisma.product.findMany({
+          where: {
+            id: { not: product.id },
+            isActive: true,
+          },
+          include: {
+            images: true,
+            category: true,
+          },
+          take: 3,
+        });
+      }
     }
   } catch (err) {
     console.error("Error buscando detalle del producto en Neon DB:", err);
@@ -85,7 +86,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
       "demo-3": {
         id: "demo-3",
         title: "GOSU® Toploader Binder (9-Pocket Zip Armor)",
-        description: "Carpetas de almacenamiento con cremaller acolchada de alta resistencia. Diseñada especialmente para almacenar cartas dentro de toploaders rígidos sin doblar las esquinas.",
+        description: "Carpetas de almacenamiento con cremallera acolchada de alta resistencia. Diseñada especialmente para almacenar cartas dentro de toploaders rígidos sin doblar las esquinas.",
         basePrice: "34.99",
         compareAtPrice: null,
         stock: 15,
@@ -117,9 +118,9 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
         <span>Volver al Catálogo</span>
       </Link>
 
-      {/* Grid Principal de Producto: Imagen Grande Cloudinary a la izquierda, Detalle a la derecha */}
+      {/* Grid Principal de Producto */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-        {/* Imagen del Producto (Cloudinary Hero) */}
+        {/* Imagen del Producto */}
         <div className="bg-surface rounded-card border border-neutral-800 overflow-hidden relative aspect-square flex items-center justify-center">
           {mainImage ? (
             <img
@@ -141,7 +142,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
           </div>
         </div>
 
-        {/* Ficha Técnica e Información Financiera */}
+        {/* Ficha Técnica e Información */}
         <div className="space-y-8">
           <div>
             <span className="text-xs font-mono text-accent-cyan uppercase tracking-widest block mb-2">
@@ -167,24 +168,19 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
             </p>
           </div>
 
-          {/* Estado de Inventario y Disponibilidad */}
+          {/* Estado de Inventario */}
           <div className="flex items-center gap-2 text-xs font-mono text-emerald-400">
             <CheckCircle2 className="w-4 h-4" />
             <span>En Stock ({product.stock} unidades disponibles en inventario)</span>
           </div>
 
-          {/* Paso 4: Botón Grande de Agregar al Carrito */}
+          {/* Componente Cliente del Botón de Agregar al Carrito */}
           <div className="space-y-4 pt-2">
-            <button
-              onClick={() => {
-                console.log(`[CARRITO] Producto agregado: ID=${product.id}, Título="${product.title}", Precio=${formattedPrice}`);
-                alert(`¡${product.title} agregado al carrito! (Ver consola F12)`);
-              }}
-              className="w-full btn-pill bg-white text-black font-extrabold text-base py-4 hover:bg-accent-cyan transition-colors flex items-center justify-center gap-3 shadow-lg shadow-white/10"
-            >
-              <ShoppingBag className="w-5 h-5" />
-              <span>AGREGAR AL CARRITO</span>
-            </button>
+            <AddToCartButton
+              productId={product.id}
+              productTitle={product.title}
+              price={formattedPrice}
+            />
 
             <div className="grid grid-cols-2 gap-4 pt-4 text-xs text-neutral-400 border-t border-surface-muted">
               <div className="flex items-center gap-2">
