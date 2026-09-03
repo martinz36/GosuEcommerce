@@ -2,6 +2,13 @@
 
 import React, { createContext, useContext } from "react";
 
+export interface RegionalShippingMethod {
+  id: string;
+  name: string;
+  cost: number;
+  freeShippingThreshold?: number | null;
+}
+
 export interface StoreSettingsContextType {
   freeShippingThreshold: number;
   standardShippingCost: number;
@@ -9,7 +16,9 @@ export interface StoreSettingsContextType {
   currencySymbol: string;
   exchangeRate: number;
   countryCode: string;
+  shippingMethods: RegionalShippingMethod[];
   formatPrice: (usdAmount: number) => string;
+  formatRawPrice: (amount: number) => string;
 }
 
 const defaultContext: StoreSettingsContextType = {
@@ -19,7 +28,9 @@ const defaultContext: StoreSettingsContextType = {
   currencySymbol: "$",
   exchangeRate: 1.0,
   countryCode: "US",
+  shippingMethods: [],
   formatPrice: (usdAmount: number) => `$${usdAmount.toFixed(2)}`,
+  formatRawPrice: (amount: number) => `$${amount.toFixed(2)}`,
 };
 
 const StoreSettingsContext = createContext<StoreSettingsContextType>(defaultContext);
@@ -28,7 +39,7 @@ export function StoreProvider({
   settings,
   children,
 }: {
-  settings: Omit<StoreSettingsContextType, "formatPrice">;
+  settings: Omit<StoreSettingsContextType, "formatPrice" | "formatRawPrice">;
   children: React.ReactNode;
 }) {
   const formatPrice = (usdAmount: number) => {
@@ -36,9 +47,14 @@ export function StoreProvider({
     return `${settings.currencySymbol}${converted.toFixed(2)}`;
   };
 
+  const formatRawPrice = (amount: number) => {
+    return `${settings.currencySymbol}${amount.toFixed(2)}`;
+  };
+
   const contextValue: StoreSettingsContextType = {
     ...settings,
     formatPrice,
+    formatRawPrice,
   };
 
   return (

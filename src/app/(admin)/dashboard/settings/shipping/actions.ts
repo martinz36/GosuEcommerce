@@ -3,56 +3,43 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-export async function updateStoreSettingsAction(formData: FormData): Promise<void> {
+export async function createRegionShippingMethodAction(formData: FormData): Promise<void> {
   try {
+    const regionId = formData.get("regionId") as string;
+    const name = formData.get("name") as string;
+    const costStr = formData.get("cost") as string;
     const freeShippingThresholdStr = formData.get("freeShippingThreshold") as string;
-    const standardShippingCostStr = formData.get("standardShippingCost") as string;
 
-    const freeShippingThreshold = parseFloat(freeShippingThresholdStr || "50.00");
-    const standardShippingCost = parseFloat(standardShippingCostStr || "4.99");
+    if (!regionId || !name || !costStr) return;
 
-    await prisma.storeSettings.upsert({
-      where: { id: "default" },
-      update: {
+    const cost = parseFloat(costStr);
+    const freeShippingThreshold = freeShippingThresholdStr ? parseFloat(freeShippingThresholdStr) : null;
+
+    await prisma.shippingMethod.create({
+      data: {
+        regionId,
+        name,
+        cost,
         freeShippingThreshold,
-        standardShippingCost,
-      },
-      create: {
-        id: "default",
-        freeShippingThreshold,
-        standardShippingCost,
+        isActive: true,
       },
     });
 
     revalidatePath("/dashboard/settings/shipping");
     revalidatePath("/");
   } catch (error: any) {
-    console.error("Error al actualizar StoreSettings:", error);
+    console.error("Error al crear método de envío por región:", error);
   }
 }
 
-export async function createShippingMethodAction(formData: FormData): Promise<void> {
+export async function deleteShippingMethodAction(id: string): Promise<void> {
   try {
-    const name = formData.get("name") as string;
-    const costStr = formData.get("cost") as string;
-    const minPurchaseStr = formData.get("minPurchaseForFree") as string;
-
-    if (!name || !costStr) return;
-
-    const cost = parseFloat(costStr);
-    const minPurchaseForFree = minPurchaseStr ? parseFloat(minPurchaseStr) : null;
-
-    await prisma.shippingMethod.create({
-      data: {
-        name,
-        cost,
-        minPurchaseForFree,
-        isActive: true,
-      },
+    await prisma.shippingMethod.delete({
+      where: { id },
     });
-
     revalidatePath("/dashboard/settings/shipping");
-  } catch (error: any) {
-    console.error("Error al crear método de envío:", error);
+    revalidatePath("/");
+  } catch (error) {
+    console.error("Error al eliminar método de envío:", error);
   }
 }

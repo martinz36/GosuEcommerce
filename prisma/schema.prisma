@@ -11,19 +11,39 @@ generator client {
 // REGIONES Y MULTI-MONEDA DINÁMICA (Vercel Geo + Neon DB)
 // ------------------------------------------------------
 model RegionConfig {
-  id             String   @id @default(cuid())
-  countryCode    String   @unique // Ej: 'PE', 'US', 'CO', 'MX'
-  countryName    String   // Ej: 'Perú', 'Estados Unidos'
-  currency       String   // Ej: 'PEN', 'USD'
-  currencySymbol String   @default("$") // Ej: 'S/.', '$'
-  exchangeRate   Decimal  @default(1.00) @db.Decimal(10, 4) // Tasa de cambio respecto a USD
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id              String           @id @default(cuid())
+  countryCode     String           @unique // Ej: 'PE', 'US', 'CO', 'MX'
+  countryName     String           // Ej: 'Perú', 'Estados Unidos'
+  currency        String           // Ej: 'PEN', 'USD'
+  currencySymbol  String           @default("$") // Ej: 'S/.', '$'
+  exchangeRate    Decimal          @default(1.00) @db.Decimal(10, 4) // Tasa de cambio respecto a USD
+  isActive        Boolean          @default(true)
+  
+  shippingMethods ShippingMethod[] // Métodos de envío específicos de la región
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
 // ------------------------------------------------------
-// CONFIGURACIÓN GLOBAL Y ENVÍOS DINÁMICOS
+// MÉTODOS DE ENVÍO Y METAS POR REGIÓN
+// ------------------------------------------------------
+model ShippingMethod {
+  id                    String       @id @default(cuid())
+  name                  String       // Ej: "Envío Estándar (Olva)", "USPS Priority"
+  cost                  Decimal      @db.Decimal(10, 2)
+  freeShippingThreshold Decimal?     @db.Decimal(10, 2) // Meta de compra para envío gratis en esta región
+  isActive              Boolean      @default(true)
+
+  regionId              String
+  region                RegionConfig @relation(fields: [regionId], references: [id], onDelete: Cascade)
+
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+}
+
+// ------------------------------------------------------
+// CONFIGURACIÓN GLOBAL DE LA TIENDA
 // ------------------------------------------------------
 model StoreSettings {
   id                    String   @id @default("default")
@@ -32,16 +52,6 @@ model StoreSettings {
   standardShippingCost  Decimal  @default(4.99) @db.Decimal(10, 2)
   currency              String   @default("USD")
   updatedAt             DateTime @updatedAt
-}
-
-model ShippingMethod {
-  id                 String   @id @default(cuid())
-  name               String   // Ej: "Envío Estándar (3-5 días)"
-  cost               Decimal  @db.Decimal(10, 2)
-  minPurchaseForFree Decimal? @db.Decimal(10, 2)
-  isActive           Boolean  @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
 }
 
 // ------------------------------------------------------

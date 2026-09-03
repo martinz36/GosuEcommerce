@@ -33,11 +33,18 @@ export function CartDrawer() {
     removeDiscount,
     getSubtotal,
     getDiscountAmount,
-    getTotal,
     getTotalItems,
   } = useCartStore();
 
-  const { freeShippingThreshold, standardShippingCost } = useStoreSettings();
+  const {
+    freeShippingThreshold,
+    standardShippingCost,
+    currencySymbol,
+    currency,
+    exchangeRate,
+    countryCode,
+    formatPrice,
+  } = useStoreSettings();
 
   // Estados locales para validación de cupones
   const [couponInput, setCouponInput] = useState("");
@@ -45,16 +52,20 @@ export function CartDrawer() {
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponSuccess, setCouponSuccess] = useState<string | null>(null);
 
-  const subtotal = getSubtotal();
-  const discountAmount = getDiscountAmount();
+  const rawSubtotalUSD = getSubtotal();
+  const rawDiscountUSD = getDiscountAmount();
 
-  // Cálculo dinámico de Envío Gratis
-  const isFreeShipping = subtotal >= freeShippingThreshold;
-  const shippingCost = subtotal > 0 ? (isFreeShipping ? 0 : standardShippingCost) : 0;
-  const remainingForFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
-  const shippingProgress = Math.min(100, (subtotal / freeShippingThreshold) * 100);
+  // Convertir montos según la moneda activa de la región (PEN / USD)
+  const displaySubtotal = rawSubtotalUSD * exchangeRate;
+  const displayDiscount = rawDiscountUSD * exchangeRate;
 
-  const finalTotal = Math.max(0, subtotal - discountAmount + shippingCost);
+  // Cálculo dinámico de Envío Gratis según la meta de la Región
+  const isFreeShipping = displaySubtotal >= freeShippingThreshold;
+  const displayShippingCost = displaySubtotal > 0 ? (isFreeShipping ? 0 : standardShippingCost) : 0;
+  const remainingForFreeShipping = Math.max(0, freeShippingThreshold - displaySubtotal);
+  const shippingProgress = Math.min(100, (displaySubtotal / freeShippingThreshold) * 100);
+
+  const displayFinalTotal = Math.max(0, displaySubtotal - displayDiscount + displayShippingCost);
   const totalItems = getTotalItems();
 
   const handleApplyCoupon = async (e: React.FormEvent) => {
@@ -65,7 +76,7 @@ export function CartDrawer() {
     setCouponError(null);
     setCouponSuccess(null);
 
-    const result = await validateCouponAction(couponInput, subtotal);
+    const result = await validateCouponAction(couponInput, rawSubtotalUSD);
 
     if (result.success && result.discount) {
       applyDiscount({
@@ -112,9 +123,9 @@ export function CartDrawer() {
                     <ShoppingBag className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="font-extrabold text-base uppercase tracking-tight">Tu Carrito</h2>
+                    <h2 className="font-extrabold text-base uppercase tracking-tight">Tu Carrito ({countryCode})</h2>
                     <span className="text-xs text-neutral-400 font-mono">
-                      {totalItems} {totalItems === 1 ? "producto" : "productos"}
+                      {totalItems} {totalItems === 1 ? "producto" : "productos"} • {currency}
                     </span>
                   </div>
                 </div>
@@ -127,16 +138,16 @@ export function CartDrawer() {
                 </button>
               </div>
 
-              {/* Paso 4: Barra Dinámica de Envío Gratis */}
+              {/* Barra Dinámica de Envío Gratis por Región */}
               <div className="space-y-1.5 pt-2 border-t border-neutral-800/80">
                 <div className="flex items-center justify-between text-xs font-mono">
                   {isFreeShipping ? (
                     <span className="text-accent-green font-bold flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5" /> ¡Felicidades! Tienes Envío Gratis
+                      <Sparkles className="w-3.5 h-3.5" /> ¡Envío Gratis Conseguido para {countryCode}!
                     </span>
                   ) : (
                     <span className="text-neutral-300">
-                      Te faltan <strong className="text-accent-cyan font-bold">${remainingForFreeShipping.toFixed(2)} USD</strong> para Envío Gratis
+                      Te faltan <strong className="text-accent-cyan font-bold">{currencySymbol}{remainingForFreeShipping.toFixed(2)}</strong> para Envío Gratis
                     </span>
                   )}
                   <span className="text-neutral-500 font-bold">{Math.round(shippingProgress)}%</span>
@@ -194,7 +205,7 @@ export function CartDrawer() {
                         {item.title}
                       </h4>
                       <span className="text-xs font-mono text-accent-cyan block">
-                        ${item.price.toFixed(2)}
+                        {formatPrice(item.price)}
                       </span>
 
                       {/* Controles + / - */}
@@ -230,7 +241,7 @@ export function CartDrawer() {
               )}
             </div>
 
-            {/* Pie del Carrito: Descuentos, Totales Dinámicos y Checkout */}
+            {/* Pie del Carrito: Descuentos, Totales por Región y Checkout */}
             {items.length > 0 && (
               <div className="p-6 border-t border-neutral-800 bg-surface space-y-4">
                 {/* Formulario de Código de Descuento */}
@@ -260,7 +271,7 @@ export function CartDrawer() {
                     <div className="mt-2.5 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-between text-xs text-emerald-400">
                       <div className="flex items-center gap-1.5 font-mono">
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Cupón `{discount.code}` (-${discountAmount.toFixed(2)})</span>
+                        <span>Cupón `{discount.code}` (-{currencySymbol}{displayDiscount.toFixed(2)})</span>
                       </div>
                       <button
                         onClick={removeDiscount}
@@ -281,47 +292,47 @@ export function CartDrawer() {
                   )}
                 </div>
 
-                {/* Desglose Financiero Dinámico */}
+                {/* Desglose Financiero Dinámico en la Moneda de la Región */}
                 <div className="space-y-1.5 text-xs text-neutral-400 pt-2 border-t border-neutral-800">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span className="font-mono text-white">${subtotal.toFixed(2)}</span>
+                    <span className="font-mono text-white">{currencySymbol}{displaySubtotal.toFixed(2)}</span>
                   </div>
 
                   <div className="flex justify-between items-center">
                     <span className="flex items-center gap-1">
-                      <Truck className="w-3.5 h-3.5 text-neutral-400" /> Envío Estándar
+                      <Truck className="w-3.5 h-3.5 text-neutral-400" /> Envío ({countryCode})
                     </span>
                     <span className="font-mono text-white">
                       {isFreeShipping ? (
                         <strong className="text-accent-green">GRATIS</strong>
                       ) : (
-                        `$${standardShippingCost.toFixed(2)}`
+                        `${currencySymbol}${displayShippingCost.toFixed(2)}`
                       )}
                     </span>
                   </div>
 
-                  {discountAmount > 0 && (
+                  {displayDiscount > 0 && (
                     <div className="flex justify-between text-accent-pink font-semibold">
                       <span>Descuento aplicado</span>
-                      <span className="font-mono">-${discountAmount.toFixed(2)}</span>
+                      <span className="font-mono">-{currencySymbol}{displayDiscount.toFixed(2)}</span>
                     </div>
                   )}
 
                   <div className="flex justify-between text-sm font-extrabold text-white pt-2 border-t border-neutral-800">
-                    <span>TOTAL FINAL</span>
-                    <span className="font-mono text-accent-cyan text-base">${finalTotal.toFixed(2)}</span>
+                    <span>TOTAL ESTIMADO ({currency})</span>
+                    <span className="font-mono text-accent-cyan text-base">{currencySymbol}{displayFinalTotal.toFixed(2)}</span>
                   </div>
                 </div>
 
                 {/* Botón de Checkout */}
                 <button
                   onClick={() => {
-                    alert(`Iniciando Checkout Stripe por $${finalTotal.toFixed(2)} USD! (Subtotal: $${subtotal.toFixed(2)}, Envío: $${shippingCost.toFixed(2)}, Descuento: -$${discountAmount.toFixed(2)})`);
+                    alert(`Iniciando Checkout Stripe por ${currencySymbol}${displayFinalTotal.toFixed(2)} ${currency} (${countryCode})`);
                   }}
                   className="w-full btn-pill bg-white text-black font-extrabold text-sm py-3.5 hover:bg-accent-cyan transition-colors flex items-center justify-center gap-2 shadow-lg shadow-white/10"
                 >
-                  <span>IR A PAGAR (${finalTotal.toFixed(2)})</span>
+                  <span>IR A PAGAR ({currencySymbol}{displayFinalTotal.toFixed(2)} {currency})</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>

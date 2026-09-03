@@ -20,36 +20,51 @@ export default async function ShopLayout({
   const userCountry = cookieStore.get("user-country")?.value || "PE";
   const userCurrencyPref = cookieStore.get("user-currency")?.value;
 
-  // 2. Valores por defecto
+  // 2. Valores por defecto para la región
   let storeSettings = {
-    freeShippingThreshold: 50.00,
-    standardShippingCost: 4.99,
+    freeShippingThreshold: userCountry === "PE" ? 150.00 : 50.00,
+    standardShippingCost: userCountry === "PE" ? 15.00 : 4.99,
     currency: userCurrencyPref || (userCountry === "PE" ? "PEN" : "USD"),
     currencySymbol: userCurrencyPref === "PEN" || (userCountry === "PE" && !userCurrencyPref) ? "S/." : "$",
     exchangeRate: userCurrencyPref === "PEN" || (userCountry === "PE" && !userCurrencyPref) ? 3.75 : 1.00,
     countryCode: userCountry,
+    shippingMethods: [] as any[],
   };
 
-  // 3. Consultar Neon DB (StoreSettings & RegionConfig)
+  // 3. Consultar Neon DB (RegionConfig & ShippingMethods de esa región específica)
   try {
     if (process.env.DATABASE_URL) {
-      const dbSettings = await prisma.storeSettings.findUnique({
-        where: { id: "default" },
-      });
-      if (dbSettings) {
-        storeSettings.freeShippingThreshold = Number(dbSettings.freeShippingThreshold);
-        storeSettings.standardShippingCost = Number(dbSettings.standardShippingCost);
-      }
-
-      // Buscar configuración regional específica
       const region = await prisma.regionConfig.findUnique({
         where: { countryCode: userCountry },
+        include: {
+          shippingMethods: {
+            where: { isActive: true },
+            orderBy: { cost: "asc" },
+          },
+        },
       });
 
-      if (region && region.isActive && !userCurrencyPref) {
-        storeSettings.currency = region.currency;
-        storeSettings.currencySymbol = region.currencySymbol;
-        storeSettings.exchangeRate = Number(region.exchangeRate);
+      if (region && region.isActive) {
+        if (!userCurrencyPref) {
+          storeSettings.currency = region.currency;
+          storeSettings.currencySymbol = region.currencySymbol;
+          storeSettings.exchangeRate = Number(region.exchangeRate);
+        }
+
+        if (region.shippingMethods.length > 0) {
+          const firstMethod = region.shippingMethods[0];
+          storeSettings.standardShippingCost = Number(firstMethod.cost);
+          if (firstMethod.freeShippingThreshold) {
+            storeSettings.freeShippingThreshold = Number(firstMethod.freeShippingThreshold);
+          }
+
+          storeSettings.shippingMethods = region.shippingMethods.map((m) => ({
+            id: m.id,
+            name: m.name,
+            cost: Number(m.cost),
+            freeShippingThreshold: m.freeShippingThreshold ? Number(m.freeShippingThreshold) : null,
+          }));
+        }
       }
     }
   } catch (err) {
@@ -120,7 +135,7 @@ export default async function ShopLayout({
                 Panel Admin
               </Link>
               <span>•</span>
-              <span className="text-neutral-600">Region: {storeSettings.countryCode} ({storeSettings.currency})</span>
+              <span className="text-neutral-600">Región: {storeSettings.countryCode} ({storeSettings.currency})</span>
             </div>
           </div>
         </footer>
