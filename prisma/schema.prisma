@@ -8,6 +8,101 @@ generator client {
 }
 
 // ------------------------------------------------------
+// USER, NEXTAUTH & AFFILIATES SYSTEM
+// ------------------------------------------------------
+enum Role {
+  CUSTOMER
+  AFFILIATE
+  ADMIN
+}
+
+model User {
+  id               String          @id @default(cuid())
+  name             String?
+  email            String          @unique
+  emailVerified    DateTime?
+  image            String?         // NextAuth avatar URL
+  passwordHash     String?
+  firstName        String?
+  lastName         String?
+  phone            String?
+  avatarUrl        String?         // Cloudinary URL
+  role             Role            @default(CUSTOMER)
+  loyaltyPoints    Int             @default(0) // Puntos de fidelidad acumulados por compras
+  
+  // Relaciones NextAuth
+  accounts         Account[]
+  sessions         Session[]
+
+  // Sistema de Referidos (Usuario invita Usuario)
+  referralCode     String?         @unique
+  referredById     String?
+  referredBy       User?           @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals        User[]          @relation("UserReferrals")
+  
+  // Relaciones E-commerce
+  addresses        Address[]
+  orders           Order[]
+  createdDiscounts DiscountCode[]   @relation("CreatedByAffiliate")
+  commissions      CommissionLog[] @relation("AffiliateCommissions")
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Address {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  street       String
+  city         String
+  state        String
+  postalCode   String
+  country      String
+  isDefault    Boolean  @default(false)
+  
+  orders       Order[]  @relation("ShippingAddress")
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ------------------------------------------------------
 // REGIONES Y MULTI-MONEDA DINÁMICA (Vercel Geo + Neon DB)
 // ------------------------------------------------------
 model RegionConfig {
@@ -67,58 +162,6 @@ model CartSession {
   isConverted  Boolean  @default(false) // true cuando se transforma en Order
   lastActiveAt DateTime @default(now()) @updatedAt
   createdAt    DateTime @default(now())
-}
-
-// ------------------------------------------------------
-// USER & AFFILIATES SYSTEM
-// ------------------------------------------------------
-enum Role {
-  CUSTOMER
-  AFFILIATE
-  ADMIN
-}
-
-model User {
-  id               String          @id @default(cuid())
-  email            String          @unique
-  passwordHash     String?
-  firstName        String?
-  lastName         String?
-  phone            String?
-  avatarUrl        String?         // Cloudinary URL
-  role             Role            @default(CUSTOMER)
-  
-  // Sistema de Referidos (Usuario invita Usuario)
-  referralCode     String?         @unique
-  referredById     String?
-  referredBy       User?           @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
-  referrals        User[]          @relation("UserReferrals")
-  
-  // Relaciones E-commerce
-  addresses        Address[]
-  orders           Order[]
-  createdDiscounts DiscountCode[]   @relation("CreatedByAffiliate")
-  commissions      CommissionLog[] @relation("AffiliateCommissions")
-
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-}
-
-model Address {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  street       String
-  city         String
-  state        String
-  postalCode   String
-  country      String
-  isDefault    Boolean  @default(false)
-  
-  orders       Order[]  @relation("ShippingAddress")
-
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
 }
 
 // ------------------------------------------------------

@@ -1,8 +1,10 @@
 import React from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { LayoutDashboard } from "lucide-react";
+import { getServerSession } from "next-auth/next";
+import { LayoutDashboard, User } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { authOptions } from "@/lib/authOptions";
 import { StoreProvider } from "@/providers/StoreProvider";
 import { CartButton } from "@/components/CartButton";
 import { CartDrawer } from "@/components/CartDrawer";
@@ -15,6 +17,8 @@ export default async function ShopLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getServerSession(authOptions);
+
   // 1. Leer cookies geolocalizadas generadas por Middleware
   const cookieStore = cookies();
   const userCountry = cookieStore.get("user-country")?.value || "PE";
@@ -106,9 +110,21 @@ export default async function ShopLayout({
               </Link>
             </nav>
 
-            {/* Acciones: Selector de Moneda, Carrito y Panel Admin */}
+            {/* Acciones: Selector de Moneda, Mi Cuenta, Carrito y Panel Admin */}
             <div className="flex items-center gap-3">
               <CurrencySwitcher />
+
+              {/* Botón Mi Cuenta / Login */}
+              <Link
+                href={session ? "/account/dashboard" : "/account/login"}
+                className="flex items-center gap-2 p-2 bg-surface-elevated hover:bg-neutral-800 rounded-full border border-neutral-800 transition-colors text-xs font-semibold"
+                title={session ? "Mi Cuenta" : "Iniciar Sesión"}
+              >
+                <User className="w-5 h-5 text-accent-pink" />
+                <span className="hidden sm:inline pr-1">
+                  {session ? session.user?.name?.split(" ")[0] || "Cuenta" : "Cuenta"}
+                </span>
+              </Link>
 
               <Link
                 href="/dashboard"
@@ -131,6 +147,10 @@ export default async function ShopLayout({
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
             <p>© 2026 GOSU® Premium TCG Accessories. Impulsado por Next.js App Router, Neon DB & Stripe.</p>
             <div className="flex items-center gap-4 text-neutral-400">
+              <Link href="/account/dashboard" className="hover:text-accent-cyan transition-colors">
+                Mi Cuenta
+              </Link>
+              <span>•</span>
               <Link href="/dashboard" className="hover:text-accent-cyan transition-colors">
                 Panel Admin
               </Link>
