@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 export async function toggleProductStatusAction(id: string) {
   try {
@@ -98,120 +99,115 @@ export async function bulkToggleStatusAction(productIds: string[], targetStatus:
 }
 
 export async function updateProductFullAction(id: string, formData: FormData): Promise<void> {
-  try {
-    const title = formData.get("title") as string;
-    const sku = formData.get("sku") as string;
-    const priceUSDStr = formData.get("priceUSD") as string;
-    const pricePENStr = formData.get("pricePEN") as string;
-    const costUSDStr = formData.get("costUSD") as string;
-    const costPENStr = formData.get("costPEN") as string;
-    const stockStr = formData.get("stock") as string;
-    const uniqueId = formData.get("uniqueId") as string;
-    const familyId = formData.get("familyId") as string;
-    const isFamilyStr = formData.get("isFamily") as string;
-    const productType = formData.get("productType") as string;
-    const description = formData.get("description") as string;
+  const title = formData.get("title") as string;
+  const sku = formData.get("sku") as string;
+  const priceUSDStr = formData.get("priceUSD") as string;
+  const pricePENStr = formData.get("pricePEN") as string;
+  const costUSDStr = formData.get("costUSD") as string;
+  const costPENStr = formData.get("costPEN") as string;
+  const stockStr = formData.get("stock") as string;
+  const uniqueId = formData.get("uniqueId") as string;
+  const familyId = formData.get("familyId") as string;
+  const isFamilyStr = formData.get("isFamily") as string;
+  const productType = formData.get("productType") as string;
+  const description = formData.get("description") as string;
 
-    if (!title || !sku || !priceUSDStr || !pricePENStr) return;
+  if (!title || !sku) return;
 
-    const priceUSD = parseFloat(priceUSDStr);
-    const pricePEN = parseFloat(pricePENStr);
-    const costUSD = costUSDStr ? parseFloat(costUSDStr) : null;
-    const costPEN = costPENStr ? parseFloat(costPENStr) : null;
-    const stock = stockStr ? parseInt(stockStr, 10) : 0;
-    const isFamily = isFamilyStr === "true" || isFamilyStr === "on";
+  const priceUSD = priceUSDStr !== "" && priceUSDStr !== null ? parseFloat(priceUSDStr) : 0;
+  const pricePEN = pricePENStr !== "" && pricePENStr !== null ? parseFloat(pricePENStr) : Math.round(priceUSD * 3.75 * 100) / 100;
+  const costUSD = costUSDStr !== "" && costUSDStr !== null ? parseFloat(costUSDStr) : null;
+  const costPEN = costPENStr !== "" && costPENStr !== null ? parseFloat(costPENStr) : null;
+  const stock = stockStr ? parseInt(stockStr, 10) : 0;
+  const isFamily = isFamilyStr === "true" || isFamilyStr === "on";
 
-    await prisma.product.update({
-      where: { id },
-      data: {
-        title: title.trim(),
-        sku: sku.trim(),
-        priceUSD,
-        pricePEN,
-        basePrice: priceUSD,
-        costUSD,
-        costPEN,
-        costPerItem: costUSD,
-        stock: Math.max(0, stock),
-        uniqueId: uniqueId ? uniqueId.trim() : null,
-        familyId: familyId ? familyId.trim() : null,
-        isFamily,
-        productType: productType ? productType.trim() : null,
-        description: description ? description.trim() : title,
-      },
-    });
+  await prisma.product.update({
+    where: { id },
+    data: {
+      title: title.trim(),
+      sku: sku.trim(),
+      priceUSD,
+      pricePEN,
+      basePrice: priceUSD,
+      costUSD,
+      costPEN,
+      costPerItem: costUSD,
+      stock: Math.max(0, stock),
+      uniqueId: uniqueId ? uniqueId.trim() : null,
+      familyId: familyId ? familyId.trim() : null,
+      isFamily,
+      productType: productType ? productType.trim() : null,
+      description: description ? description.trim() : title,
+    },
+  });
 
-    revalidatePath("/dashboard/products");
-    revalidatePath(`/products/${id}`);
-    revalidatePath("/");
-  } catch (error: any) {
-    console.error("Error al actualizar producto completo:", error);
-  }
+  revalidatePath("/dashboard/products");
+  revalidatePath(`/dashboard/products/${id}/edit`);
+  revalidatePath(`/products/${id}`);
+  revalidatePath("/");
+
+  redirect("/dashboard/products");
 }
 
 export async function createProductAction(formData: FormData) {
-  try {
-    const title = formData.get("title") as string;
-    const sku = formData.get("sku") as string;
-    const priceUSDStr = formData.get("priceUSD") as string;
-    const pricePENStr = formData.get("pricePEN") as string;
-    const stockStr = formData.get("stock") as string;
-    const description = formData.get("description") as string;
-    const categoryName = (formData.get("category") as string) || "General";
-    const imageUrl = formData.get("imageUrl") as string;
+  const title = formData.get("title") as string;
+  const sku = formData.get("sku") as string;
+  const priceUSDStr = formData.get("priceUSD") as string;
+  const pricePENStr = formData.get("pricePEN") as string;
+  const stockStr = formData.get("stock") as string;
+  const description = formData.get("description") as string;
+  const categoryName = (formData.get("category") as string) || "General";
+  const imageUrl = formData.get("imageUrl") as string;
 
-    if (!title || !sku || !priceUSDStr) {
-      return { success: false, error: "El título, SKU y precio son obligatorios." };
-    }
+  if (!title || !sku) {
+    return { success: false, error: "El título y SKU son obligatorios." };
+  }
 
-    const priceUSD = parseFloat(priceUSDStr);
-    const pricePEN = pricePENStr ? parseFloat(pricePENStr) : Math.round(priceUSD * 3.75 * 100) / 100;
-    const stock = stockStr ? parseInt(stockStr, 10) : 100;
-    const slug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${sku.toLowerCase()}`;
+  const priceUSD = priceUSDStr ? parseFloat(priceUSDStr) : 0;
+  const pricePEN = pricePENStr ? parseFloat(pricePENStr) : Math.round(priceUSD * 3.75 * 100) / 100;
+  const stock = stockStr ? parseInt(stockStr, 10) : 100;
+  const slug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${sku.toLowerCase()}`;
 
-    let category = await prisma.category.findFirst({
-      where: { name: { equals: categoryName, mode: "insensitive" } },
-    });
+  let category = await prisma.category.findFirst({
+    where: { name: { equals: categoryName, mode: "insensitive" } },
+  });
 
-    if (!category) {
-      category = await prisma.category.create({
-        data: {
-          name: categoryName,
-          slug: categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-        },
-      });
-    }
-
-    const newProduct = await prisma.product.create({
+  if (!category) {
+    category = await prisma.category.create({
       data: {
-        title: title.trim(),
-        sku: sku.trim(),
-        slug: slug,
-        priceUSD,
-        pricePEN,
-        basePrice: priceUSD,
-        stock: Math.max(0, stock),
-        description: description ? description.trim() : title,
-        categoryId: category.id,
-        isActive: true,
+        name: categoryName,
+        slug: categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
       },
     });
-
-    if (imageUrl && imageUrl.startsWith("http")) {
-      await prisma.productImage.create({
-        data: {
-          productId: newProduct.id,
-          url: imageUrl,
-          publicId: `upload_${Date.now()}`,
-        },
-      });
-    }
-
-    revalidatePath("/dashboard/products");
-    revalidatePath("/");
-    return { success: true, message: "Producto creado con éxito." };
-  } catch (error: any) {
-    console.error("Error al crear producto nuevo:", error);
-    return { success: false, error: error?.message || "Error al crear producto." };
   }
+
+  const newProduct = await prisma.product.create({
+    data: {
+      title: title.trim(),
+      sku: sku.trim(),
+      slug: slug,
+      priceUSD,
+      pricePEN,
+      basePrice: priceUSD,
+      stock: Math.max(0, stock),
+      description: description ? description.trim() : title,
+      categoryId: category.id,
+      isActive: true,
+    },
+  });
+
+  if (imageUrl && imageUrl.startsWith("http")) {
+    await prisma.productImage.create({
+      data: {
+        productId: newProduct.id,
+        url: imageUrl,
+        publicId: `upload_${Date.now()}`,
+      },
+    });
+  }
+
+  revalidatePath("/dashboard/products");
+  revalidatePath("/");
+
+  redirect("/dashboard/products");
 }
