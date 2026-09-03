@@ -22,28 +22,39 @@ export default async function ProductsListPage() {
     console.error("Error al cargar productos de Neon DB:", err);
   }
 
-  const serializedProducts: SerializedProduct[] = dbProducts.map((p) => ({
-    id: p.id,
-    title: p.title,
-    sku: p.sku,
-    uniqueId: p.uniqueId,
-    basePrice: Number(p.basePrice),
-    costPerItem: p.costPerItem ? Number(p.costPerItem) : null,
-    stock: p.stock,
-    isActive: p.isActive,
-    isFamily: p.isFamily,
-    familyId: p.familyId,
-    productType: p.productType,
-    categoryName: p.category?.name || "General",
-    imageUrl: p.images?.[0]?.url || null,
-  }));
+  const serializedProducts: SerializedProduct[] = dbProducts.map((p) => {
+    const priceUSD = Number(p.priceUSD || p.basePrice);
+    const pricePEN = Number(p.pricePEN || (priceUSD * 3.75).toFixed(2));
+    const costUSD = p.costUSD || p.costPerItem ? Number(p.costUSD || p.costPerItem) : null;
+    const costPEN = p.costPEN ? Number(p.costPEN) : (costUSD ? Number((costUSD * 3.75).toFixed(2)) : null);
+
+    return {
+      id: p.id,
+      title: p.title,
+      sku: p.sku,
+      uniqueId: p.uniqueId,
+      priceUSD,
+      pricePEN,
+      costUSD,
+      costPEN,
+      basePrice: priceUSD,
+      costPerItem: costUSD,
+      stock: p.stock,
+      isActive: p.isActive,
+      isFamily: p.isFamily,
+      familyId: p.familyId,
+      productType: p.productType,
+      categoryName: p.category?.name || "General",
+      imageUrl: p.images?.[0]?.url || null,
+    };
+  });
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12 font-body">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Gestión de Productos & Inventario</h1>
-          <p className="text-sm text-slate-500">Catálogo de productos, stock y variantes de familia en Neon DB.</p>
+          <p className="text-sm text-slate-500">Catálogo de productos, costos, precios en Soles/USD y stock en Neon DB.</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -65,7 +76,7 @@ export default async function ProductsListPage() {
         </div>
       </div>
 
-      {/* Componente Cliente Interactivo con Búsqueda, Filtros y Acciones Masivas */}
+      {/* Componente Cliente Interactivo con Precios en Soles, Dólares y Costos */}
       <ProductsTableClient initialProducts={serializedProducts} />
     </div>
   );

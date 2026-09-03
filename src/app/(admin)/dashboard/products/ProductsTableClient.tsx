@@ -17,7 +17,8 @@ import {
   CheckSquare,
   Square,
   Loader2,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Coins
 } from "lucide-react";
 import {
   toggleProductStatusAction,
@@ -31,7 +32,11 @@ export interface SerializedProduct {
   title: string;
   sku: string;
   uniqueId?: string | null;
-  basePrice: number;
+  priceUSD: number;
+  pricePEN: number;
+  costUSD?: number | null;
+  costPEN?: number | null;
+  basePrice?: number;
   costPerItem?: number | null;
   stock: number;
   isActive: boolean;
@@ -56,7 +61,6 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
 
   // 1. Filtrado dinámico en tiempo real
   const filteredProducts = products.filter((p) => {
-    // Filtro de texto por Nombre, SKU o ID Único
     const query = searchQuery.toLowerCase().trim();
     const matchesQuery =
       !query ||
@@ -67,7 +71,6 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
 
     if (!matchesQuery) return false;
 
-    // Filtros por pestaña/estado
     if (filterTab === "ACTIVE") return p.isActive;
     if (filterTab === "INACTIVE") return !p.isActive;
     if (filterTab === "OUT_OF_STOCK") return p.stock <= 0;
@@ -95,10 +98,9 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
     }
   };
 
-  // 3. Acciones de Fila Inmediatas (Toggle estado & ajuste rápido de stock)
+  // 3. Acciones de Fila Inmediatas
   const handleToggleStatus = async (id: string) => {
     setIsProcessing(true);
-    // Actualización optimista local
     setProducts((prev) =>
       prev.map((p) => (p.id === id ? { ...p, isActive: !p.isActive } : p))
     );
@@ -163,7 +165,6 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
       {/* Barra de Filtros y Búsqueda Avanzada */}
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          {/* Buscador de Texto */}
           <div className="relative flex-1 w-full">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
@@ -175,7 +176,6 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
             />
           </div>
 
-          {/* Pestañas de Filtrado */}
           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 shrink-0 text-xs font-semibold">
             <button
               onClick={() => setFilterTab("ALL")}
@@ -206,7 +206,7 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
         </div>
       </div>
 
-      {/* Barra Flotante de Acciones Masivas cuando hay elementos seleccionados */}
+      {/* Barra Flotante de Acciones Masivas */}
       {selectedIds.length > 0 && (
         <div className="bg-slate-900 text-white p-4 rounded-xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 border border-slate-800 animate-in fade-in slide-in-from-bottom-2">
           <div className="flex items-center gap-2 text-xs font-semibold">
@@ -253,7 +253,7 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
         </div>
       )}
 
-      {/* Tabla de Productos */}
+      {/* Tabla de Productos con Precios Duales y Costo */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
         {filteredProducts.length === 0 ? (
           <div className="p-12 text-center">
@@ -278,19 +278,25 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
                     </button>
                   </th>
                   <th className="px-4 py-3.5">Imagen</th>
-                  <th className="px-6 py-3.5">SKU / ID Único</th>
+                  <th className="px-5 py-3.5">SKU / ID Único</th>
                   <th className="px-6 py-3.5">Producto</th>
-                  <th className="px-6 py-3.5">Categoría</th>
-                  <th className="px-6 py-3.5">Familia (Variante)</th>
-                  <th className="px-6 py-3.5">Precio Base</th>
-                  <th className="px-6 py-3.5">Stock (Inventario)</th>
-                  <th className="px-6 py-3.5">Estado</th>
-                  <th className="px-6 py-3.5 text-right">Acciones</th>
+                  <th className="px-5 py-3.5">Categoría</th>
+                  <th className="px-5 py-3.5">Familia</th>
+                  <th className="px-5 py-3.5 text-right">Costo (S/. / $)</th>
+                  <th className="px-5 py-3.5 text-right">Precio Venta (S/. / $)</th>
+                  <th className="px-5 py-3.5 text-center">Stock</th>
+                  <th className="px-5 py-3.5">Estado</th>
+                  <th className="px-5 py-3.5 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredProducts.map((p) => {
                   const isChecked = selectedIds.includes(p.id);
+                  const pricePEN = p.pricePEN || (p.priceUSD * 3.75);
+                  const priceUSD = p.priceUSD || p.basePrice || 0;
+                  const costPEN = p.costPEN ? p.costPEN : (p.costUSD ? p.costUSD * 3.75 : (p.costPerItem ? p.costPerItem * 3.75 : null));
+                  const costUSD = p.costUSD ? p.costUSD : (p.costPerItem ? p.costPerItem : null);
+
                   return (
                     <tr
                       key={p.id}
@@ -322,7 +328,7 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
                       </td>
 
                       {/* SKU / ID Único */}
-                      <td className="px-6 py-4 font-mono text-xs font-bold text-slate-900">
+                      <td className="px-5 py-4 font-mono text-xs font-bold text-slate-900">
                         {p.sku}
                         {p.uniqueId && (
                           <span className="block text-[10px] text-slate-400 font-normal">
@@ -347,10 +353,10 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
                       </td>
 
                       {/* Categoría */}
-                      <td className="px-6 py-4 text-xs font-medium text-slate-600">{p.categoryName}</td>
+                      <td className="px-5 py-4 text-xs font-medium text-slate-600">{p.categoryName}</td>
 
                       {/* Familia / Variante */}
-                      <td className="px-6 py-4 text-xs">
+                      <td className="px-5 py-4 text-xs">
                         {p.isFamily ? (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 inline-flex items-center gap-1">
                             <Layers className="w-3 h-3" /> {p.familyId || "SI"}
@@ -360,14 +366,31 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
                         )}
                       </td>
 
-                      {/* Precio Base */}
-                      <td className="px-6 py-4 font-mono text-xs font-bold text-slate-900">
-                        ${p.basePrice.toFixed(2)} USD
+                      {/* Costo (Soles S/. & Dólares USD) */}
+                      <td className="px-5 py-4 text-right">
+                        <div className="font-mono text-xs">
+                          {costPEN !== null ? (
+                            <>
+                              <span className="font-semibold text-slate-700 block">S/. {costPEN.toFixed(2)}</span>
+                              <span className="text-[10px] text-slate-400 block">${costUSD ? costUSD.toFixed(2) : (costPEN / 3.75).toFixed(2)} USD</span>
+                            </>
+                          ) : (
+                            <span className="text-slate-400 text-xs">-</span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Precio Venta (Soles S/. & Dólares USD) */}
+                      <td className="px-5 py-4 text-right">
+                        <div className="font-mono text-xs">
+                          <span className="font-bold text-emerald-700 block">S/. {pricePEN.toFixed(2)}</span>
+                          <span className="text-[10px] text-slate-500 font-medium block">${priceUSD.toFixed(2)} USD</span>
+                        </div>
                       </td>
 
                       {/* Stock Interactivo (+ / -) */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5">
+                      <td className="px-5 py-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
                           <button
                             onClick={() => handleStockChange(p.id, -1)}
                             className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
@@ -397,7 +420,7 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
                       </td>
 
                       {/* Estado Interactivo (Activo / Inactivo) */}
-                      <td className="px-6 py-4 text-xs">
+                      <td className="px-5 py-4 text-xs">
                         <button
                           onClick={() => handleToggleStatus(p.id)}
                           className={`px-2.5 py-1 rounded-full font-bold text-[11px] transition-colors inline-flex items-center gap-1 ${
@@ -412,7 +435,7 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
                       </td>
 
                       {/* Acciones de Fila */}
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-5 py-4 text-right">
                         <Link
                           href={`/dashboard/products/${p.id}/edit`}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
