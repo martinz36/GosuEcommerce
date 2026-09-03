@@ -7,7 +7,8 @@ import {
   Truck,
   Image as ImageIcon,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  Layers
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/ProductCard";
@@ -26,13 +27,14 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
   // 1. Fetch del producto desde Neon Postgres vía Prisma ORM
   let product: any = null;
+  let familyVariants: any[] = [];
   let relatedProducts: any[] = [];
 
   try {
     if (process.env.DATABASE_URL) {
       product = await prisma.product.findFirst({
         where: {
-          OR: [{ id: id }, { slug: id }],
+          OR: [{ id: id }, { slug: id }, { uniqueId: id }, { sku: id }],
         },
         include: {
           images: true,
@@ -42,6 +44,20 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
       });
 
       if (product) {
+        // Consultar variantes pertenecientes a la misma familia (si isFamily === true o familyId existe)
+        if (product.familyId) {
+          familyVariants = await prisma.product.findMany({
+            where: {
+              familyId: product.familyId,
+              isActive: true,
+            },
+            include: {
+              images: true,
+            },
+            orderBy: { title: "asc" },
+          });
+        }
+
         relatedProducts = await prisma.product.findMany({
           where: {
             id: { not: product.id },
@@ -70,6 +86,8 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
         compareAtPrice: "19.99",
         stock: 50,
         sku: "GOSU-SLV-001",
+        isFamily: true,
+        familyId: "FAM-SLEEVES-MATTE",
         category: { name: "Sleeves" },
         images: [{ url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=60" }],
       },
@@ -98,6 +116,14 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     };
 
     product = mockCatalog[id] || null;
+
+    if (product && product.familyId === "FAM-SLEEVES-MATTE") {
+      familyVariants = [
+        { id: "demo-1", title: "Matte Black", images: [{ url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=60" }] },
+        { id: "demo-1-red", title: "Crimson Red", images: [{ url: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&auto=format&fit=crop&q=60" }] },
+        { id: "demo-1-cyan", title: "Cyber Cyan", images: [{ url: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=60" }] },
+      ];
+    }
   }
 
   if (!product) {
@@ -119,7 +145,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
         <span>Volver al Catálogo</span>
       </Link>
 
-      {/* Paso 4: Layout de 2 Columnas en Desktop */}
+      {/* Layout de 2 Columnas en Desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
         {/* Columna Izquierda: Imagen Gigante de Cloudinary */}
         <div className="bg-surface rounded-2xl border border-neutral-800 overflow-hidden relative aspect-square flex items-center justify-center group shadow-2xl">
@@ -136,18 +162,23 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
             </div>
           )}
 
-          <div className="absolute top-4 left-4">
+          <div className="absolute top-4 left-4 flex gap-2">
             <span className="px-3.5 py-1.5 text-xs font-mono font-extrabold rounded-full bg-accent-cyan text-black uppercase tracking-wider shadow-lg">
               {product.category?.name || "Accesorios TCG"}
             </span>
+            {product.isFamily && (
+              <span className="px-3.5 py-1.5 text-xs font-mono font-extrabold rounded-full bg-accent-pink text-white uppercase tracking-wider shadow-lg flex items-center gap-1">
+                <Layers className="w-3.5 h-3.5" /> COLECCIÓN
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Columna Derecha: Ficha Técnica, Precio y Botón Zustand */}
+        {/* Columna Derecha: Ficha Técnica, Selector de Familia y Botón Zustand */}
         <div className="space-y-8">
           <div>
             <span className="text-xs font-mono text-accent-cyan uppercase tracking-widest block mb-2">
-              SKU: {product.sku}
+              SKU: {product.sku} {product.familyId ? `| FAMILIA: ${product.familyId}` : ""}
             </span>
             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight uppercase leading-tight mb-4">
               {product.title}
@@ -161,6 +192,45 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
               )}
             </div>
           </div>
+
+          {/* Selector de Variantes de Color / Familia */}
+          {familyVariants.length > 1 && (
+            <div className="p-4 bg-surface-elevated rounded-xl border border-neutral-800 space-y-3">
+              <div className="flex items-center justify-between text-xs font-mono text-neutral-300">
+                <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-accent-cyan">
+                  <Layers className="w-4 h-4 text-accent-pink" /> Variantes de Color / Familia:
+                </span>
+                <span className="text-neutral-500">{familyVariants.length} opciones disponibles</span>
+              </div>
+
+              <div className="flex flex-wrap gap-3 pt-1">
+                {familyVariants.map((variant) => {
+                  const isCurrent = variant.id === product.id;
+                  const variantImg = variant.images?.[0]?.url || mainImage;
+                  return (
+                    <Link
+                      key={variant.id}
+                      href={`/products/${variant.id}`}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border text-xs font-mono transition-all ${
+                        isCurrent
+                          ? "bg-white text-black font-bold border-white shadow-md scale-105"
+                          : "bg-black text-neutral-300 border-neutral-800 hover:border-neutral-600 hover:text-white"
+                      }`}
+                    >
+                      <div className="w-6 h-6 rounded overflow-hidden bg-neutral-900 border border-neutral-700 shrink-0">
+                        {variantImg ? (
+                          <img src={variantImg} alt={variant.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-neutral-800" />
+                        )}
+                      </div>
+                      <span className="truncate max-w-[140px]">{variant.title.replace(product.title.split("(")[0], "").trim() || variant.title}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="border-t border-b border-surface-muted py-6">
             <h3 className="text-xs font-mono uppercase text-neutral-400 mb-2">Descripción del Producto</h3>

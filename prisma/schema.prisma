@@ -112,7 +112,7 @@ model Address {
 }
 
 // ------------------------------------------------------
-// PRODUCTS & CATEGORIES (Cloudinary Ready)
+// PRODUCTS & CATEGORIES (Cloudinary & Excel Import Ready)
 // ------------------------------------------------------
 model Category {
   id          String     @id @default(cuid())
@@ -144,6 +144,12 @@ model Product {
   stock          Int              @default(0)
   isActive       Boolean          @default(true)
   isFeatured     Boolean          @default(false)
+
+  // Campos para Importación Excel & Familias/Variantes de Color
+  uniqueId       String?          @unique // ID Unico del Excel
+  isFamily       Boolean          @default(false) // Es Familia (SI/NO)
+  familyId       String?          // ID Familia para agrupar variantes de color
+  productType    String?          // Tipo (Sleeves, Binders, Toploaders)
   
   // Cloudinary Galería de Imágenes
   images         ProductImage[]
