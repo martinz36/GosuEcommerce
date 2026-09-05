@@ -6,7 +6,21 @@ import { ProductsTableClient, SerializedProduct } from "./ProductsTableClient";
 
 export const revalidate = 0;
 
-export default async function ProductsListPage() {
+interface PageProps {
+  searchParams?: {
+    sort?: string;
+  };
+}
+
+export default async function ProductsListPage({ searchParams }: PageProps) {
+  const sort = searchParams?.sort || "";
+
+  let orderByClause: any = { createdAt: "desc" };
+  if (sort === "stock_asc") orderByClause = { stock: "asc" };
+  if (sort === "stock_desc") orderByClause = { stock: "desc" };
+  if (sort === "price_asc") orderByClause = { priceUSD: "asc" };
+  if (sort === "price_desc") orderByClause = { priceUSD: "desc" };
+
   let dbProducts: any[] = [];
   try {
     if (process.env.DATABASE_URL) {
@@ -15,7 +29,7 @@ export default async function ProductsListPage() {
           category: true,
           images: true,
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: orderByClause,
       });
     }
   } catch (err) {
@@ -50,11 +64,11 @@ export default async function ProductsListPage() {
   });
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-12 font-body">
+    <div className="space-y-6 max-w-6xl mx-auto pb-12 font-sans">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Gestión de Productos & Inventario</h1>
-          <p className="text-sm text-slate-500">Catálogo de productos, costos, precios en Soles/USD y stock en Neon DB.</p>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Gestión de Productos & Inventario</h1>
+          <p className="text-xs text-slate-500 mt-1">Catálogo de productos, costos, edición rápida estilo Shopify y control de stock en Neon DB.</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -76,8 +90,8 @@ export default async function ProductsListPage() {
         </div>
       </div>
 
-      {/* Componente Cliente Interactivo con Precios en Soles, Dólares y Costos */}
-      <ProductsTableClient initialProducts={serializedProducts} />
+      {/* Componente Cliente Interactivo con Acciones Masivas, Edición Inline de Precio y Ordenamiento */}
+      <ProductsTableClient initialProducts={serializedProducts} currentSort={sort} />
     </div>
   );
 }

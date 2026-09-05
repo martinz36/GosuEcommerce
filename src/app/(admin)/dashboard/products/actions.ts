@@ -40,6 +40,69 @@ export async function quickUpdateStockAction(id: string, newStock: number) {
   }
 }
 
+export async function quickUpdatePriceAction(id: string, newPriceUSD: number, newPricePEN?: number) {
+  try {
+    const priceUSD = Math.max(0, newPriceUSD);
+    const pricePEN = newPricePEN !== undefined ? Math.max(0, newPricePEN) : Math.round(priceUSD * 3.75 * 100) / 100;
+
+    await prisma.product.update({
+      where: { id },
+      data: {
+        priceUSD,
+        pricePEN,
+        basePrice: priceUSD,
+      },
+    });
+
+    revalidatePath("/dashboard/products");
+    revalidatePath("/");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error al actualizar precio de producto:", error);
+    return { success: false, error: error?.message || "Error actualizando precio" };
+  }
+}
+
+export async function bulkUpdateProductsAction(
+  productIds: string[],
+  action: "activate" | "deactivate" | "delete"
+) {
+  try {
+    if (!productIds || productIds.length === 0) {
+      return { success: false, error: "No se seleccionaron productos." };
+    }
+
+    if (action === "activate") {
+      await prisma.product.updateMany({
+        where: { id: { in: productIds } },
+        data: { isActive: true },
+      });
+    } else if (action === "deactivate") {
+      await prisma.product.updateMany({
+        where: { id: { in: productIds } },
+        data: { isActive: false },
+      });
+    } else if (action === "delete") {
+      // Eliminar imágenes en cascada y productos en transacción única de Neon DB
+      await prisma.$transaction([
+        prisma.productImage.deleteMany({
+          where: { productId: { in: productIds } },
+        }),
+        prisma.product.deleteMany({
+          where: { id: { in: productIds } },
+        }),
+      ]);
+    }
+
+    revalidatePath("/dashboard/products");
+    revalidatePath("/");
+    return { success: true, message: `Acción '${action}' completada para ${productIds.length} productos.` };
+  } catch (error: any) {
+    console.error("Error en acción masiva de productos:", error);
+    return { success: false, error: error?.message || "Error al realizar acción masiva." };
+  }
+}
+
 export async function bulkUpdateStockAction(
   productIds: string[],
   stockValue: number,
@@ -75,26 +138,6 @@ export async function bulkUpdateStockAction(
   } catch (error: any) {
     console.error("Error en actualización masiva de stock:", error);
     return { success: false, error: error?.message || "Error al actualizar stock masivamente." };
-  }
-}
-
-export async function bulkToggleStatusAction(productIds: string[], targetStatus: boolean) {
-  try {
-    if (!productIds || productIds.length === 0) {
-      return { success: false, error: "No se seleccionaron productos." };
-    }
-
-    await prisma.product.updateMany({
-      where: { id: { in: productIds } },
-      data: { isActive: targetStatus },
-    });
-
-    revalidatePath("/dashboard/products");
-    revalidatePath("/");
-    return { success: true, message: `Estado actualizado para ${productIds.length} productos.` };
-  } catch (error: any) {
-    console.error("Error en actualización masiva de estado:", error);
-    return { success: false, error: error?.message || "Error al actualizar estado masivamente." };
   }
 }
 

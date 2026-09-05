@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Search,
   CheckCircle2,
@@ -10,21 +11,27 @@ import {
   Plus,
   Minus,
   Edit,
-  FileSpreadsheet,
   Package,
   Layers,
   Image as ImageIcon,
   CheckSquare,
   Square,
-  Loader2,
   SlidersHorizontal,
-  Coins
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Trash2,
+  Check,
+  X,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import {
   toggleProductStatusAction,
   quickUpdateStockAction,
+  quickUpdatePriceAction,
+  bulkUpdateProductsAction,
   bulkUpdateStockAction,
-  bulkToggleStatusAction
 } from "./actions";
 
 export interface SerializedProduct {
@@ -47,20 +54,64 @@ export interface SerializedProduct {
   imageUrl?: string | null;
 }
 
-export function ProductsTableClient({ initialProducts }: { initialProducts: SerializedProduct[] }) {
+export function ProductsTableClient({
+  initialProducts,
+  currentSort = "",
+}: {
+  initialProducts: SerializedProduct[];
+  currentSort?: string;
+}) {
+  const router = useRouter();
   const [products, setProducts] = useState<SerializedProduct[]>(initialProducts);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTab, setFilterTab] = useState<"ALL" | "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK">("ALL");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Estados para modal / ajuste masivo de stock
+  // Estados para Modal de Confirmación de Eliminación Masiva
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // Estados para Modal de Stock Masivo
   const [showBulkStockModal, setShowBulkStockModal] = useState(false);
   const [bulkStockValue, setBulkStockValue] = useState<number>(100);
   const [bulkStockMode, setBulkStockMode] = useState<"SET" | "ADD">("SET");
 
-  // 1. Filtrado dinámico en tiempo real
-  const filteredProducts = products.filter((p) => {
+  // Estado para Edición Inline de Precio
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
+  const [editingPriceUSD, setEditingPriceUSD] = useState<string>("");
+  const [editingPricePEN, setEditingPricePEN] = useState<string>("");
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Toast helper
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3000);
+  };
+
+  // 1. Manejo de Ordenamiento por Columna (Stock y Precio)
+  const handleSortToggle = (column: "stock" | "price") => {
+    let nextSort = "";
+    if (column === "stock") {
+      nextSort = currentSort === "stock_asc" ? "stock_desc" : "stock_asc";
+    } else {
+      nextSort = currentSort === "price_asc" ? "price_desc" : "price_asc";
+    }
+    router.push(`/dashboard/products?sort=${nextSort}`);
+  };
+
+  // Ordenamiento local inmediato
+  const sortedProducts = [...products].sort((a, b) => {
+    if (currentSort === "stock_asc") return a.stock - b.stock;
+    if (currentSort === "stock_desc") return b.stock - a.stock;
+    if (currentSort === "price_asc") return a.priceUSD - b.priceUSD;
+    if (currentSort === "price_desc") return b.priceUSD - a.priceUSD;
+    return 0;
+  });
+
+  // 2. Filtrado dinámico en tiempo real
+  const filteredProducts = sortedProducts.filter((p) => {
     const query = searchQuery.toLowerCase().trim();
     const matchesQuery =
       !query ||
@@ -78,7 +129,7 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
     return true;
   });
 
-  // 2. Manejo de selección múltiple (Checkboxes)
+  // 3. Selección Múltiple (Checkboxes)
   const isAllSelected =
     filteredProducts.length > 0 && filteredProducts.every((p) => selectedIds.includes(p.id));
 
@@ -98,7 +149,71 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
     }
   };
 
-  // 3. Acciones de Fila Inmediatas
+  // 4. Edición de Precio Inline (Paso 2)
+  const handleStartEditingPrice = (product: SerializedProduct) => {
+    setEditingPriceId(product.id);
+    setEditingPriceUSD(product.priceUSD.toString());
+    setEditingPricePEN(product.pricePEN.toString());
+  };
+
+  const handleSaveInlinePrice = async (productId: string) => {
+    if (!editingPriceId) return;
+
+    const newUSD = parseFloat(editingPriceUSD);
+    if (isNaN(newUSD) || newUSD < 0) {
+      setEditingPriceId(null);
+      return;
+    }
+
+    const calculatedPEN = Math.round(newUSD * 3.75 * 100) / 100;
+
+    // Actualización optimista de UI
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.id === productId
+          ? { ...p, priceUSD: newUSD, pricePEN: calculatedPEN, basePrice: newUSD }
+          : p
+      )
+    );
+
+    setEditingPriceId(null);
+
+    // Guardado silencioso en Neon DB
+    const res = await quickUpdatePriceAction(productId, newUSD, calculatedPEN);
+    if (res.success) {
+      showToast(`✅ Precio actualizado: S/. ${calculatedPEN.toFixed(2)} / $${newUSD.toFixed(2)} USD`);
+    } else {
+      showToast(`❌ Error: ${res.error || "No se pudo actualizar el precio"}`);
+    }
+  };
+
+  // 5. Acciones Masivas (Paso 1)
+  const handleBulkAction = async (action: "activate" | "deactivate" | "delete") => {
+    if (selectedIds.length === 0) return;
+    setIsProcessing(true);
+
+    if (action === "activate") {
+      setProducts((prev) =>
+        prev.map((p) => (selectedIds.includes(p.id) ? { ...p, isActive: true } : p))
+      );
+      showToast(`✅ ${selectedIds.length} productos activados.`);
+    } else if (action === "deactivate") {
+      setProducts((prev) =>
+        prev.map((p) => (selectedIds.includes(p.id) ? { ...p, isActive: false } : p))
+      );
+      showToast(`ℹ️ ${selectedIds.length} productos desactivados.`);
+    } else if (action === "delete") {
+      setProducts((prev) => prev.filter((p) => !selectedIds.includes(p.id)));
+      showToast(`🗑️ ${selectedIds.length} productos eliminados.`);
+      setShowDeleteModal(false);
+    }
+
+    await bulkUpdateProductsAction(selectedIds, action);
+    setSelectedIds([]);
+    setIsProcessing(false);
+  };
+
+  // 6. Fila Inmediata (Stock y Estado)
   const handleToggleStatus = async (id: string) => {
     setIsProcessing(true);
     setProducts((prev) =>
@@ -119,20 +234,6 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
     );
 
     await quickUpdateStockAction(id, newStock);
-  };
-
-  // 4. Acciones Masivas
-  const handleBulkToggleStatus = async (targetStatus: boolean) => {
-    if (selectedIds.length === 0) return;
-    setIsProcessing(true);
-
-    setProducts((prev) =>
-      prev.map((p) => (selectedIds.includes(p.id) ? { ...p, isActive: targetStatus } : p))
-    );
-
-    await bulkToggleStatusAction(selectedIds, targetStatus);
-    setSelectedIds([]);
-    setIsProcessing(false);
   };
 
   const handleExecuteBulkStock = async () => {
@@ -156,14 +257,22 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
     await bulkUpdateStockAction(selectedIds, bulkStockValue, bulkStockMode);
     setSelectedIds([]);
     setIsProcessing(false);
+    showToast(`📦 Stock actualizado para ${selectedIds.length} productos.`);
   };
 
   const outOfStockCount = products.filter((p) => p.stock <= 0).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* Toast Notificación Flotante */}
+      {toastMessage && (
+        <div className="fixed top-20 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-slate-700 text-xs font-semibold animate-in fade-in slide-in-from-top-2 flex items-center gap-2">
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Barra de Filtros y Búsqueda Avanzada */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4 font-sans">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="relative flex-1 w-full">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -179,25 +288,41 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 shrink-0 text-xs font-semibold">
             <button
               onClick={() => setFilterTab("ALL")}
-              className={`px-3 py-1.5 rounded-md transition-colors ${filterTab === "ALL" ? "bg-white text-slate-900 shadow-sm font-bold" : "text-slate-600 hover:text-slate-900"}`}
+              className={`px-3 py-1.5 rounded-md transition-colors ${
+                filterTab === "ALL"
+                  ? "bg-white text-slate-900 shadow-sm font-bold"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
             >
               Todos ({products.length})
             </button>
             <button
               onClick={() => setFilterTab("ACTIVE")}
-              className={`px-3 py-1.5 rounded-md transition-colors ${filterTab === "ACTIVE" ? "bg-white text-slate-900 shadow-sm font-bold" : "text-slate-600 hover:text-slate-900"}`}
+              className={`px-3 py-1.5 rounded-md transition-colors ${
+                filterTab === "ACTIVE"
+                  ? "bg-white text-slate-900 shadow-sm font-bold"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
             >
               Activos
             </button>
             <button
               onClick={() => setFilterTab("INACTIVE")}
-              className={`px-3 py-1.5 rounded-md transition-colors ${filterTab === "INACTIVE" ? "bg-white text-slate-900 shadow-sm font-bold" : "text-slate-600 hover:text-slate-900"}`}
+              className={`px-3 py-1.5 rounded-md transition-colors ${
+                filterTab === "INACTIVE"
+                  ? "bg-white text-slate-900 shadow-sm font-bold"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
             >
               Inactivos
             </button>
             <button
               onClick={() => setFilterTab("OUT_OF_STOCK")}
-              className={`px-3 py-1.5 rounded-md transition-colors flex items-center gap-1 ${filterTab === "OUT_OF_STOCK" ? "bg-rose-600 text-white font-bold" : "text-rose-600 hover:bg-rose-50"}`}
+              className={`px-3 py-1.5 rounded-md transition-colors flex items-center gap-1 ${
+                filterTab === "OUT_OF_STOCK"
+                  ? "bg-rose-600 text-white font-bold"
+                  : "text-rose-600 hover:bg-rose-50"
+              }`}
             >
               <AlertTriangle className="w-3.5 h-3.5" />
               <span>Sin Stock ({outOfStockCount})</span>
@@ -206,55 +331,68 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
         </div>
       </div>
 
-      {/* Barra Flotante de Acciones Masivas */}
+      {/* Floating Action Bar (Barra de Acciones Flotante - Paso 1) */}
       {selectedIds.length > 0 && (
-        <div className="bg-slate-900 text-white p-4 rounded-xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 border border-slate-800 animate-in fade-in slide-in-from-bottom-2">
-          <div className="flex items-center gap-2 text-xs font-semibold">
-            <span className="bg-emerald-500 text-black px-2.5 py-0.5 rounded-full font-bold font-mono">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white px-6 py-3.5 rounded-2xl shadow-2xl border border-slate-800 flex items-center gap-6 animate-in fade-in slide-in-from-bottom-4 font-sans">
+          <div className="flex items-center gap-2 text-xs font-bold">
+            <span className="bg-emerald-400 text-black px-2.5 py-0.5 rounded-full font-mono text-xs">
               {selectedIds.length}
             </span>
-            <span>productos seleccionados para acción masiva</span>
+            <span>seleccionados</span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setShowBulkStockModal(true)}
-              className="px-3 py-1.5 rounded-lg bg-white text-black font-bold text-xs hover:bg-slate-200 transition-colors flex items-center gap-1.5"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5 text-purple-600" />
-              <span>Ajustar Stock Masivo</span>
-            </button>
+          <div className="h-4 w-px bg-slate-700" />
 
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => handleBulkToggleStatus(true)}
+              onClick={() => handleBulkAction("activate")}
               disabled={isProcessing}
-              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Activar</span>
             </button>
 
             <button
-              onClick={() => handleBulkToggleStatus(false)}
+              onClick={() => handleBulkAction("deactivate")}
               disabled={isProcessing}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-colors flex items-center gap-1.5"
             >
               <XCircle className="w-3.5 h-3.5 text-slate-400" />
               <span>Desactivar</span>
             </button>
 
             <button
-              onClick={() => setSelectedIds([])}
-              className="px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white text-xs underline"
+              onClick={() => setShowBulkStockModal(true)}
+              className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition-colors flex items-center gap-1.5"
             >
-              Desmarcar
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Ajustar Stock</span>
+            </button>
+
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              disabled={isProcessing}
+              className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Eliminar</span>
             </button>
           </div>
+
+          <div className="h-4 w-px bg-slate-700" />
+
+          <button
+            onClick={() => setSelectedIds([])}
+            className="text-xs text-slate-400 hover:text-white underline font-medium"
+          >
+            Desmarcar
+          </button>
         </div>
       )}
 
-      {/* Tabla de Productos con Precios Duales y Costo */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+      {/* Tabla de Productos */}
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm font-sans">
         {filteredProducts.length === 0 ? (
           <div className="p-12 text-center">
             <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
@@ -281,10 +419,37 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
                   <th className="px-5 py-3.5">SKU / ID Único</th>
                   <th className="px-6 py-3.5">Producto</th>
                   <th className="px-5 py-3.5">Categoría</th>
-                  <th className="px-5 py-3.5">Familia</th>
-                  <th className="px-5 py-3.5 text-right">Costo (S/. / $)</th>
-                  <th className="px-5 py-3.5 text-right">Precio Venta (S/. / $)</th>
-                  <th className="px-5 py-3.5 text-center">Stock</th>
+
+                  {/* Encabezado PRECIO VENTA (Sorting interactivo - Paso 3) */}
+                  <th className="px-5 py-3.5 text-right">
+                    <button
+                      onClick={() => handleSortToggle("price")}
+                      className="inline-flex items-center gap-1.5 font-bold hover:text-slate-900 transition-colors uppercase tracking-wider ml-auto"
+                    >
+                      <span>PRECIO VENTA</span>
+                      {currentSort === "price_asc" && <ArrowUp className="w-3.5 h-3.5 text-blue-600" />}
+                      {currentSort === "price_desc" && <ArrowDown className="w-3.5 h-3.5 text-blue-600" />}
+                      {currentSort !== "price_asc" && currentSort !== "price_desc" && (
+                        <ArrowUpDown className="w-3.5 h-3.5 opacity-40" />
+                      )}
+                    </button>
+                  </th>
+
+                  {/* Encabezado STOCK (Sorting interactivo - Paso 3) */}
+                  <th className="px-5 py-3.5 text-center">
+                    <button
+                      onClick={() => handleSortToggle("stock")}
+                      className="inline-flex items-center gap-1.5 font-bold hover:text-slate-900 transition-colors uppercase tracking-wider mx-auto"
+                    >
+                      <span>STOCK</span>
+                      {currentSort === "stock_asc" && <ArrowUp className="w-3.5 h-3.5 text-blue-600" />}
+                      {currentSort === "stock_desc" && <ArrowDown className="w-3.5 h-3.5 text-blue-600" />}
+                      {currentSort !== "stock_asc" && currentSort !== "stock_desc" && (
+                        <ArrowUpDown className="w-3.5 h-3.5 opacity-40" />
+                      )}
+                    </button>
+                  </th>
+
                   <th className="px-5 py-3.5">Estado</th>
                   <th className="px-5 py-3.5 text-right">Acciones</th>
                 </tr>
@@ -292,17 +457,16 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
               <tbody className="divide-y divide-slate-100">
                 {filteredProducts.map((p) => {
                   const isChecked = selectedIds.includes(p.id);
-                  const pricePEN = p.pricePEN || (p.priceUSD * 3.75);
+                  const pricePEN = p.pricePEN || p.priceUSD * 3.75;
                   const priceUSD = p.priceUSD || p.basePrice || 0;
-                  const costPEN = p.costPEN ? p.costPEN : (p.costUSD ? p.costUSD * 3.75 : (p.costPerItem ? p.costPerItem * 3.75 : null));
-                  const costUSD = p.costUSD ? p.costUSD : (p.costPerItem ? p.costPerItem : null);
+                  const isEditingPrice = editingPriceId === p.id;
 
                   return (
                     <tr
                       key={p.id}
                       className={`hover:bg-slate-50 transition-colors ${isChecked ? "bg-slate-50/80" : ""}`}
                     >
-                      {/* Checkbox de Selección */}
+                      {/* Checkbox */}
                       <td className="px-4 py-4 text-center">
                         <button
                           onClick={() => handleToggleSelectOne(p.id)}
@@ -316,9 +480,9 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
                         </button>
                       </td>
 
-                      {/* Imagen Thumbnail */}
+                      {/* Thumbnail */}
                       <td className="px-4 py-4">
-                        <div className="w-10 h-10 rounded bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center">
                           {p.imageUrl ? (
                             <img src={p.imageUrl} alt={p.title} className="w-full h-full object-cover" />
                           ) : (
@@ -327,17 +491,17 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
                         </div>
                       </td>
 
-                      {/* SKU / ID Único */}
+                      {/* SKU */}
                       <td className="px-5 py-4 font-mono text-xs font-bold text-slate-900">
                         {p.sku}
                         {p.uniqueId && (
-                          <span className="block text-[10px] text-slate-400 font-normal">
+                          <span className="block text-[10px] text-slate-400 font-normal font-sans">
                             ID: {p.uniqueId}
                           </span>
                         )}
                       </td>
 
-                      {/* Título de Producto */}
+                      {/* Título */}
                       <td className="px-6 py-4">
                         <Link
                           href={`/products/${p.id}`}
@@ -355,40 +519,42 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
                       {/* Categoría */}
                       <td className="px-5 py-4 text-xs font-medium text-slate-600">{p.categoryName}</td>
 
-                      {/* Familia / Variante */}
-                      <td className="px-5 py-4 text-xs">
-                        {p.isFamily ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 inline-flex items-center gap-1">
-                            <Layers className="w-3 h-3" /> {p.familyId || "SI"}
-                          </span>
+                      {/* Edición Inline de Precio (Paso 2) */}
+                      <td className="px-5 py-4 text-right">
+                        {isEditingPrice ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <span className="text-xs font-bold text-slate-400">$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              autoFocus
+                              value={editingPriceUSD}
+                              onChange={(e) => setEditingPriceUSD(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSaveInlinePrice(p.id);
+                                if (e.key === "Escape") setEditingPriceId(null);
+                              }}
+                              onBlur={() => handleSaveInlinePrice(p.id)}
+                              className="w-20 px-2 py-1 bg-white border-2 border-blue-500 rounded text-xs font-mono font-bold text-slate-900 focus:outline-none"
+                            />
+                          </div>
                         ) : (
-                          <span className="text-slate-400">Único</span>
+                          <div
+                            onClick={() => handleStartEditingPrice(p)}
+                            className="font-mono text-xs cursor-pointer group p-1.5 rounded hover:bg-slate-100 transition-colors inline-block text-right"
+                            title="Haz clic para editar precio rápidamente"
+                          >
+                            <span className="font-bold text-emerald-700 block group-hover:text-blue-600">
+                              S/. {pricePEN.toFixed(2)}
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-medium block">
+                              ${priceUSD.toFixed(2)} USD ✏️
+                            </span>
+                          </div>
                         )}
                       </td>
 
-                      {/* Costo (Soles S/. & Dólares USD) */}
-                      <td className="px-5 py-4 text-right">
-                        <div className="font-mono text-xs">
-                          {costPEN !== null ? (
-                            <>
-                              <span className="font-semibold text-slate-700 block">S/. {costPEN.toFixed(2)}</span>
-                              <span className="text-[10px] text-slate-400 block">${costUSD ? costUSD.toFixed(2) : (costPEN / 3.75).toFixed(2)} USD</span>
-                            </>
-                          ) : (
-                            <span className="text-slate-400 text-xs">-</span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Precio Venta (Soles S/. & Dólares USD) */}
-                      <td className="px-5 py-4 text-right">
-                        <div className="font-mono text-xs">
-                          <span className="font-bold text-emerald-700 block">S/. {pricePEN.toFixed(2)}</span>
-                          <span className="text-[10px] text-slate-500 font-medium block">${priceUSD.toFixed(2)} USD</span>
-                        </div>
-                      </td>
-
-                      {/* Stock Interactivo (+ / -) */}
+                      {/* Stock Interactivo */}
                       <td className="px-5 py-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
@@ -419,7 +585,7 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
                         </div>
                       </td>
 
-                      {/* Estado Interactivo (Activo / Inactivo) */}
+                      {/* Estado */}
                       <td className="px-5 py-4 text-xs">
                         <button
                           onClick={() => handleToggleStatus(p.id)}
@@ -453,17 +619,57 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
         )}
       </div>
 
+      {/* Modal de Confirmación de Eliminación Masiva */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 font-sans animate-in fade-in zoom-in duration-150">
+            <div className="flex items-center gap-3 text-rose-600 border-b border-slate-100 pb-3">
+              <div className="p-2 bg-rose-50 rounded-full border border-rose-100">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-slate-900">¿Eliminar Productos Seleccionados?</h3>
+                <p className="text-xs text-slate-500">Esta acción no se puede deshacer.</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Estás a punto de eliminar <strong className="text-slate-900">{selectedIds.length} productos</strong> de la base de datos Neon DB de forma permanente.
+            </p>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isProcessing}
+                onClick={() => handleBulkAction("delete")}
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm"
+              >
+                {isProcessing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                <span>Confirmar Eliminación</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de Ajuste Masivo de Stock */}
       {showBulkStockModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 font-sans">
             <h3 className="font-bold text-base text-slate-900 border-b border-slate-100 pb-3">
               Ajustar Stock para {selectedIds.length} Productos
             </h3>
 
-            <div className="space-y-3">
+            <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 mb-1">
                   Modo de Actualización
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -493,7 +699,7 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 mb-1">
                   {bulkStockMode === "SET" ? "Nuevo Valor de Stock" : "Cantidad a Sumar"}
                 </label>
                 <input
@@ -514,7 +720,7 @@ export function ProductsTableClient({ initialProducts }: { initialProducts: Seri
               </button>
               <button
                 onClick={handleExecuteBulkStock}
-                className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors"
+                className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition-colors"
               >
                 Confirmar Ajuste Masivo
               </button>
