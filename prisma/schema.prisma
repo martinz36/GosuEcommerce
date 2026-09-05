@@ -134,6 +134,12 @@ model ShippingMethod {
   freeShippingThreshold Decimal?     @db.Decimal(10, 2) // Meta de compra para envío gratis en esta región
   isActive              Boolean      @default(true)
 
+  // Sub-Zonas y Recojo en Tienda (Local Pickup)
+  targetZones           Json?        // Array de departamentos/provincias elegibles o null para todo el país
+  isPickup              Boolean      @default(false) // Indica si es método de Recojo en Tienda
+  pickupAddress         String?      // Dirección física para el recojo
+  pickupSchedule        String?      // Horarios de atención
+
   regionId              String
   region                RegionConfig @relation(fields: [regionId], references: [id], onDelete: Cascade)
 

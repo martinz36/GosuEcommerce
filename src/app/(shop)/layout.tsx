@@ -33,6 +33,7 @@ export default async function ShopLayout({
     currencySymbol: userCurrencyPref === "PEN" || (userCountry === "PE" && !userCurrencyPref) ? "S/." : "$",
     exchangeRate: userCurrencyPref === "PEN" || (userCountry === "PE" && !userCurrencyPref) ? 3.75 : 1.00,
     countryCode: userCountry,
+    isRegionActive: true,
     shippingMethods: [] as any[],
   };
 
@@ -49,26 +50,34 @@ export default async function ShopLayout({
         },
       });
 
-      if (region && region.isActive) {
-        if (!userCurrencyPref) {
-          storeSettings.currency = region.currency;
-          storeSettings.currencySymbol = region.currencySymbol;
-          storeSettings.exchangeRate = Number(region.exchangeRate);
-        }
+      if (region) {
+        storeSettings.isRegionActive = region.isActive;
 
-        if (region.shippingMethods.length > 0) {
-          const firstMethod = region.shippingMethods[0];
-          storeSettings.standardShippingCost = Number(firstMethod.cost);
-          if (firstMethod.freeShippingThreshold) {
-            storeSettings.freeShippingThreshold = Number(firstMethod.freeShippingThreshold);
+        if (region.isActive) {
+          if (!userCurrencyPref) {
+            storeSettings.currency = region.currency;
+            storeSettings.currencySymbol = region.currencySymbol;
+            storeSettings.exchangeRate = Number(region.exchangeRate);
           }
 
-          storeSettings.shippingMethods = region.shippingMethods.map((m) => ({
-            id: m.id,
-            name: m.name,
-            cost: Number(m.cost),
-            freeShippingThreshold: m.freeShippingThreshold ? Number(m.freeShippingThreshold) : null,
-          }));
+          if (region.shippingMethods.length > 0) {
+            const firstMethod = region.shippingMethods.find((m) => !m.isPickup) || region.shippingMethods[0];
+            storeSettings.standardShippingCost = Number(firstMethod.cost);
+            if (firstMethod.freeShippingThreshold) {
+              storeSettings.freeShippingThreshold = Number(firstMethod.freeShippingThreshold);
+            }
+
+            storeSettings.shippingMethods = region.shippingMethods.map((m) => ({
+              id: m.id,
+              name: m.name,
+              cost: Number(m.cost),
+              freeShippingThreshold: m.freeShippingThreshold ? Number(m.freeShippingThreshold) : null,
+              isPickup: m.isPickup,
+              pickupAddress: m.pickupAddress,
+              pickupSchedule: m.pickupSchedule,
+              targetZones: m.targetZones,
+            }));
+          }
         }
       }
     }

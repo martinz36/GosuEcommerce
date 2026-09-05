@@ -7,6 +7,10 @@ export interface RegionalShippingMethod {
   name: string;
   cost: number;
   freeShippingThreshold?: number | null;
+  isPickup?: boolean;
+  pickupAddress?: string | null;
+  pickupSchedule?: string | null;
+  targetZones?: any;
 }
 
 export interface StoreSettingsContextType {
@@ -16,6 +20,7 @@ export interface StoreSettingsContextType {
   currencySymbol: string;
   exchangeRate: number;
   countryCode: string;
+  isRegionActive: boolean;
   shippingMethods: RegionalShippingMethod[];
   formatPrice: (usdAmount: number) => string;
   formatRawPrice: (amount: number) => string;
@@ -28,6 +33,7 @@ const defaultContext: StoreSettingsContextType = {
   currencySymbol: "$",
   exchangeRate: 1.0,
   countryCode: "US",
+  isRegionActive: true,
   shippingMethods: [],
   formatPrice: (usdAmount: number) => `$${usdAmount.toFixed(2)}`,
   formatRawPrice: (amount: number) => `$${amount.toFixed(2)}`,
