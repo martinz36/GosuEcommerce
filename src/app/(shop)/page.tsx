@@ -161,6 +161,8 @@ export default async function HomePage() {
                   pricePEN: Number(product.pricePEN || (Number(product.basePrice) * 3.75).toFixed(2)),
                   stock: product.stock,
                   imageUrl: product.images?.[0]?.url || null,
+                  secondaryImageUrl: product.images?.[1]?.url || null,
+                  images: product.images,
                   isFamily: product.isFamily,
                   familyId: product.familyId,
                   categoryName: product.category?.name || "Accesorios TCG",
