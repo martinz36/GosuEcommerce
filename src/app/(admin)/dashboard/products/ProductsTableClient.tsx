@@ -149,29 +149,29 @@ export function ProductsTableClient({
     }
   };
 
-  // 4. Edición de Precio Inline (Paso 2)
+  // 4. Edición de Precio Inline Dual (Soles & Dólares)
   const handleStartEditingPrice = (product: SerializedProduct) => {
     setEditingPriceId(product.id);
     setEditingPriceUSD(product.priceUSD.toString());
-    setEditingPricePEN(product.pricePEN.toString());
+    setEditingPricePEN((product.pricePEN || product.priceUSD * 3.75).toFixed(2));
   };
 
   const handleSaveInlinePrice = async (productId: string) => {
     if (!editingPriceId) return;
 
     const newUSD = parseFloat(editingPriceUSD);
-    if (isNaN(newUSD) || newUSD < 0) {
+    const newPEN = parseFloat(editingPricePEN);
+
+    if (isNaN(newUSD) || newUSD < 0 || isNaN(newPEN) || newPEN < 0) {
       setEditingPriceId(null);
       return;
     }
-
-    const calculatedPEN = Math.round(newUSD * 3.75 * 100) / 100;
 
     // Actualización optimista de UI
     setProducts((prev) =>
       prev.map((p) =>
         p.id === productId
-          ? { ...p, priceUSD: newUSD, pricePEN: calculatedPEN, basePrice: newUSD }
+          ? { ...p, priceUSD: newUSD, pricePEN: newPEN, basePrice: newUSD }
           : p
       )
     );
@@ -179,9 +179,9 @@ export function ProductsTableClient({
     setEditingPriceId(null);
 
     // Guardado silencioso en Neon DB
-    const res = await quickUpdatePriceAction(productId, newUSD, calculatedPEN);
+    const res = await quickUpdatePriceAction(productId, newUSD, newPEN);
     if (res.success) {
-      showToast(`✅ Precio actualizado: S/. ${calculatedPEN.toFixed(2)} / $${newUSD.toFixed(2)} USD`);
+      showToast(`✅ Precios guardados: S/. ${newPEN.toFixed(2)} / $${newUSD.toFixed(2)} USD`);
     } else {
       showToast(`❌ Error: ${res.error || "No se pudo actualizar el precio"}`);
     }
@@ -519,36 +519,88 @@ export function ProductsTableClient({
                       {/* Categoría */}
                       <td className="px-5 py-4 text-xs font-medium text-slate-600">{p.categoryName}</td>
 
-                      {/* Edición Inline de Precio (Paso 2) */}
+                      {/* Edición Inline Dual de Precio (Soles & Dólares) */}
                       <td className="px-5 py-4 text-right">
                         {isEditingPrice ? (
-                          <div className="flex items-center justify-end gap-1">
-                            <span className="text-xs font-bold text-slate-400">$</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              autoFocus
-                              value={editingPriceUSD}
-                              onChange={(e) => setEditingPriceUSD(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") handleSaveInlinePrice(p.id);
-                                if (e.key === "Escape") setEditingPriceId(null);
-                              }}
-                              onBlur={() => handleSaveInlinePrice(p.id)}
-                              className="w-20 px-2 py-1 bg-white border-2 border-blue-500 rounded text-xs font-mono font-bold text-slate-900 focus:outline-none"
-                            />
+                          <div className="flex flex-col gap-1.5 items-end bg-slate-50 p-2.5 rounded-xl border-2 border-blue-500 shadow-md font-mono text-xs animate-in fade-in zoom-in duration-100">
+                            {/* Input Soles (PEN) */}
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] font-extrabold text-emerald-700">S/.</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                autoFocus
+                                value={editingPricePEN}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setEditingPricePEN(val);
+                                  const num = parseFloat(val);
+                                  if (!isNaN(num) && num >= 0) {
+                                    setEditingPriceUSD((num / 3.75).toFixed(2));
+                                  }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") handleSaveInlinePrice(p.id);
+                                  if (e.key === "Escape") setEditingPriceId(null);
+                                }}
+                                className="w-20 px-2 py-0.5 bg-white border border-slate-300 rounded font-bold text-emerald-700 focus:outline-none focus:border-blue-600 text-right shadow-inner"
+                              />
+                            </div>
+
+                            {/* Input Dólares (USD) */}
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-bold text-slate-500">$</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={editingPriceUSD}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setEditingPriceUSD(val);
+                                  const num = parseFloat(val);
+                                  if (!isNaN(num) && num >= 0) {
+                                    setEditingPricePEN((num * 3.75).toFixed(2));
+                                  }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") handleSaveInlinePrice(p.id);
+                                  if (e.key === "Escape") setEditingPriceId(null);
+                                }}
+                                className="w-20 px-2 py-0.5 bg-white border border-slate-300 rounded font-bold text-slate-800 focus:outline-none focus:border-blue-600 text-right text-[11px] shadow-inner"
+                              />
+                              <span className="text-[10px] text-slate-400">USD</span>
+                            </div>
+
+                            {/* Botones de Confirmación / Cancelación */}
+                            <div className="flex items-center gap-1.5 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => handleSaveInlinePrice(p.id)}
+                                className="px-2.5 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold transition-colors shadow-sm flex items-center gap-0.5"
+                              >
+                                <Check className="w-3 h-3" />
+                                <span>Guardar</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingPriceId(null)}
+                                className="px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded text-[10px] transition-colors"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div
                             onClick={() => handleStartEditingPrice(p)}
                             className="font-mono text-xs cursor-pointer group p-1.5 rounded hover:bg-slate-100 transition-colors inline-block text-right"
-                            title="Haz clic para editar precio rápidamente"
+                            title="Haz clic para editar precios en Soles y Dólares"
                           >
                             <span className="font-bold text-emerald-700 block group-hover:text-blue-600">
-                              S/. {pricePEN.toFixed(2)}
+                              S/. {pricePEN.toFixed(2)} ✏️
                             </span>
                             <span className="text-[10px] text-slate-500 font-medium block">
-                              ${priceUSD.toFixed(2)} USD ✏️
+                              ${priceUSD.toFixed(2)} USD
                             </span>
                           </div>
                         )}
