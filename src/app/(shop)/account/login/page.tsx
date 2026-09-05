@@ -91,6 +91,14 @@ export default function LoginPage() {
                 className="w-full pl-10 pr-4 py-3 bg-black border border-neutral-700 rounded-xl text-xs font-medium text-white placeholder:text-neutral-600 focus:outline-none focus:border-accent-cyan"
               />
             </div>
+            <div className="flex justify-end pt-1">
+              <Link
+                href="/account/forgot-password"
+                className="text-[11px] text-accent-cyan hover:underline"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
           </div>
 
           <button
