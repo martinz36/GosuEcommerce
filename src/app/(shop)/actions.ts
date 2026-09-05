@@ -131,3 +131,42 @@ export async function validateCouponAction(code: string, subtotal: number) {
     return { success: false, error: "Ocurrió un error al validar el código de descuento." };
   }
 }
+
+/**
+ * Server Action para obtener sugerencias de venta cruzada (In-Cart Upselling)
+ */
+export async function getCartUpsellSuggestionsAction(currentProductIds: string[]) {
+  try {
+    if (!process.env.DATABASE_URL) return { success: true, suggestions: [] };
+
+    const rawSuggestions = await prisma.product.findMany({
+      where: {
+        isActive: true,
+        id: {
+          notIn: currentProductIds.filter(Boolean),
+        },
+      },
+      include: {
+        images: true,
+        category: true,
+      },
+      take: 2,
+      orderBy: { isFeatured: "desc" },
+    });
+
+    const suggestions = rawSuggestions.map((p) => ({
+      id: p.id,
+      title: p.title,
+      priceUSD: Number(p.priceUSD || p.basePrice),
+      pricePEN: Number(p.pricePEN || (Number(p.basePrice) * 3.75).toFixed(2)),
+      imageUrl: p.images?.[0]?.url || null,
+      categoryName: p.category?.name || "Accesorios TCG",
+    }));
+
+    return { success: true, suggestions };
+  } catch (error) {
+    console.error("Error obteniendo sugerencias de upselling:", error);
+    return { success: false, suggestions: [] };
+  }
+}
+

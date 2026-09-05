@@ -17,6 +17,7 @@ import { authOptions } from "@/lib/authOptions";
 import { ProductCard } from "@/components/ProductCard";
 import { AddToCartButton } from "@/components/AddToCartButton";
 import { ProductReviewsSection } from "@/components/ProductReviewsSection";
+import { ProductGallery } from "@/components/ProductGallery";
 
 export const revalidate = 0;
 
@@ -151,32 +152,13 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
       {/* Layout de 2 Columnas en Desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-        {/* Columna Izquierda: Imagen Gigante */}
-        <div className="bg-surface rounded-2xl border border-neutral-800 overflow-hidden relative aspect-square flex items-center justify-center group shadow-2xl">
-          {mainImage ? (
-            <img
-              src={mainImage}
-              alt={product.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-          ) : (
-            <div className="flex flex-col items-center gap-3 text-neutral-600">
-              <ImageIcon className="w-16 h-16 stroke-[1]" />
-              <span className="text-xs font-mono uppercase tracking-widest">Sin Imagen Asignada</span>
-            </div>
-          )}
-
-          <div className="absolute top-4 left-4 flex gap-2">
-            <span className="px-3.5 py-1.5 text-xs font-mono font-extrabold rounded-full bg-accent-cyan text-black uppercase tracking-wider shadow-lg">
-              {product.category?.name || "Accesorios TCG"}
-            </span>
-            {product.isFamily && (
-              <span className="px-3.5 py-1.5 text-xs font-mono font-extrabold rounded-full bg-accent-pink text-white uppercase tracking-wider shadow-lg flex items-center gap-1">
-                <Layers className="w-3.5 h-3.5" /> COLECCIÓN
-              </span>
-            )}
-          </div>
-        </div>
+        {/* Columna Izquierda: Galería Inmersiva con Magnifier (Lupa) y Video MP4 */}
+        <ProductGallery
+          images={product.images && product.images.length > 0 ? product.images : (mainImage ? [{ url: mainImage }] : [])}
+          title={product.title}
+          categoryName={product.category?.name || "Accesorios TCG"}
+          isFamily={product.isFamily}
+        />
 
         {/* Columna Derecha: Ficha Técnica, Precio Explícito (PEN / USD) y Botón Zustand */}
         <div className="space-y-8">

@@ -5,6 +5,7 @@ import { Sparkles, ArrowRight, ShieldCheck, Zap, Package, Award } from "lucide-r
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/ProductCard";
 import { BundleSection } from "@/components/BundleSection";
+import { BentoGallery } from "@/components/BentoGallery";
 
 export const revalidate = 0;
 
@@ -123,6 +124,19 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Bento Grid Interactivo con Levitación (Apple Style) */}
+      <BentoGallery
+        products={products.map((p) => ({
+          id: p.id,
+          title: p.title,
+          priceUSD: Number(p.priceUSD || p.basePrice),
+          pricePEN: Number(p.pricePEN || (Number(p.basePrice) * 3.75).toFixed(2)),
+          imageUrl: p.images?.[0]?.url || null,
+          categoryName: p.category?.name || "Accesorios TCG",
+          description: p.description,
+        }))}
+      />
 
       {/* Sección del Catálogo de Productos con Precios Duales Explícitos */}
       <section id="catalog" className="max-w-7xl mx-auto px-6 space-y-8">

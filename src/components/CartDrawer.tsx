@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { useStoreSettings } from "@/providers/StoreProvider";
-import { validateCouponAction } from "@/app/(shop)/actions";
+import { validateCouponAction, getCartUpsellSuggestionsAction } from "@/app/(shop)/actions";
 
 const PERU_DEPARTMENTS = [
   "Lima",
@@ -55,6 +55,7 @@ export function CartDrawer() {
     isOpen,
     discount,
     loyaltyPointsUsed,
+    addToCart,
     toggleCart,
     updateQuantity,
     removeFromCart,
@@ -84,6 +85,20 @@ export function CartDrawer() {
   // Tipo de entrega: "DELIVERY" (Domicilio) o "PICKUP" (Recojo en Tienda)
   const [deliveryType, setDeliveryType] = useState<"DELIVERY" | "PICKUP">("DELIVERY");
   const [selectedDepartment, setSelectedDepartment] = useState<string>("Lima");
+  const [upsellSuggestions, setUpsellSuggestions] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (items.length > 0) {
+      const productIds = items.map((i) => i.productId || i.id);
+      getCartUpsellSuggestionsAction(productIds).then((res) => {
+        if (res.success && res.suggestions) {
+          setUpsellSuggestions(res.suggestions);
+        }
+      });
+    } else {
+      setUpsellSuggestions([]);
+    }
+  }, [items]);
 
   // Métodos especiales disponibles
   const pickupMethod = shippingMethods.find((m) => m.isPickup);
@@ -349,56 +364,115 @@ export function CartDrawer() {
                   </button>
                 </div>
               ) : (
-                items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-4 bg-surface rounded-xl border border-neutral-800 flex gap-4 items-center justify-between"
-                  >
-                    <div className="w-16 h-16 rounded-lg bg-neutral-950 border border-neutral-800 shrink-0 overflow-hidden flex items-center justify-center">
-                      {item.imageUrl ? (
-                        <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <ImageIcon className="w-6 h-6 text-neutral-600" />
-                      )}
-                    </div>
+                <>
+                  {items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-4 bg-surface rounded-xl border border-neutral-800 flex gap-4 items-center justify-between"
+                    >
+                      <div className="w-16 h-16 rounded-lg bg-neutral-950 border border-neutral-800 shrink-0 overflow-hidden flex items-center justify-center">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <ImageIcon className="w-6 h-6 text-neutral-600" />
+                        )}
+                      </div>
 
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <h4 className="font-bold text-xs text-white truncate leading-tight">
-                        {item.title}
-                      </h4>
-                      <span className="text-xs font-mono text-accent-cyan block">
-                        {currencySymbol}
-                        {item.price.toFixed(2)}
-                      </span>
-
-                      <div className="flex items-center gap-2 pt-1">
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          className="p-1 rounded bg-neutral-900 border border-neutral-700 hover:bg-neutral-800 text-white transition-colors"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="text-xs font-mono font-bold w-6 text-center">
-                          {item.quantity}
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <h4 className="font-bold text-xs text-white truncate leading-tight">
+                          {item.title}
+                        </h4>
+                        <span className="text-xs font-mono text-accent-cyan block">
+                          {currencySymbol}
+                          {item.price.toFixed(2)}
                         </span>
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="p-1 rounded bg-neutral-900 border border-neutral-700 hover:bg-neutral-800 text-white transition-colors"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
+
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            className="p-1 rounded bg-neutral-900 border border-neutral-700 hover:bg-neutral-800 text-white transition-colors"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="text-xs font-mono font-bold w-6 text-center">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            className="p-1 rounded bg-neutral-900 border border-neutral-700 hover:bg-neutral-800 text-white transition-colors"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => removeFromCart(item.id)}
+                        className="p-2 text-neutral-500 hover:text-rose-500 transition-colors"
+                        title="Eliminar del carrito"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Completa tu Setup ⚡ (In-Cart Upselling) */}
+                  {upsellSuggestions.length > 0 && (
+                    <div className="pt-4 border-t border-neutral-800 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-neutral-300 flex items-center gap-1.5 font-mono">
+                          <Sparkles className="w-3.5 h-3.5 text-accent-cyan" />
+                          Completa tu Setup ⚡
+                        </span>
+                        <span className="text-[10px] text-neutral-500 font-mono">Recomendados</span>
+                      </div>
+                      <div className="space-y-2">
+                        {upsellSuggestions.map((sug) => {
+                          const itemPrice = isPEN ? sug.pricePEN : sug.priceUSD;
+                          return (
+                            <div
+                              key={sug.id}
+                              className="p-3 bg-neutral-900/80 rounded-xl border border-neutral-800 flex items-center justify-between gap-3 hover:border-neutral-700 transition-colors"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-12 h-12 rounded-lg bg-black border border-neutral-800 overflow-hidden shrink-0 flex items-center justify-center">
+                                  {sug.imageUrl ? (
+                                    <img src={sug.imageUrl} alt={sug.title} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <ImageIcon className="w-4 h-4 text-neutral-600" />
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <h5 className="text-xs font-bold text-white truncate leading-tight">
+                                    {sug.title}
+                                  </h5>
+                                  <span className="text-[11px] font-mono text-accent-cyan block mt-0.5">
+                                    {currencySymbol}{itemPrice?.toFixed(2) ?? "0.00"}
+                                  </span>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() =>
+                                  addToCart({
+                                    id: sug.id,
+                                    productId: sug.id,
+                                    title: sug.title,
+                                    price: itemPrice,
+                                    imageUrl: sug.imageUrl,
+                                  })
+                                }
+                                className="px-3 py-1.5 bg-neutral-800 hover:bg-accent-cyan hover:text-black text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1 shrink-0 font-mono"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>Agregar</span>
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-
-                    <button
-                      onClick={() => removeFromCart(item.id)}
-                      className="p-2 text-neutral-500 hover:text-rose-500 transition-colors"
-                      title="Eliminar del carrito"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))
+                  )}
+                </>
               )}
             </div>
 
