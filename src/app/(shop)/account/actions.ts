@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { awardLoyaltyPoints } from "@/lib/loyalty";
+import { revalidatePath } from "next/cache";
 
 export async function registerUserAction(formData: FormData) {
   try {
@@ -32,8 +34,8 @@ export async function registerUserAction(formData: FormData) {
     // Encriptar contraseña con bcryptjs
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Crear cliente en Neon Postgres con 50 Puntos de Bienvenida (Loyalty Points)
-    await prisma.user.create({
+    // Crear cliente en Neon Postgres
+    const newUser = await prisma.user.create({
       data: {
         email,
         passwordHash,
@@ -41,13 +43,58 @@ export async function registerUserAction(formData: FormData) {
         lastName: lastName ? lastName.trim() : null,
         name: `${firstName || ''} ${lastName || ''}`.trim() || email.split("@")[0],
         role: "CUSTOMER",
-        loyaltyPoints: 50, // Bonus de Bienvenida
+        loyaltyPoints: 0,
       },
     });
+
+    // Asignar puntos dinámicos por Misión de Bienvenida (ACCOUNT_CREATION) desde la BD
+    await awardLoyaltyPoints(newUser.id, "ACCOUNT_CREATION");
 
     return { success: true, message: "¡Cuenta creada exitosamente! Ahora puedes iniciar sesión." };
   } catch (error: any) {
     console.error("Error al registrar usuario en Neon DB:", error);
     return { success: false, error: error?.message || "Error al crear la cuenta de usuario." };
+  }
+}
+
+export async function completeUserProfileMissionAction(
+  userId: string,
+  birthdateStr: string,
+  phoneStr?: string
+) {
+  try {
+    if (!userId) {
+      return { success: false, error: "Usuario no autenticado." };
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return { success: false, error: "Usuario no encontrado." };
+    }
+
+    const birthdate = birthdateStr ? new Date(birthdateStr) : null;
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        birthdate,
+        phone: phoneStr ? phoneStr.trim() : user.phone,
+        isProfileCompleted: true,
+      },
+    });
+
+    // Asignar puntos dinámicos por Misión de Perfil Completo (PROFILE_COMPLETION)
+    const result = await awardLoyaltyPoints(userId, "PROFILE_COMPLETION");
+
+    revalidatePath("/account/dashboard");
+    revalidatePath("/dashboard/customers");
+
+    return {
+      success: true,
+      message: result.message || "¡Perfil completado exitosamente!",
+    };
+  } catch (error: any) {
+    console.error("Error al completar misión de perfil:", error);
+    return { success: false, error: error.message || "Error al actualizar perfil" };
   }
 }

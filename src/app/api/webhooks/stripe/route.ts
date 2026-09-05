@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
+import { awardLoyaltyPoints } from "@/lib/loyalty";
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -91,22 +92,24 @@ export async function POST(req: Request) {
           }
         }
 
-        // Actualizar Puntos de Fidelidad (Loyalty Points) si el usuario estuvo autenticado
+        // Actualizar Puntos de Fidelidad (Loyalty Points) usando el Motor Dinámico
         if (metadata.userId) {
           const usedPoints = parseInt(metadata.loyaltyPointsUsed || "0", 10);
-          const earnedPoints = Math.floor(totalAmount);
-
-          // Restar puntos usados e incrementar los ganados
-          await prisma.user
-            .update({
-              where: { id: metadata.userId },
-              data: {
-                loyaltyPoints: {
-                  increment: earnedPoints - usedPoints,
+          if (usedPoints > 0) {
+            await prisma.user
+              .update({
+                where: { id: metadata.userId },
+                data: {
+                  loyaltyPoints: {
+                    decrement: usedPoints,
+                  },
                 },
-              },
-            })
-            .catch((err) => console.error(`Error actualizando loyaltyPoints para usuario ${metadata.userId}:`, err));
+              })
+              .catch((err) => console.error(`Error descontando puntos usados para usuario ${metadata.userId}:`, err));
+          }
+
+          // Otorgar puntos por la compra dinámicamente según las reglas del Admin
+          await awardLoyaltyPoints(metadata.userId, "PURCHASE", totalAmount);
         }
 
         console.log(`✅ Orden ${orderNumber} creada exitosamente para la sesión ${sessionId}`);

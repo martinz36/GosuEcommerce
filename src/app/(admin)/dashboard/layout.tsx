@@ -11,7 +11,8 @@ import {
   Users,
   Truck,
   ShoppingBag,
-  Globe
+  Globe,
+  Award
 } from "lucide-react";
 
 export default function AdminDashboardLayout({
@@ -25,6 +26,7 @@ export default function AdminDashboardLayout({
     { name: "Descuentos & Afiliados", href: "/dashboard/discounts", icon: Percent },
     { name: "Pedidos & Recibos", href: "/dashboard/orders", icon: ShoppingCart },
     { name: "Directorio de Clientes", href: "/dashboard/customers", icon: Users },
+    { name: "GOSU® Loyalty", href: "/dashboard/settings/loyalty", icon: Award },
     { name: "Carritos Abandonados", href: "/dashboard/abandoned-carts", icon: ShoppingBag },
     { name: "Configurar Envíos", href: "/dashboard/settings/shipping", icon: Truck },
     { name: "Regiones Multi-Moneda", href: "/dashboard/settings/regions", icon: Globe },

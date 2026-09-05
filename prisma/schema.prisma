@@ -29,6 +29,8 @@ model User {
   avatarUrl        String?         // Cloudinary URL
   role             Role            @default(CUSTOMER)
   loyaltyPoints    Int             @default(0) // Puntos de fidelidad acumulados por compras
+  birthdate        DateTime?
+  isProfileCompleted Boolean         @default(false)
   
   // Relaciones NextAuth
   accounts         Account[]
@@ -423,3 +425,34 @@ model CommissionLog {
 
   createdAt        DateTime @default(now())
 }
+
+// ------------------------------------------------------
+// MOTOR DE GAMIFICACIÓN Y FIDELIZACIÓN (GOSU LOYALTY)
+// ------------------------------------------------------
+enum LoyaltyActionType {
+  PURCHASE
+  ACCOUNT_CREATION
+  PROFILE_COMPLETION
+  PRODUCT_REVIEW
+  BIRTHDAY
+}
+
+model LoyaltyTier {
+  id            String   @id @default(cuid())
+  name          String   // Ej. "Contender", "Meta Player", "GOSU Champion"
+  minPoints     Int      @default(0)
+  badgeImageUrl String?  // URL de la imagen de la insignia
+  perks         String?  // Descripción de beneficios
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model LoyaltyEarningRule {
+  id           String            @id @default(cuid())
+  actionType   LoyaltyActionType @unique
+  pointsReward Int               @default(0)
+  isActive     Boolean           @default(true)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
