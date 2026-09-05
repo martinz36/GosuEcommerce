@@ -17,7 +17,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const originHeader = req.headers.get("origin") || req.headers.get("referer");
+    let dynamicOrigin = originHeader ? new URL(originHeader).origin : null;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || dynamicOrigin || "http://localhost:3000";
     const formattedCurrency = (currency || "usd").toLowerCase();
 
     // Transformar items del carrito en line_items para Stripe
