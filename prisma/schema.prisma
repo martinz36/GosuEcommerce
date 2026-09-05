@@ -45,6 +45,7 @@ model User {
   // Relaciones E-commerce
   addresses        Address[]
   orders           Order[]
+  reviews          ProductReview[]
   createdDiscounts DiscountCode[]   @relation("CreatedByAffiliate")
   commissions      CommissionLog[] @relation("AffiliateCommissions")
 
@@ -238,6 +239,7 @@ model Product {
   variants          ProductVariant[]
   bundleItems       BundleItem[]
   orderItems        OrderItem[]
+  reviews           ProductReview[]
 
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
@@ -457,4 +459,21 @@ model LoyaltyEarningRule {
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 }
+
+model ProductReview {
+  id                 String   @id @default(cuid())
+  productId          String
+  product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating             Int      @default(5)
+  comment            String   @db.Text
+  imageUrl           String?
+  isVerifiedPurchase Boolean  @default(false)
+  isApproved         Boolean  @default(true)
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
 

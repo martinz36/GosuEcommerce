@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import { getServerSession } from "next-auth/next";
 import {
   ArrowLeft,
   ShieldCheck,
@@ -9,11 +10,13 @@ import {
   Image as ImageIcon,
   CheckCircle2,
   Sparkles,
-  Layers
+  Layers,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { authOptions } from "@/lib/authOptions";
 import { ProductCard } from "@/components/ProductCard";
 import { AddToCartButton } from "@/components/AddToCartButton";
+import { ProductReviewsSection } from "@/components/ProductReviewsSection";
 
 export const revalidate = 0;
 
@@ -25,6 +28,7 @@ interface ProductDetailPageProps {
 
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
   const { id } = params;
+  const session = await getServerSession(authOptions);
 
   // 1. Leer cookies de geolocalización y preferencia de moneda
   const cookieStore = cookies();
@@ -34,7 +38,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   const activeCurrency = userCurrencyPref || (userCountry === "PE" ? "PEN" : "USD");
   const isPEN = activeCurrency === "PEN";
 
-  // 2. Fetch del producto desde Neon Postgres vía Prisma ORM
+  // 2. Fetch del producto y sus reseñas desde Neon Postgres vía Prisma ORM
   let product: any = null;
   let familyVariants: any[] = [];
   let relatedProducts: any[] = [];
@@ -49,6 +53,13 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
           images: true,
           category: true,
           variants: true,
+          reviews: {
+            where: { isApproved: true },
+            include: {
+              user: true,
+            },
+            orderBy: { createdAt: "desc" },
+          },
         },
       });
 
@@ -89,7 +100,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
   const mainImage = product.images?.[0]?.url || null;
 
-  // Precios duales explícitos (sin depender de cálculos flotantes)
+  // Precios duales explícitos
   const priceUSD = Number(product.priceUSD || product.basePrice);
   const pricePEN = Number(product.pricePEN || (priceUSD * 3.75).toFixed(2));
 
@@ -101,8 +112,31 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     ? (comparePEN ? `S/. ${comparePEN.toFixed(2)}` : null)
     : (compareUSD ? `$${compareUSD.toFixed(2)}` : null);
 
-  // Precio a enviar al carrito según la moneda activa
   const cartPrice = isPEN ? pricePEN : priceUSD;
+
+  const formattedReviews = (product.reviews || []).map((r: any) => ({
+    id: r.id,
+    rating: r.rating,
+    comment: r.comment,
+    imageUrl: r.imageUrl,
+    isVerifiedPurchase: r.isVerifiedPurchase,
+    createdAt: r.createdAt,
+    user: {
+      name: r.user.name,
+      firstName: r.user.firstName,
+      lastName: r.user.lastName,
+      email: r.user.email,
+      image: r.user.image,
+    },
+  }));
+
+  const currentUser = session?.user
+    ? {
+        id: (session.user as any).id,
+        email: session.user.email,
+        name: session.user.name,
+      }
+    : null;
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 space-y-16">
@@ -237,6 +271,13 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
           </div>
         </div>
       </div>
+
+      {/* Sección Interactiva de Reseñas & Puntos GOSU Loyalty */}
+      <ProductReviewsSection
+        productId={product.id}
+        reviews={formattedReviews}
+        currentUser={currentUser}
+      />
 
       {/* Productos Relacionados */}
       {relatedProducts.length > 0 && (
