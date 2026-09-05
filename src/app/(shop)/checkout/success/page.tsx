@@ -10,11 +10,13 @@ export default function CheckoutSuccessPage() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
   const clearCart = useCartStore((state) => state.clearCart);
+  const toggleCart = useCartStore((state) => state.toggleCart);
 
   useEffect(() => {
-    // Vaciar el carrito local cuando el pago fue exitoso
+    // Vaciar el carrito local y cerrarlo cuando el pago fue exitoso
     clearCart();
-  }, [clearCart]);
+    toggleCart(false);
+  }, [clearCart, toggleCart]);
 
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 py-16 text-center">

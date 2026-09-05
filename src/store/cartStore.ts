@@ -106,7 +106,7 @@ export const useCartStore = create<CartState>()(
       },
 
       clearCart: () => {
-        set({ items: [], discount: null, loyaltyPointsUsed: 0 });
+        set({ items: [], discount: null, loyaltyPointsUsed: 0, isOpen: false });
         triggerSilentSync([], 0);
       },
 

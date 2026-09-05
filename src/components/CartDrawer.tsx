@@ -136,6 +136,7 @@ export function CartDrawer() {
       const data = await res.json();
 
       if (data.url) {
+        toggleCart(false);
         window.location.href = data.url;
       } else {
         alert(data.error || "Ocurrió un error al preparar el pago.");
