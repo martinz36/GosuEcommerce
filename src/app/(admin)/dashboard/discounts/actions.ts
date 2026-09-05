@@ -12,6 +12,9 @@ export async function createDiscountCodeAction(formData: FormData): Promise<void
     const minPurchaseStr = formData.get("minPurchaseAmount") as string;
     const commissionRateStr = formData.get("commissionRate") as string;
     const userEmail = formData.get("userEmail") as string;
+    const usageLimitStr = formData.get("usageLimit") as string;
+    const startDateStr = formData.get("startDate") as string;
+    const endDateStr = formData.get("endDate") as string;
 
     if (!codeStr || !valueStr) return;
 
@@ -19,6 +22,9 @@ export async function createDiscountCodeAction(formData: FormData): Promise<void
     const value = parseFloat(valueStr);
     const minPurchaseAmount = minPurchaseStr ? parseFloat(minPurchaseStr) : null;
     const commissionRate = commissionRateStr ? parseFloat(commissionRateStr) : 10.0;
+    const usageLimit = usageLimitStr ? parseInt(usageLimitStr, 10) : null;
+    const startDate = startDateStr ? new Date(startDateStr) : null;
+    const endDate = endDateStr ? new Date(endDateStr) : null;
 
     let createdById: string | null = null;
 
@@ -28,7 +34,6 @@ export async function createDiscountCodeAction(formData: FormData): Promise<void
       });
       if (user) {
         createdById = user.id;
-        // Promover a rol AFILIADO
         if (user.role === "CUSTOMER") {
           await prisma.user.update({
             where: { id: user.id },
@@ -47,6 +52,10 @@ export async function createDiscountCodeAction(formData: FormData): Promise<void
         minPurchaseAmount,
         commissionRate,
         createdById,
+        usageLimit,
+        startDate,
+        endDate,
+        expiresAt: endDate,
         isActive: true,
       },
     });
@@ -55,6 +64,37 @@ export async function createDiscountCodeAction(formData: FormData): Promise<void
     revalidatePath("/");
   } catch (error: any) {
     console.error("Error al crear código de descuento o afiliado:", error);
+  }
+}
+
+export async function toggleDiscountStatusAction(id: string): Promise<void> {
+  try {
+    const existing = await prisma.discountCode.findUnique({ where: { id } });
+    if (!existing) return;
+
+    await prisma.discountCode.update({
+      where: { id },
+      data: { isActive: !existing.isActive },
+    });
+
+    revalidatePath("/dashboard/discounts");
+    revalidatePath("/");
+  } catch (error: any) {
+    console.error("Error al alternar estado del cupón:", error);
+  }
+}
+
+export async function payAffiliateCommissionAction(userId: string): Promise<void> {
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { pendingCommission: 0.0 },
+    });
+
+    revalidatePath("/dashboard/discounts");
+    revalidatePath("/");
+  } catch (error: any) {
+    console.error("Error al marcar comisión como pagada:", error);
   }
 }
 

@@ -46,6 +46,10 @@ model User {
   createdDiscounts DiscountCode[]   @relation("CreatedByAffiliate")
   commissions      CommissionLog[] @relation("AffiliateCommissions")
 
+  // Métricas de Afiliado
+  totalSalesGenerated Decimal       @default(0.00) @db.Decimal(10, 2)
+  pendingCommission   Decimal       @default(0.00) @db.Decimal(10, 2)
+
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 }
@@ -317,6 +321,8 @@ model DiscountCode {
   usageLimit        Int?             // Máximo de usos globales
   usageCount        Int              @default(0)
   isActive          Boolean          @default(true)
+  startDate         DateTime?
+  endDate           DateTime?
   expiresAt         DateTime?
   
   // Afiliado o Creador dueño del código
