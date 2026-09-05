@@ -117,6 +117,37 @@ export function CartDrawer() {
     }
   };
 
+  const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
+
+  const handleCheckout = async () => {
+    try {
+      setIsRedirectingToCheckout(true);
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items,
+          discountCode: discount,
+          loyaltyPointsUsed,
+          currency: currency.toLowerCase(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || "Ocurrió un error al preparar el pago.");
+        setIsRedirectingToCheckout(false);
+      }
+    } catch (err) {
+      console.error("Error al procesar checkout:", err);
+      alert("Error al conectar con la pasarela de pagos.");
+      setIsRedirectingToCheckout(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -385,13 +416,21 @@ export function CartDrawer() {
 
                 {/* Botón de Checkout */}
                 <button
-                  onClick={() => {
-                    alert(`Iniciando Checkout GOSU por ${currencySymbol}${displayFinalTotal.toFixed(2)} ${currency} (${countryCode})`);
-                  }}
-                  className="w-full btn-pill bg-white text-black font-extrabold text-sm py-3.5 hover:bg-accent-cyan transition-colors flex items-center justify-center gap-2 shadow-lg shadow-white/10"
+                  onClick={handleCheckout}
+                  disabled={isRedirectingToCheckout}
+                  className="w-full btn-pill bg-white text-black font-extrabold text-sm py-3.5 hover:bg-accent-cyan transition-colors flex items-center justify-center gap-2 shadow-lg shadow-white/10 disabled:opacity-50"
                 >
-                  <span>IR A PAGAR ({currencySymbol}{displayFinalTotal.toFixed(2)} {currency})</span>
-                  <ArrowRight className="w-4 h-4" />
+                  {isRedirectingToCheckout ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-black" />
+                      <span>REDIRIGIENDO A STRIPE...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>IR A PAGAR ({currencySymbol}{displayFinalTotal.toFixed(2)} {currency})</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
                 </button>
               </div>
             )}
