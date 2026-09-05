@@ -21,7 +21,12 @@ export default async function CustomerOrdersPage() {
   try {
     if (process.env.DATABASE_URL && userId) {
       userOrders = await prisma.order.findMany({
-        where: { userId: userId },
+        where: {
+          OR: [
+            { userId: userId },
+            ...(session.user.email ? [{ guestEmail: session.user.email }] : []),
+          ],
+        },
         include: {
           items: {
             include: {

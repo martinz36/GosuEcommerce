@@ -16,7 +16,18 @@ export default function CheckoutSuccessPage() {
     // Vaciar el carrito local y cerrarlo cuando el pago fue exitoso
     clearCart();
     toggleCart(false);
-  }, [clearCart, toggleCart]);
+
+    if (sessionId) {
+      fetch(`/api/checkout/confirm?session_id=${sessionId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            console.log("Orden confirmada e ingresada en la BD:", data.orderId);
+          }
+        })
+        .catch((err) => console.error("Error confirmando orden:", err));
+    }
+  }, [sessionId, clearCart, toggleCart]);
 
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 py-16 text-center">
