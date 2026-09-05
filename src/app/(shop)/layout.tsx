@@ -9,7 +9,10 @@ import { StoreProvider } from "@/providers/StoreProvider";
 import { CartButton } from "@/components/CartButton";
 import { CartDrawer } from "@/components/CartDrawer";
 import { CurrencySwitcher } from "@/components/CurrencySwitcher";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { HeaderSearch } from "@/components/HeaderSearch";
+import esDict from "@/dictionaries/es.json";
+import enDict from "@/dictionaries/en.json";
 
 export const revalidate = 0;
 
@@ -20,10 +23,14 @@ export default async function ShopLayout({
 }) {
   const session = await getServerSession(authOptions);
 
-  // 1. Leer cookies geolocalizadas generadas por Middleware
+  // 1. Leer cookies geolocalizadas e idioma generadas por Middleware
   const cookieStore = cookies();
   const userCountry = cookieStore.get("user-country")?.value || "PE";
   const userCurrencyPref = cookieStore.get("user-currency")?.value;
+  const userLangPref = cookieStore.get("user-lang")?.value || "es";
+
+  const activeLanguage = userLangPref === "en" ? "en" : "es";
+  const dictionary = activeLanguage === "en" ? enDict : esDict;
 
   // 2. Valores por defecto para la región
   let storeSettings = {
@@ -35,6 +42,8 @@ export default async function ShopLayout({
     countryCode: userCountry,
     isRegionActive: true,
     shippingMethods: [] as any[],
+    language: activeLanguage,
+    dictionary: dictionary as any,
   };
 
   // 3. Consultar Neon DB (RegionConfig & ShippingMethods con Fallback a Región por Defecto "Rest of World")
@@ -134,8 +143,9 @@ export default async function ShopLayout({
               <HeaderSearch />
             </div>
 
-            {/* Acciones: Selector de Moneda, Mi Cuenta, Carrito y Panel Admin */}
+            {/* Acciones: Selector de Idioma, Selector de Moneda, Mi Cuenta, Carrito y Panel Admin */}
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <LanguageSwitcher />
               <CurrencySwitcher />
 
               {/* Botón Mi Cuenta / Login */}

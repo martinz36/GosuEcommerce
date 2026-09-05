@@ -139,8 +139,36 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
       }
     : null;
 
+  // Schema.org Product Rich Snippet (JSON-LD) para SEO dinámico
+  const productImages = product.images && product.images.length > 0
+    ? product.images.map((img: any) => img.url)
+    : (mainImage ? [mainImage] : []);
+
+  const jsonLd = {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    "name": product.title,
+    "image": productImages,
+    "description": product.description || product.title,
+    "sku": product.sku || product.id,
+    "offers": {
+      "@type": "Offer",
+      "url": `https://gosuecommerce.vercel.app/products/${product.slug || product.id}`,
+      "priceCurrency": activeCurrency,
+      "price": cartPrice.toFixed(2),
+      "itemCondition": "https://schema.org/NewCondition",
+      "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+    },
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 space-y-16">
+      {/* Script Estructurado JSON-LD Schema.org para Google Search */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       {/* Botón de Regreso */}
       <Link
         href="/"

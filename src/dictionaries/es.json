@@ -1,0 +1,69 @@
+{
+  "navbar": {
+    "brandTag": "TCG GEAR",
+    "searchPlaceholder": "Buscar cartas, sleeves, binders...",
+    "myAccount": "Cuenta",
+    "login": "Iniciar Sesión",
+    "admin": "Admin",
+    "cart": "Carrito"
+  },
+  "cart": {
+    "title": "Tu Carrito",
+    "productsSingular": "producto",
+    "productsPlural": "productos",
+    "shippingDisabled": "Los envíos a {country} están desactivados temporalmente por mantenimiento logístico.",
+    "freeShippingProgress": "Te faltan {amount} para Envío Gratis",
+    "freeShippingAchieved": "¡Envío Gratis Conseguido!",
+    "pickupSelected": "Recojo en Tienda Seleccionado (Gratis)",
+    "emptyCartTitle": "Tu carrito está vacío",
+    "emptyCartDesc": "Explora el catálogo y agrega productos para comenzar tu compra.",
+    "viewProducts": "Ver Productos",
+    "deliveryMethod": "Método de Entrega",
+    "homeDelivery": "Envío a Domicilio",
+    "storePickup": "Recojo en Tienda (Gratis)",
+    "deliveryDepartment": "Departamento de Entrega:",
+    "loyaltyPoints": "Puntos GOSU®",
+    "redeem": "Canjear",
+    "applied": "Aplicado",
+    "discountCoupon": "Código de Descuento",
+    "apply": "Aplicar",
+    "subtotal": "Subtotal",
+    "shipping": "Envío",
+    "couponDiscount": "Descuento Cupón",
+    "loyaltyDiscount": "Descuento Puntos GOSU®",
+    "total": "TOTAL ESTIMADO",
+    "checkoutBtn": "IR A PAGAR",
+    "redirectingStripe": "REDIRIGIENDO A STRIPE...",
+    "shippingBlocked": "ENVÍOS DESACTIVADOS",
+    "upsellTitle": "Completa tu Setup ⚡",
+    "upsellBadge": "Recomendados",
+    "addBtn": "Agregar"
+  },
+  "product": {
+    "backToCatalog": "Volver al Catálogo",
+    "sku": "SKU",
+    "family": "FAMILIA",
+    "collection": "COLECCIÓN",
+    "colorVariants": "Variantes de Color / Familia:",
+    "availableOptions": "opciones disponibles",
+    "descriptionTitle": "Descripción del Producto",
+    "inStock": "En Stock ({stock} unidades disponibles en inventario)",
+    "outOfStock": "Agotado",
+    "addToCart": "Agregar al Carrito",
+    "expressShipping": "Envío express asegurado",
+    "tcgGuarantee": "Garantía de protección TCG",
+    "relatedProducts": "TAMBIÉN TE PUEDE INTERESAR"
+  },
+  "footer": {
+    "rights": "© 2026 GOSU® Premium TCG Accessories. Impulsado por Next.js App Router, Neon DB & Stripe.",
+    "myAccount": "Mi Cuenta",
+    "adminPanel": "Panel Admin",
+    "region": "Región"
+  },
+  "common": {
+    "pen": "Soles (PEN)",
+    "usd": "Dólares (USD)",
+    "langSpanish": "Español",
+    "langEnglish": "English"
+  }
+}

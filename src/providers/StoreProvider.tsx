@@ -1,6 +1,9 @@
 "use client";
 
 import React, { createContext, useContext } from "react";
+import esDict from "@/dictionaries/es.json";
+
+export type Dictionary = typeof esDict;
 
 export interface RegionalShippingMethod {
   id: string;
@@ -22,6 +25,9 @@ export interface StoreSettingsContextType {
   countryCode: string;
   isRegionActive: boolean;
   shippingMethods: RegionalShippingMethod[];
+  language: string;
+  dictionary: Dictionary;
+  t: (path: string, params?: Record<string, string | number>) => string;
   formatPrice: (usdAmount: number) => string;
   formatRawPrice: (amount: number) => string;
 }
@@ -35,6 +41,9 @@ const defaultContext: StoreSettingsContextType = {
   countryCode: "US",
   isRegionActive: true,
   shippingMethods: [],
+  language: "es",
+  dictionary: esDict as Dictionary,
+  t: (path: string) => path,
   formatPrice: (usdAmount: number) => `$${usdAmount.toFixed(2)}`,
   formatRawPrice: (amount: number) => `$${amount.toFixed(2)}`,
 };
@@ -45,9 +54,31 @@ export function StoreProvider({
   settings,
   children,
 }: {
-  settings: Omit<StoreSettingsContextType, "formatPrice" | "formatRawPrice">;
+  settings: Omit<StoreSettingsContextType, "t" | "formatPrice" | "formatRawPrice">;
   children: React.ReactNode;
 }) {
+  const t = (path: string, params?: Record<string, string | number>): string => {
+    const keys = path.split(".");
+    let current: any = settings.dictionary || esDict;
+    for (const key of keys) {
+      if (current && typeof current === "object" && key in current) {
+        current = current[key];
+      } else {
+        return path;
+      }
+    }
+    if (typeof current === "string") {
+      let str = current;
+      if (params) {
+        Object.entries(params).forEach(([k, v]) => {
+          str = str.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
+        });
+      }
+      return str;
+    }
+    return path;
+  };
+
   const formatPrice = (usdAmount: number) => {
     const converted = usdAmount * settings.exchangeRate;
     return `${settings.currencySymbol}${converted.toFixed(2)}`;
@@ -59,6 +90,7 @@ export function StoreProvider({
 
   const contextValue: StoreSettingsContextType = {
     ...settings,
+    t,
     formatPrice,
     formatRawPrice,
   };

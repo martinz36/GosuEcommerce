@@ -78,6 +78,7 @@ export function CartDrawer() {
     countryCode,
     isRegionActive,
     shippingMethods,
+    t,
   } = useStoreSettings();
 
   const isPEN = currency === "PEN";
@@ -272,7 +273,7 @@ export function CartDrawer() {
                   </div>
                   <div>
                     <h2 className="font-extrabold text-base uppercase tracking-tight">
-                      Tu Carrito ({countryCode})
+                      {t("cart.title")} ({countryCode})
                     </h2>
                     <span className="text-xs text-neutral-400 font-mono">
                       {totalItems} {totalItems === 1 ? "producto" : "productos"} • {currency}

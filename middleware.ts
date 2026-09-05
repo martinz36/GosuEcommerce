@@ -36,6 +36,19 @@ export function middleware(request: NextRequest) {
     });
   }
 
+  // 4. Detectar idioma preferido mediante header `Accept-Language` del navegador
+  const existingLangCookie = request.cookies.get("user-lang")?.value;
+  if (!existingLangCookie) {
+    const acceptLanguage = request.headers.get("accept-language") || "";
+    // Si el header incluye 'es', por defecto es español ('es'), de lo contrario inglés ('en')
+    const defaultLang = acceptLanguage.toLowerCase().includes("es") ? "es" : "en";
+    response.cookies.set("user-lang", defaultLang, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+      sameSite: "lax",
+    });
+  }
+
   return response;
 }
 

@@ -1,0 +1,69 @@
+{
+  "navbar": {
+    "brandTag": "TCG GEAR",
+    "searchPlaceholder": "Search cards, sleeves, binders...",
+    "myAccount": "Account",
+    "login": "Sign In",
+    "admin": "Admin",
+    "cart": "Cart"
+  },
+  "cart": {
+    "title": "Your Cart",
+    "productsSingular": "item",
+    "productsPlural": "items",
+    "shippingDisabled": "Shipping to {country} is temporarily disabled for logistics maintenance.",
+    "freeShippingProgress": "Add {amount} more for Free Shipping",
+    "freeShippingAchieved": "Free Shipping Unlocked!",
+    "pickupSelected": "In-Store Pickup Selected (Free)",
+    "emptyCartTitle": "Your cart is empty",
+    "emptyCartDesc": "Explore the catalog and add products to start shopping.",
+    "viewProducts": "Browse Products",
+    "deliveryMethod": "Delivery Method",
+    "homeDelivery": "Home Delivery",
+    "storePickup": "Store Pickup (Free)",
+    "deliveryDepartment": "Delivery State/Dept:",
+    "loyaltyPoints": "GOSU® Points",
+    "redeem": "Redeem",
+    "applied": "Applied",
+    "discountCoupon": "Discount Code",
+    "apply": "Apply",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "couponDiscount": "Coupon Discount",
+    "loyaltyDiscount": "GOSU® Points Discount",
+    "total": "ESTIMATED TOTAL",
+    "checkoutBtn": "PROCEED TO CHECKOUT",
+    "redirectingStripe": "REDIRECTING TO STRIPE...",
+    "shippingBlocked": "SHIPPING DISABLED",
+    "upsellTitle": "Complete Your Setup ⚡",
+    "upsellBadge": "Recommended",
+    "addBtn": "Add"
+  },
+  "product": {
+    "backToCatalog": "Back to Catalog",
+    "sku": "SKU",
+    "family": "FAMILY",
+    "collection": "COLLECTION",
+    "colorVariants": "Color / Family Variants:",
+    "availableOptions": "options available",
+    "descriptionTitle": "Product Description",
+    "inStock": "In Stock ({stock} units available in inventory)",
+    "outOfStock": "Out of Stock",
+    "addToCart": "Add to Cart",
+    "expressShipping": "Insured express shipping",
+    "tcgGuarantee": "TCG Protection Guarantee",
+    "relatedProducts": "YOU MAY ALSO LIKE"
+  },
+  "footer": {
+    "rights": "© 2026 GOSU® Premium TCG Accessories. Powered by Next.js App Router, Neon DB & Stripe.",
+    "myAccount": "My Account",
+    "adminPanel": "Admin Panel",
+    "region": "Region"
+  },
+  "common": {
+    "pen": "Soles (PEN)",
+    "usd": "Dollars (USD)",
+    "langSpanish": "Spanish",
+    "langEnglish": "English"
+  }
+}
