@@ -37,10 +37,10 @@ export default async function ShopLayout({
     shippingMethods: [] as any[],
   };
 
-  // 3. Consultar Neon DB (RegionConfig & ShippingMethods de esa región específica)
+  // 3. Consultar Neon DB (RegionConfig & ShippingMethods con Fallback a Región por Defecto "Rest of World")
   try {
     if (process.env.DATABASE_URL) {
-      const region = await prisma.regionConfig.findUnique({
+      let region = await prisma.regionConfig.findUnique({
         where: { countryCode: userCountry },
         include: {
           shippingMethods: {
@@ -49,6 +49,31 @@ export default async function ShopLayout({
           },
         },
       });
+
+      // Fallback a Región por Defecto (isDefault = true o "US") si el país no está registrado
+      if (!region) {
+        region = await prisma.regionConfig.findFirst({
+          where: { isDefault: true, isActive: true },
+          include: {
+            shippingMethods: {
+              where: { isActive: true },
+              orderBy: { cost: "asc" },
+            },
+          },
+        });
+      }
+
+      if (!region) {
+        region = await prisma.regionConfig.findFirst({
+          where: { countryCode: "US" },
+          include: {
+            shippingMethods: {
+              where: { isActive: true },
+              orderBy: { cost: "asc" },
+            },
+          },
+        });
+      }
 
       if (region) {
         storeSettings.isRegionActive = region.isActive;
@@ -60,7 +85,7 @@ export default async function ShopLayout({
             storeSettings.exchangeRate = Number(region.exchangeRate);
           }
 
-          if (region.shippingMethods.length > 0) {
+          if (region.shippingMethods && region.shippingMethods.length > 0) {
             const firstMethod = region.shippingMethods.find((m) => !m.isPickup) || region.shippingMethods[0];
             storeSettings.standardShippingCost = Number(firstMethod.cost);
             if (firstMethod.freeShippingThreshold) {

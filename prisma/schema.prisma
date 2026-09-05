@@ -112,18 +112,20 @@ model Address {
 // REGIONES Y MULTI-MONEDA DINÁMICA (Vercel Geo + Neon DB)
 // ------------------------------------------------------
 model RegionConfig {
-  id              String           @id @default(cuid())
-  countryCode     String           @unique // Ej: 'PE', 'US', 'CO', 'MX'
-  countryName     String           // Ej: 'Perú', 'Estados Unidos'
-  currency        String           // Ej: 'PEN', 'USD'
-  currencySymbol  String           @default("$") // Ej: 'S/.', '$'
-  exchangeRate    Decimal          @default(1.00) @db.Decimal(10, 4) // Tasa de cambio respecto a USD
-  isActive        Boolean          @default(true)
+  id                 String           @id @default(cuid())
+  countryCode        String           @unique // Ej: 'PE', 'US', 'CO', 'MX'
+  countryName        String           // Ej: 'Perú', 'Estados Unidos'
+  currency           String           // Ej: 'PEN', 'USD'
+  currencySymbol     String           @default("$") // Ej: 'S/.', '$'
+  exchangeRate       Decimal          @default(1.00) @db.Decimal(10, 4) // Tasa de cambio respecto a USD
+  isActive           Boolean          @default(true)
+  isDefault          Boolean          @default(false) // Región por defecto (Rest of World / US)
+  isAutoExchangeRate Boolean          @default(false) // Tasa dinámica automática vs fija manual
   
-  shippingMethods ShippingMethod[] // Métodos de envío específicos de la región
+  shippingMethods    ShippingMethod[] // Métodos de envío específicos de la región
 
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 }
 
 // ------------------------------------------------------
