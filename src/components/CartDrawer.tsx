@@ -26,6 +26,7 @@ import {
 import { useCartStore } from "@/store/cartStore";
 import { useStoreSettings } from "@/providers/StoreProvider";
 import { validateCouponAction, getCartUpsellSuggestionsAction } from "@/app/(shop)/actions";
+import { CheckoutAuthModal } from "@/components/CheckoutAuthModal";
 
 const PERU_DEPARTMENTS = [
   "Lima",
@@ -204,13 +205,9 @@ export function CartDrawer() {
   };
 
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  const handleCheckout = async () => {
-    if (!isRegionActive) {
-      alert(`Los envíos a ${countryCode} están bloqueados temporalmente por la tienda.`);
-      return;
-    }
-
+  const executeStripeCheckout = async () => {
     try {
       setIsRedirectingToCheckout(true);
       const res = await fetch("/api/checkout", {
@@ -240,6 +237,20 @@ export function CartDrawer() {
       console.error("Error al procesar checkout:", err);
       alert("Error al conectar con la pasarela de pagos.");
       setIsRedirectingToCheckout(false);
+    }
+  };
+
+  const handleCheckout = () => {
+    if (!isRegionActive) {
+      alert(`Los envíos a ${countryCode} están bloqueados temporalmente por la tienda.`);
+      return;
+    }
+
+    // Interceptar checkout si el usuario no está autenticado
+    if (sessionResult?.status === "unauthenticated" || !session?.user) {
+      setIsAuthModalOpen(true);
+    } else {
+      executeStripeCheckout();
     }
   };
 
@@ -720,6 +731,13 @@ export function CartDrawer() {
           </motion.aside>
         </>
       )}
+
+      {/* Modal Interceptor de Autenticación para Checkout */}
+      <CheckoutAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onGuestCheckout={executeStripeCheckout}
+      />
     </AnimatePresence>
   );
 }
