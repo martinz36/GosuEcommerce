@@ -19,6 +19,7 @@ import {
   Crown,
   Sparkles,
   Zap,
+  Tag as TagIcon,
 } from "lucide-react";
 
 export interface SerializedCustomer {
@@ -32,6 +33,10 @@ export interface SerializedCustomer {
   ordersCount: number;
   totalSpent: number;
   createdAt: string;
+  tags?: string[];
+  acceptsMarketing?: boolean;
+  defaultShippingAddress?: string | null;
+  phone?: string | null;
 }
 
 export default function CustomersTableClient({
@@ -46,7 +51,13 @@ export default function CustomersTableClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [tierFilter, setTierFilter] = useState("ALL");
+  const [tagFilter, setTagFilter] = useState("ALL");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  // Obtener lista única de etiquetas
+  const availableTags = Array.from(
+    new Set(customers.flatMap((c) => c.tags || []))
+  ).sort();
 
   // Función para obtener nivel de Loyalty
   const getLoyaltyTier = (points: number) => {
@@ -75,13 +86,14 @@ export default function CustomersTableClient({
     return 0;
   });
 
-  // Filtrado por búsqueda, rol y nivel de loyalty
+  // Filtrado por búsqueda, rol, nivel de loyalty y tags
   const filteredCustomers = sortedCustomers.filter((c) => {
     const displayName = c.name || `${c.firstName || ""} ${c.lastName || ""}`.trim();
     const matchesQuery =
       !searchQuery ||
       displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.email.toLowerCase().includes(searchQuery.toLowerCase());
+      c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.tags && c.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase())));
 
     const matchesRole = roleFilter === "ALL" || c.role === roleFilter;
 
@@ -90,7 +102,9 @@ export default function CustomersTableClient({
     if (tierFilter === "META") matchesTier = c.loyaltyPoints >= 500 && c.loyaltyPoints < 2000;
     if (tierFilter === "CONTENDER") matchesTier = c.loyaltyPoints < 500;
 
-    return matchesQuery && matchesRole && matchesTier;
+    const matchesTag = tagFilter === "ALL" || (c.tags && c.tags.includes(tagFilter));
+
+    return matchesQuery && matchesRole && matchesTier && matchesTag;
   });
 
   // Checkbox helpers
@@ -125,7 +139,10 @@ export default function CustomersTableClient({
       "ID Cliente",
       "Nombre",
       "Email",
+      "Telefono",
       "Rol",
+      "Etiquetas",
+      "Suscrito Marketing",
       "Puntos Loyalty",
       "Nivel GOSU",
       "Total Ordenes",
@@ -136,11 +153,15 @@ export default function CustomersTableClient({
     const rows = targetCustomers.map((c) => {
       const displayName = c.name || `${c.firstName || ""} ${c.lastName || ""}`.trim() || "Cliente";
       const tier = getLoyaltyTier(c.loyaltyPoints).name;
+      const tagsStr = (c.tags || []).join("; ");
       return [
         `"${c.id}"`,
         `"${displayName.replace(/"/g, '""')}"`,
         `"${c.email}"`,
+        `"${c.phone || ""}"`,
         `"${c.role}"`,
+        `"${tagsStr.replace(/"/g, '""')}"`,
+        `"${c.acceptsMarketing ? "SI" : "NO"}"`,
         `"${c.loyaltyPoints}"`,
         `"${tier}"`,
         `"${c.ordersCount}"`,
@@ -165,7 +186,7 @@ export default function CustomersTableClient({
 
   return (
     <div className="space-y-6 font-sans">
-      {/* Barra de Filtros, Buscador, Selector de Rol/Nivel y Exportación Global */}
+      {/* Barra de Filtros, Buscador, Selector de Rol/Nivel/Tag y Exportación Global */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
           {/* Buscador */}
@@ -173,14 +194,14 @@ export default function CustomersTableClient({
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Buscar por Nombre o Email de cliente..."
+              placeholder="Buscar por Nombre, Email o Tag..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-slate-900 transition-all font-medium"
             />
           </div>
 
-          {/* Paso 3: Selector de Rol y Nivel Loyalty */}
+          {/* Paso 3 y 4: Selectores de Rol, Nivel Loyalty, Tags */}
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <select
               value={roleFilter}
@@ -203,6 +224,21 @@ export default function CustomersTableClient({
               <option value="META">Meta Player (500-1999 pts)</option>
               <option value="CONTENDER">Contender (&lt;500 pts)</option>
             </select>
+
+            {availableTags.length > 0 && (
+              <select
+                value={tagFilter}
+                onChange={(e) => setTagFilter(e.target.value)}
+                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none cursor-pointer"
+              >
+                <option value="ALL">Todas las Etiquetas</option>
+                {availableTags.map((tag) => (
+                  <option key={tag} value={tag}>
+                    Tag: {tag}
+                  </option>
+                ))}
+              </select>
+            )}
 
             {/* Paso 4: Botón Global 'Exportar CSV' */}
             <button
@@ -255,7 +291,7 @@ export default function CustomersTableClient({
             <Users className="w-12 h-12 text-slate-300 mx-auto" />
             <h3 className="font-bold text-slate-800 text-sm">No se encontraron clientes</h3>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Intenta ajustar el término de búsqueda o cambia los filtros de rol/nivel.
+              Intenta ajustar el término de búsqueda o cambia los filtros de rol/nivel/etiquetas.
             </p>
           </div>
         ) : (
@@ -275,6 +311,7 @@ export default function CustomersTableClient({
                   <th className="py-3.5 px-4 font-bold">Cliente</th>
                   <th className="py-3.5 px-4 font-bold">Email</th>
                   <th className="py-3.5 px-4 font-bold">Rol</th>
+                  <th className="py-3.5 px-4 font-bold">Etiquetas</th>
                   
                   {/* Paso 3: Header PUNTOS LOYALTY ordenable */}
                   <th className="py-3.5 px-4 font-bold">
@@ -339,7 +376,7 @@ export default function CustomersTableClient({
                         </button>
                       </td>
 
-                      {/* Nombre (Paso 1) */}
+                      {/* Nombre */}
                       <td className="py-4 px-4 font-bold text-slate-900">
                         <Link
                           href={`/dashboard/customers/${c.id}`}
@@ -366,6 +403,24 @@ export default function CustomersTableClient({
                         >
                           {c.role}
                         </span>
+                      </td>
+
+                      {/* Etiquetas / Tags */}
+                      <td className="py-4 px-4">
+                        {c.tags && c.tags.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 max-w-[160px]">
+                            {c.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 font-mono">-</span>
+                        )}
                       </td>
 
                       {/* Puntos Loyalty */}

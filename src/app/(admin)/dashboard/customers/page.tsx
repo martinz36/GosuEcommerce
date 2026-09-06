@@ -46,6 +46,10 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
       ordersCount: u.orders ? u.orders.length : 0,
       totalSpent,
       createdAt: u.createdAt.toISOString ? u.createdAt.toISOString() : new Date(u.createdAt).toISOString(),
+      tags: u.tags || [],
+      acceptsMarketing: Boolean(u.acceptsMarketing),
+      defaultShippingAddress: u.defaultShippingAddress || null,
+      phone: u.phone || null,
     };
   });
 

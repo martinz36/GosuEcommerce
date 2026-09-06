@@ -17,6 +17,12 @@ export default async function CustomerDetailPage({ params }: PageProps) {
   const user = await prisma.user.findUnique({
     where: { id },
     include: {
+      customerNotes: {
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
+      addresses: true,
       orders: {
         include: {
           items: {
@@ -40,16 +46,29 @@ export default async function CustomerDetailPage({ params }: PageProps) {
     notFound();
   }
 
+  // Si no hay defaultShippingAddress pero hay addresses guardadas, usar la primera
+  const activeAddress = user.defaultShippingAddress || (user.addresses && user.addresses.length > 0
+    ? `${user.addresses[0].street}, ${user.addresses[0].city}, ${user.addresses[0].state} ${user.addresses[0].postalCode}, ${user.addresses[0].country}`
+    : null);
+
   const customer = {
     id: user.id,
     name: user.name,
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
-    phone: user.phone,
+    phone: user.phone || null,
+    acceptsMarketing: user.acceptsMarketing ?? false,
+    defaultShippingAddress: activeAddress,
+    tags: user.tags || [],
     role: user.role,
     loyaltyPoints: user.loyaltyPoints ?? 0,
     createdAt: user.createdAt,
+    customerNotes: user.customerNotes.map((n) => ({
+      id: n.id,
+      content: n.content,
+      createdAt: n.createdAt,
+    })),
     orders: user.orders.map((order) => ({
       id: order.id,
       orderNumber: order.orderNumber,
