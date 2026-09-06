@@ -96,6 +96,7 @@ export async function POST(req: Request) {
         loyaltyPointsUsed: String(loyaltyPointsUsed || 0),
         isPickup: isPickup ? "true" : "false",
         pickupAddress: pickupAddress || "",
+        currency: formattedCurrency.toUpperCase(),
         itemsJson: JSON.stringify(
           items.map((i: any) => ({
             productId: i.productId,

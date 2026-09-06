@@ -42,8 +42,8 @@ export default async function DashboardPage() {
       // Agrupar ventas por moneda
       paidOrders.forEach((o) => {
         const amount = Number(o.totalAmount);
-        const orderNumber = o.orderNumber || "";
-        const isPEN = orderNumber.includes("PEN") || amount > 500 || amount % 1 !== 0;
+        const orderCurrency = (o.currency || "PEN").toUpperCase();
+        const isPEN = orderCurrency === "PEN";
         if (amount > 0) {
           if (isPEN) {
             totalSalesPEN += amount;
@@ -91,7 +91,8 @@ export default async function DashboardPage() {
         const orderDate = new Date(o.createdAt).toISOString().split("T")[0];
         if (dateMap[orderDate]) {
           const amount = Number(o.totalAmount);
-          const isPEN = o.orderNumber?.includes("PEN") || amount > 500;
+          const orderCurrency = (o.currency || "PEN").toUpperCase();
+          const isPEN = orderCurrency === "PEN";
           if (isPEN) {
             dateMap[orderDate].amountPEN += amount;
           } else {
@@ -122,7 +123,7 @@ export default async function DashboardPage() {
         orderNumber: o.orderNumber,
         customerEmail: o.guestEmail || "Cliente",
         totalAmount: Number(o.totalAmount),
-        currency: Number(o.totalAmount) > 500 ? "PEN" : "USD",
+        currency: (o.currency || "PEN").toUpperCase(),
         createdAt: o.createdAt,
         status: o.status,
       }));
@@ -141,7 +142,8 @@ export default async function DashboardPage() {
       } = {};
 
       paidOrders.forEach((o) => {
-        const isPEN = o.orderNumber?.includes("PEN") || Number(o.totalAmount) > 500;
+        const orderCurrency = (o.currency || "PEN").toUpperCase();
+        const isPEN = orderCurrency === "PEN";
         o.items.forEach((item) => {
           if (item.productId && item.product) {
             const pId = item.productId;

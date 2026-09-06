@@ -372,6 +372,7 @@ model Order {
 
   // Estado del Pedido y Stripe
   status                  OrderStatus    @default(PENDING)
+  currency                String         @default("PEN")
   stripePaymentIntentId   String?        @unique
   stripeCheckoutSessionId String?        @unique
 

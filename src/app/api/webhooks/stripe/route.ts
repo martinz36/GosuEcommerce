@@ -52,6 +52,7 @@ export async function POST(req: Request) {
         const subtotal = (session.amount_subtotal || 0) / 100;
         const totalAmount = (session.amount_total || 0) / 100;
         const orderNumber = `GOSU-${Math.floor(100000 + Math.random() * 900000)}`;
+        const orderCurrency = (session.currency || metadata.currency || "PEN").toUpperCase();
 
         // Crear la orden en la base de datos
         await prisma.order.create({
@@ -60,6 +61,7 @@ export async function POST(req: Request) {
             userId: metadata.userId ? metadata.userId : null,
             guestEmail: session.customer_details?.email || metadata.userEmail || null,
             status: "PAID",
+            currency: orderCurrency,
             stripePaymentIntentId: paymentIntentId,
             stripeCheckoutSessionId: sessionId,
             subtotal,
