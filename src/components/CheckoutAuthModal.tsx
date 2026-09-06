@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Award, LogIn, UserPlus, ArrowRight, ShoppingBag } from "lucide-react";
+import { useCartStore } from "@/store/cartStore";
 
 interface CheckoutAuthModalProps {
   isOpen: boolean;
@@ -12,7 +13,14 @@ interface CheckoutAuthModalProps {
 }
 
 export function CheckoutAuthModal({ isOpen, onClose, onGuestCheckout }: CheckoutAuthModalProps) {
+  const toggleCart = useCartStore((state) => state.toggleCart);
+
   if (!isOpen) return null;
+
+  const handleNavigateToAuth = () => {
+    onClose();
+    toggleCart(false);
+  };
 
   return (
     <AnimatePresence>
@@ -65,7 +73,7 @@ export function CheckoutAuthModal({ isOpen, onClose, onGuestCheckout }: Checkout
                 {/* Opción 1: Iniciar Sesión (Destacado) */}
                 <Link
                   href="/account/login?callbackUrl=/checkout"
-                  onClick={onClose}
+                  onClick={handleNavigateToAuth}
                   className="w-full btn-pill bg-white hover:bg-accent-cyan text-black font-extrabold text-xs py-3.5 px-4 transition-colors flex items-center justify-center gap-2.5 shadow-lg shadow-white/10 uppercase font-mono group"
                 >
                   <LogIn className="w-4 h-4 text-black group-hover:scale-110 transition-transform" />
@@ -76,7 +84,7 @@ export function CheckoutAuthModal({ isOpen, onClose, onGuestCheckout }: Checkout
                 {/* Opción 2: Crear Cuenta (Secundario) */}
                 <Link
                   href="/account/register?callbackUrl=/checkout"
-                  onClick={onClose}
+                  onClick={handleNavigateToAuth}
                   className="w-full btn-pill bg-neutral-900 hover:bg-neutral-800 text-white border border-neutral-700 font-extrabold text-xs py-3.5 px-4 transition-colors flex items-center justify-center gap-2.5 uppercase font-mono group"
                 >
                   <UserPlus className="w-4 h-4 text-accent-pink group-hover:scale-110 transition-transform" />
