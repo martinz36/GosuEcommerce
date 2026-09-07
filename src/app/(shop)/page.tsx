@@ -88,13 +88,13 @@ export default async function HomePage() {
             </p>
 
             <div className="flex flex-wrap items-center gap-4 pt-2">
-              <a
-                href="#catalog"
+              <Link
+                href="/catalog"
                 className="btn-pill bg-white text-black font-extrabold text-xs py-3.5 px-8 hover:bg-accent-cyan transition-colors flex items-center gap-2 shadow-lg shadow-white/10"
               >
                 <span>VER CATÁLOGO</span>
                 <ArrowRight className="w-4 h-4" />
-              </a>
+              </Link>
               <a
                 href="#bundles"
                 className="btn-pill bg-surface-elevated hover:bg-neutral-800 border border-neutral-700 text-white font-bold text-xs py-3.5 px-8 transition-colors"
