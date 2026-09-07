@@ -11,7 +11,7 @@ import { CartDrawer } from "@/components/CartDrawer";
 import { CurrencySwitcher } from "@/components/CurrencySwitcher";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { HeaderSearch } from "@/components/HeaderSearch";
-import { NewsletterFooter } from "@/components/NewsletterFooter";
+import { MainFooter } from "@/components/MainFooter";
 import esDict from "@/dictionaries/es.json";
 import enDict from "@/dictionaries/en.json";
 
@@ -177,26 +177,10 @@ export default async function ShopLayout({
         {/* Contenido de la Tienda */}
         <main className="flex-1">
           {children}
-          <NewsletterFooter />
         </main>
 
-        {/* Footer */}
-        <footer className="py-12 px-6 border-t border-surface-muted text-center text-xs text-neutral-500 bg-black">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p>© 2026 GOSU® Premium TCG Accessories. Impulsado por Next.js App Router, Neon DB & Stripe.</p>
-            <div className="flex items-center gap-4 text-neutral-400">
-              <Link href="/account/dashboard" className="hover:text-accent-cyan transition-colors">
-                Mi Cuenta
-              </Link>
-              <span>•</span>
-              <Link href="/dashboard" className="hover:text-accent-cyan transition-colors">
-                Panel Admin
-              </Link>
-              <span>•</span>
-              <span className="text-neutral-600">Región: {storeSettings.countryCode} ({storeSettings.currency})</span>
-            </div>
-          </div>
-        </footer>
+        {/* Footer Unificado con Mapa del Sitio y Newsletter */}
+        <MainFooter countryCode={storeSettings.countryCode} currency={storeSettings.currency} />
       </div>
     </StoreProvider>
   );
