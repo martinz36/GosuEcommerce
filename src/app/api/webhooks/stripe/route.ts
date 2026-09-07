@@ -66,7 +66,11 @@ export async function POST(req: Request) {
             stripeCheckoutSessionId: sessionId,
             subtotal,
             totalAmount,
-            shippingAddressJson: session.shipping_details ? (session.shipping_details as any) : undefined,
+            shippingAddressJson: session.shipping_details
+              ? (session.shipping_details as any)
+              : metadata.defaultAddressJson
+              ? JSON.parse(metadata.defaultAddressJson)
+              : undefined,
             items: {
               create: parsedItems.map((item: any) => ({
                 productId: item.productId || null,

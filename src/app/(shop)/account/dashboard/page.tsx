@@ -27,6 +27,12 @@ export default async function CustomerDashboardPage() {
         where: { id: userId },
         include: {
           orders: true,
+          addresses: {
+            orderBy: [
+              { isDefault: "desc" },
+              { createdAt: "desc" },
+            ],
+          },
         },
       });
 
@@ -68,6 +74,16 @@ export default async function CustomerDashboardPage() {
     isActive: r.isActive,
   }));
 
+  const userAddresses = (dbUser?.addresses || []).map((a: any) => ({
+    id: a.id,
+    street: a.street,
+    city: a.city,
+    state: a.state,
+    postalCode: a.postalCode,
+    country: a.country,
+    isDefault: a.isDefault,
+  }));
+
   return (
     <CustomerDashboardClient
       userName={userName}
@@ -77,7 +93,9 @@ export default async function CustomerDashboardPage() {
       userOrdersCount={userOrdersCount}
       birthdate={dbUser?.birthdate}
       phone={dbUser?.phone}
+      acceptsMarketing={Boolean(dbUser?.acceptsMarketing)}
       isProfileCompleted={!!dbUser?.isProfileCompleted}
+      addresses={userAddresses}
       tiers={formattedTiers}
       rules={formattedRules}
     />

@@ -77,6 +77,14 @@ export async function POST(req: Request) {
       }
     }
 
+    let userDefaultAddress: any = null;
+    const currentUserId = (session?.user as any)?.id;
+    if (currentUserId && process.env.DATABASE_URL) {
+      userDefaultAddress = await prisma.address.findFirst({
+        where: { userId: currentUserId, isDefault: true },
+      });
+    }
+
     // Crear la sesión de checkout en Stripe
     // Si es Recojo en Tienda, no exigimos rellenar la dirección de envío física
     const checkoutSession = await stripe.checkout.sessions.create({
@@ -93,13 +101,22 @@ export async function POST(req: Request) {
       success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/checkout/cancel`,
       metadata: {
-        userId: (session?.user as any)?.id || "",
+        userId: currentUserId || "",
         userEmail: session?.user?.email || "",
         discountCode: discountCode?.code || "",
         loyaltyPointsUsed: String(loyaltyPointsUsed || 0),
         isPickup: isPickup ? "true" : "false",
         pickupAddress: pickupAddress || "",
         currency: formattedCurrency.toUpperCase(),
+        defaultAddressJson: userDefaultAddress
+          ? JSON.stringify({
+              street: userDefaultAddress.street,
+              city: userDefaultAddress.city,
+              state: userDefaultAddress.state,
+              postalCode: userDefaultAddress.postalCode,
+              country: userDefaultAddress.country,
+            })
+          : "",
         itemsJson: JSON.stringify(
           items.map((i: any) => ({
             productId: i.productId,

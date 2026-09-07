@@ -19,9 +19,23 @@ import {
   X,
   Save,
   Loader2,
+  MapPin,
+  Plus,
+  Trash2,
+  Check,
+  Mail,
+  MailCheck,
+  MailX,
+  Edit3,
 } from "lucide-react";
 import { SignOutButton } from "@/components/SignOutButton";
-import { completeUserProfileMissionAction } from "../actions";
+import {
+  completeUserProfileMissionAction,
+  addUserAddressAction,
+  deleteUserAddressAction,
+  setDefaultUserAddressAction,
+  updateUserMarketingToggleAction,
+} from "../actions";
 
 interface TierItem {
   id: string;
@@ -38,6 +52,16 @@ interface RuleItem {
   isActive: boolean;
 }
 
+export interface AddressItem {
+  id: string;
+  street: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+}
+
 interface CustomerDashboardProps {
   userName: string;
   userEmail: string;
@@ -46,7 +70,9 @@ interface CustomerDashboardProps {
   userOrdersCount: number;
   birthdate?: string | Date | null;
   phone?: string | null;
+  acceptsMarketing?: boolean;
   isProfileCompleted: boolean;
+  addresses?: AddressItem[];
   tiers: TierItem[];
   rules: RuleItem[];
 }
@@ -59,17 +85,40 @@ export default function CustomerDashboardClient({
   userOrdersCount,
   birthdate,
   phone,
+  acceptsMarketing = false,
   isProfileCompleted,
+  addresses = [],
   tiers,
   rules,
 }: CustomerDashboardProps) {
   const [isPending, startTransition] = useTransition();
+
+  // Estados Perfil & Modales
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [birthdateInput, setBirthdateInput] = useState(
     birthdate ? new Date(birthdate).toISOString().split("T")[0] : ""
   );
   const [phoneInput, setPhoneInput] = useState(phone || "");
+  const [acceptsMarketingInput, setAcceptsMarketingInput] = useState(acceptsMarketing);
   const [missionMessage, setMissionMessage] = useState<string | null>(null);
+
+  // Estados Libreta de Direcciones (Paso 2)
+  const [addressesList, setAddressesList] = useState<AddressItem[]>(addresses);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  // Formulario nueva dirección
+  const [streetInput, setStreetInput] = useState("");
+  const [cityInput, setCityInput] = useState("");
+  const [stateInput, setStateInput] = useState("");
+  const [postalCodeInput, setPostalCodeInput] = useState("");
+  const [countryInput, setCountryInput] = useState("Perú");
+  const [isDefaultInput, setIsDefaultInput] = useState(true);
+  const [isSubmittingAddress, setIsSubmittingAddress] = useState(false);
+  const [isTogglingMarketing, setIsTogglingMarketing] = useState(false);
+
+  // Dirección Predeterminada Actual
+  const defaultAddress = addressesList.find((a) => a.isDefault) || addressesList[0] || null;
 
   // 1. Determinar el Nivel Actual Dinámico desde Neon DB
   let currentTier: TierItem | null = null;
@@ -108,7 +157,12 @@ export default function CustomerDashboardClient({
     }
 
     startTransition(async () => {
-      const res = await completeUserProfileMissionAction(userId, birthdateInput, phoneInput);
+      const res = await completeUserProfileMissionAction(
+        userId,
+        birthdateInput,
+        phoneInput,
+        acceptsMarketingInput
+      );
       if (res.success) {
         setMissionMessage(res.message || "¡Misión completada!");
         setShowProfileModal(false);
@@ -116,6 +170,86 @@ export default function CustomerDashboardClient({
         alert(res.error || "Ocurrió un error al guardar.");
       }
     });
+  };
+
+  // Toggle rápido de Marketing
+  const handleToggleMarketing = async () => {
+    setIsTogglingMarketing(true);
+    const nextVal = !acceptsMarketingInput;
+    setAcceptsMarketingInput(nextVal);
+
+    const res = await updateUserMarketingToggleAction(userId, nextVal);
+    if (!res.success) {
+      alert(res.error || "Error al actualizar preferencias.");
+      setAcceptsMarketingInput(!nextVal);
+    }
+    setIsTogglingMarketing(false);
+  };
+
+  // CRUD Direcciones Handlers
+  const handleAddAddressSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!streetInput.trim() || !cityInput.trim() || !stateInput.trim()) {
+      alert("Por favor completa los campos obligatorios de la dirección.");
+      return;
+    }
+
+    setIsSubmittingAddress(true);
+
+    const res = await addUserAddressAction(userId, {
+      street: streetInput,
+      city: cityInput,
+      state: stateInput,
+      postalCode: postalCodeInput,
+      country: countryInput,
+      isDefault: isDefaultInput,
+    });
+
+    if (res.success && res.address) {
+      const newAddr: AddressItem = res.address;
+      if (newAddr.isDefault) {
+        setAddressesList((prev) =>
+          prev.map((a) => ({ ...a, isDefault: false })).concat(newAddr)
+        );
+      } else {
+        setAddressesList((prev) => [...prev, newAddr]);
+      }
+      setStreetInput("");
+      setCityInput("");
+      setStateInput("");
+      setPostalCodeInput("");
+      setShowAddForm(false);
+    } else {
+      alert(res.error || "Error al guardar la dirección.");
+    }
+
+    setIsSubmittingAddress(false);
+  };
+
+  const handleDeleteAddress = async (id: string) => {
+    if (!confirm("¿Estás seguro de eliminar esta dirección?")) return;
+
+    const previous = [...addressesList];
+    setAddressesList((prev) => prev.filter((a) => a.id !== id));
+
+    const res = await deleteUserAddressAction(id, userId);
+    if (!res.success) {
+      alert(res.error || "Error al eliminar dirección.");
+      setAddressesList(previous);
+    }
+  };
+
+  const handleSetDefaultAddress = async (id: string) => {
+    const previous = [...addressesList];
+    setAddressesList((prev) =>
+      prev.map((a) => ({ ...a, isDefault: a.id === id }))
+    );
+
+    const res = await setDefaultUserAddressAction(id, userId);
+    if (!res.success) {
+      alert(res.error || "Error al actualizar dirección predeterminada.");
+      setAddressesList(previous);
+    }
   };
 
   return (
@@ -155,34 +289,34 @@ export default function CustomerDashboardClient({
         </div>
       </div>
 
-      {/* Tarjetas de Estadísticas & Rangos Dinámicos */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        {/* Tarjeta de Puntos de Fidelidad & Rango */}
+      {/* Tarjetas de Estadísticas, Compras, Libreta de Direcciones & Beneficios */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Tarjeta 1: Puntos de Fidelidad & Rango */}
         <div className="p-6 bg-gradient-to-br from-neutral-900 via-black to-neutral-950 rounded-2xl border border-accent-pink/40 shadow-xl relative overflow-hidden space-y-3">
           <div className="absolute -right-4 -bottom-4 w-28 h-28 bg-accent-pink/10 rounded-full blur-xl pointer-events-none" />
           <div className="flex items-center justify-between">
             <span className="text-xs font-mono font-bold text-accent-pink uppercase tracking-widest flex items-center gap-1.5">
               <Trophy className="w-4 h-4" /> GOSU® LOYALTY
             </span>
-            <Award className="w-6 h-6 text-accent-pink" />
+            <Award className="w-5 h-5 text-accent-pink" />
           </div>
 
           <div>
-            <span className="text-4xl font-black text-white font-mono block">
+            <span className="text-3xl font-black text-white font-mono block">
               {loyaltyPoints} <span className="text-xs text-neutral-400 font-normal">pts</span>
             </span>
-            <span className="text-xs text-neutral-300 block font-semibold mt-0.5">
-              = S/. {(loyaltyPoints / 40).toFixed(2)} PEN de descuento (40 Pts = S/. 1)
+            <span className="text-[11px] text-neutral-300 block font-semibold mt-0.5">
+              = S/. {(loyaltyPoints / 40).toFixed(2)} PEN (40 Pts = S/. 1)
             </span>
           </div>
 
           {/* Barra de Progreso a Siguiente Rango */}
           <div className="pt-2 border-t border-neutral-800 space-y-1">
-            <div className="flex justify-between text-[11px] font-mono text-neutral-400">
+            <div className="flex justify-between text-[10px] font-mono text-neutral-400">
               <span>Siguiente Rango</span>
-              <span>{nextTier ? `Faltan ${ptsNeeded} pts` : "¡Nivel Máximo Alcanzado!"}</span>
+              <span>{nextTier ? `Faltan ${ptsNeeded} pts` : "¡Nivel Máximo!"}</span>
             </div>
-            <div className="w-full h-2 bg-neutral-900 rounded-full overflow-hidden border border-neutral-800">
+            <div className="w-full h-1.5 bg-neutral-900 rounded-full overflow-hidden border border-neutral-800">
               <div
                 className="h-full bg-gradient-to-r from-accent-cyan via-purple-500 to-accent-pink transition-all duration-500"
                 style={{ width: `${rankProgress}%` }}
@@ -191,7 +325,7 @@ export default function CustomerDashboardClient({
           </div>
         </div>
 
-        {/* Tarjeta de Compras */}
+        {/* Tarjeta 2: Mis Compras */}
         <div className="p-6 bg-surface rounded-2xl border border-neutral-800 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-mono font-bold text-neutral-400 uppercase tracking-widest">
@@ -200,35 +334,98 @@ export default function CustomerDashboardClient({
             <ShoppingBag className="w-5 h-5 text-accent-cyan" />
           </div>
           <div>
-            <span className="text-3xl font-extrabold text-white font-mono block">
+            <span className="text-2xl font-extrabold text-white font-mono block">
               {userOrdersCount} {userOrdersCount === 1 ? "Pedido" : "Pedidos"}
             </span>
             <Link
               href="/account/orders"
               className="inline-flex items-center gap-1 text-xs text-accent-cyan font-bold hover:underline mt-2"
             >
-              <span>Ver historial completo</span>
+              <span>Ver historial</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
 
-        {/* Tarjeta de Beneficios del Nivel Actual */}
-        <div className="p-6 bg-surface rounded-2xl border border-neutral-800 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-mono font-bold text-neutral-400 uppercase tracking-widest">
-              BENEFICIOS DE NIVEL
+        {/* Tarjeta 3: Libreta de Direcciones (Paso 2) */}
+        <div className="p-6 bg-surface rounded-2xl border border-neutral-800 shadow-sm flex flex-col justify-between space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono font-bold text-neutral-400 uppercase tracking-widest flex items-center gap-1.5">
+              <MapPin className="w-4 h-4 text-purple-400" /> DIRECCIONES
             </span>
-            <Flame className="w-5 h-5 text-amber-400" />
+            {defaultAddress && (
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                Predeterminada
+              </span>
+            )}
           </div>
+
           <div>
-            <span className="text-sm font-extrabold text-white uppercase block leading-tight">
-              {rankTitle}
+            {defaultAddress ? (
+              <div className="text-xs space-y-0.5">
+                <p className="font-bold text-white truncate" title={defaultAddress.street}>
+                  {defaultAddress.street}
+                </p>
+                <p className="text-neutral-400 text-[11px] truncate">
+                  {defaultAddress.city}, {defaultAddress.state} {defaultAddress.postalCode}
+                </p>
+                <p className="text-neutral-500 text-[10px] font-mono">{defaultAddress.country}</p>
+              </div>
+            ) : (
+              <p className="text-xs text-neutral-400 italic">No has registrado una dirección predeterminada.</p>
+            )}
+          </div>
+
+          <button
+            onClick={() => setShowAddressModal(true)}
+            className="w-full py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-1"
+          >
+            <span>Gestionar Direcciones ({addressesList.length})</span>
+            <ChevronRight className="w-3.5 h-3.5 text-purple-400" />
+          </button>
+        </div>
+
+        {/* Tarjeta 4: Beneficios & Suscripción Marketing (Paso 3) */}
+        <div className="p-6 bg-surface rounded-2xl border border-neutral-800 shadow-sm flex flex-col justify-between space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono font-bold text-neutral-400 uppercase tracking-widest">
+              MARKETING & NOVEDADES
             </span>
-            <p className="text-xs text-neutral-400 line-clamp-2 mt-1">
-              {currentTier?.perks || "Gana puntos con cada compra y desbloquea beneficios exclusivos TCG."}
+            <Mail className="w-5 h-5 text-amber-400" />
+          </div>
+
+          <div>
+            <span className="text-xs text-neutral-300 block font-semibold">
+              Drops Exclusivos & Promociones
+            </span>
+            <p className="text-[11px] text-neutral-400 mt-1 leading-relaxed">
+              Recibe avisos antes que nadie sobre repocisión de stock y boosters.
             </p>
           </div>
+
+          <button
+            onClick={handleToggleMarketing}
+            disabled={isTogglingMarketing}
+            className={`w-full py-2 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2 border ${
+              acceptsMarketingInput
+                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30"
+                : "bg-neutral-900 text-neutral-400 border-neutral-800 hover:bg-neutral-800 hover:text-white"
+            }`}
+          >
+            {isTogglingMarketing ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : acceptsMarketingInput ? (
+              <>
+                <MailCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Suscrito a Novedades ✓</span>
+              </>
+            ) : (
+              <>
+                <MailX className="w-3.5 h-3.5 text-neutral-500" />
+                <span>Activar Suscripción</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -339,7 +536,214 @@ export default function CustomerDashboardClient({
         </div>
       </div>
 
-      {/* Modal Interactivo para Completar Perfil */}
+      {/* Modal Paso 2: Gestionar Libreta de Direcciones */}
+      {showAddressModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-neutral-900 rounded-2xl max-w-xl w-full p-6 space-y-6 border border-neutral-800 text-white shadow-2xl animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-purple-400" />
+                <h3 className="font-extrabold text-base text-white uppercase tracking-tight">
+                  Libreta de Direcciones ({addressesList.length})
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setShowAddressModal(false);
+                  setShowAddForm(false);
+                }}
+                className="p-1.5 text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Lista de Direcciones Guardadas */}
+            <div className="space-y-3">
+              {addressesList.length === 0 ? (
+                <div className="p-8 text-center bg-black/40 rounded-xl border border-neutral-800 space-y-2">
+                  <MapPin className="w-8 h-8 text-neutral-600 mx-auto" />
+                  <p className="text-xs text-neutral-400 italic">No tienes direcciones guardadas aún.</p>
+                </div>
+              ) : (
+                addressesList.map((addr) => (
+                  <div
+                    key={addr.id}
+                    className={`p-4 rounded-xl border transition-colors flex items-start justify-between gap-4 ${
+                      addr.isDefault
+                        ? "bg-purple-950/20 border-purple-500/40"
+                        : "bg-black/40 border-neutral-800 hover:border-neutral-700"
+                    }`}
+                  >
+                    <div className="space-y-1 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-white text-sm">{addr.street}</span>
+                        {addr.isDefault && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                            Predeterminada ✓
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-neutral-300">
+                        {addr.city}, {addr.state} {addr.postalCode}
+                      </p>
+                      <p className="text-neutral-500 font-mono text-[11px]">{addr.country}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {!addr.isDefault && (
+                        <button
+                          onClick={() => handleSetDefaultAddress(addr.id)}
+                          className="px-2.5 py-1 bg-neutral-800 hover:bg-purple-600 text-neutral-300 hover:text-white rounded-lg text-xs font-bold transition-colors"
+                          title="Usar como predeterminada"
+                        >
+                          Hacer Predeterminada
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDeleteAddress(addr.id)}
+                        className="p-1.5 text-neutral-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                        title="Eliminar dirección"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Formulario Agregar Nueva Dirección */}
+            {showAddForm ? (
+              <form onSubmit={handleAddAddressSubmit} className="p-4 bg-black/60 rounded-xl border border-neutral-800 space-y-4">
+                <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
+                  <span className="text-xs font-bold text-purple-300 uppercase tracking-wider">
+                    Nueva Dirección de Envío
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddForm(false)}
+                    className="text-xs text-neutral-400 hover:text-white"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-neutral-400 block mb-1">
+                    Calle y Número (Dirección) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Av. Javier Prado 1234, Dpto 501"
+                    value={streetInput}
+                    onChange={(e) => setStreetInput(e.target.value)}
+                    className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-neutral-400 block mb-1">
+                      Ciudad *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Lima, San Isidro"
+                      value={cityInput}
+                      onChange={(e) => setCityInput(e.target.value)}
+                      className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-neutral-400 block mb-1">
+                      Estado / Provincia / Depto *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Lima"
+                      value={stateInput}
+                      onChange={(e) => setStateInput(e.target.value)}
+                      className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-neutral-400 block mb-1">
+                      Código Postal (ZIP)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="15027"
+                      value={postalCodeInput}
+                      onChange={(e) => setPostalCodeInput(e.target.value)}
+                      className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-neutral-400 block mb-1">
+                      País *
+                    </label>
+                    <select
+                      value={countryInput}
+                      onChange={(e) => setCountryInput(e.target.value)}
+                      className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
+                    >
+                      <option value="Perú">Perú</option>
+                      <option value="Estados Unidos">Estados Unidos</option>
+                      <option value="México">México</option>
+                      <option value="Chile">Chile</option>
+                      <option value="Colombia">Colombia</option>
+                      <option value="España">España</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="checkbox"
+                    id="isDefaultAdd"
+                    checked={isDefaultInput}
+                    onChange={(e) => setIsDefaultInput(e.target.checked)}
+                    className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 cursor-pointer"
+                  />
+                  <label htmlFor="isDefaultAdd" className="text-xs font-semibold text-neutral-300 cursor-pointer">
+                    Establecer como dirección predeterminada de envío
+                  </label>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    disabled={isSubmittingAddress}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {isSubmittingAddress ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                    <span>Guardar Dirección</span>
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="w-full py-2.5 bg-neutral-800 hover:bg-neutral-700 text-purple-300 font-bold text-xs rounded-xl border border-neutral-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Agregar Nueva Dirección</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Interactivo para Completar Perfil (Paso 3 Toggle Marketing) */}
       {showProfileModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-neutral-900 rounded-2xl max-w-md w-full p-6 space-y-5 border border-neutral-800 text-white shadow-2xl">
@@ -381,6 +785,26 @@ export default function CustomerDashboardClient({
                   onChange={(e) => setPhoneInput(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-black border border-neutral-700 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-purple-500"
                 />
+              </div>
+
+              {/* Paso 3: Switch/Toggle de Marketing */}
+              <div className="p-3.5 bg-black/60 rounded-xl border border-neutral-800 space-y-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-purple-400" />
+                    <span className="text-xs font-bold text-white">Deseo recibir ofertas y drops</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    id="marketingModalToggle"
+                    checked={acceptsMarketingInput}
+                    onChange={(e) => setAcceptsMarketingInput(e.target.checked)}
+                    className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 cursor-pointer"
+                  />
+                </div>
+                <p className="text-[11px] text-neutral-400 pl-6">
+                  Suscríbete para lanzamientos exclusivos de cartas TCG y cupones de descuento.
+                </p>
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-neutral-800">
