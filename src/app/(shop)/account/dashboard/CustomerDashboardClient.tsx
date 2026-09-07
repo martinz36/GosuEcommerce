@@ -29,6 +29,7 @@ import {
   Edit3,
 } from "lucide-react";
 import { SignOutButton } from "@/components/SignOutButton";
+import { Country, State, City } from "country-state-city";
 import {
   completeUserProfileMissionAction,
   addUserAddressAction,
@@ -107,7 +108,9 @@ export default function CustomerDashboardClient({
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
 
-  // Formulario nueva dirección
+  // Formulario nueva dirección con selectores en cascada (country-state-city)
+  const [selectedCountryCode, setSelectedCountryCode] = useState("PE");
+  const [selectedStateCode, setSelectedStateCode] = useState("");
   const [streetInput, setStreetInput] = useState("");
   const [cityInput, setCityInput] = useState("");
   const [stateInput, setStateInput] = useState("");
@@ -116,6 +119,18 @@ export default function CustomerDashboardClient({
   const [isDefaultInput, setIsDefaultInput] = useState(true);
   const [isSubmittingAddress, setIsSubmittingAddress] = useState(false);
   const [isTogglingMarketing, setIsTogglingMarketing] = useState(false);
+
+  // Listas geográficas dinámicas
+  const countriesList = Country.getAllCountries().sort((a, b) => {
+    if (a.isoCode === "PE") return -1;
+    if (b.isoCode === "PE") return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  const statesList = selectedCountryCode ? State.getStatesOfCountry(selectedCountryCode) : [];
+  const citiesList = (selectedCountryCode && selectedStateCode)
+    ? City.getCitiesOfState(selectedCountryCode, selectedStateCode)
+    : [];
 
   // Dirección Predeterminada Actual
   const defaultAddress = addressesList.find((a) => a.isDefault) || addressesList[0] || null;
@@ -629,6 +644,100 @@ export default function CustomerDashboardClient({
                   </button>
                 </div>
 
+                {/* 1. Selector de País en Cascada */}
+                <div>
+                  <label className="text-[11px] font-bold text-neutral-400 block mb-1">
+                    País *
+                  </label>
+                  <select
+                    value={selectedCountryCode}
+                    onChange={(e) => {
+                      const code = e.target.value;
+                      const countryObj = Country.getCountryByCode(code);
+                      setSelectedCountryCode(code);
+                      setCountryInput(countryObj ? countryObj.name : code);
+                      setSelectedStateCode("");
+                      setStateInput("");
+                      setCityInput("");
+                    }}
+                    className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500 cursor-pointer font-medium"
+                  >
+                    {countriesList.map((c) => (
+                      <option key={c.isoCode} value={c.isoCode}>
+                        {c.name} ({c.isoCode})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {/* 2. Selector de Estado / Depto en Cascada */}
+                  <div>
+                    <label className="text-[11px] font-bold text-neutral-400 block mb-1">
+                      Estado / Departamento *
+                    </label>
+                    <select
+                      disabled={!selectedCountryCode || statesList.length === 0}
+                      value={selectedStateCode}
+                      onChange={(e) => {
+                        const sCode = e.target.value;
+                        const stateObj = State.getStateByCodeAndCountry(sCode, selectedCountryCode);
+                        setSelectedStateCode(sCode);
+                        setStateInput(stateObj ? stateObj.name : sCode);
+                        setCityInput("");
+                      }}
+                      className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer font-medium"
+                    >
+                      <option value="">
+                        {!selectedCountryCode
+                          ? "-- Elige un País --"
+                          : statesList.length === 0
+                          ? "-- Sin estados disponibles --"
+                          : "-- Seleccionar Estado --"}
+                      </option>
+                      {statesList.map((s) => (
+                        <option key={s.isoCode} value={s.isoCode}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* 3. Selector de Ciudad en Cascada */}
+                  <div>
+                    <label className="text-[11px] font-bold text-neutral-400 block mb-1">
+                      Ciudad *
+                    </label>
+                    {citiesList.length > 0 ? (
+                      <select
+                        disabled={!selectedStateCode}
+                        value={cityInput}
+                        onChange={(e) => setCityInput(e.target.value)}
+                        className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer font-medium"
+                      >
+                        <option value="">
+                          {!selectedStateCode ? "-- Elige un Estado --" : "-- Seleccionar Ciudad --"}
+                        </option>
+                        {citiesList.map((ci, idx) => (
+                          <option key={`${ci.name}-${idx}`} value={ci.name}>
+                            {ci.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        required
+                        disabled={!selectedStateCode}
+                        placeholder={!selectedStateCode ? "Elige un Estado" : "Ingresa la ciudad"}
+                        value={cityInput}
+                        onChange={(e) => setCityInput(e.target.value)}
+                        className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                      />
+                    )}
+                  </div>
+                </div>
+
                 <div>
                   <label className="text-[11px] font-bold text-neutral-400 block mb-1">
                     Calle y Número (Dirección) *
@@ -643,67 +752,17 @@ export default function CustomerDashboardClient({
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-bold text-neutral-400 block mb-1">
-                      Ciudad *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Lima, San Isidro"
-                      value={cityInput}
-                      onChange={(e) => setCityInput(e.target.value)}
-                      className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-bold text-neutral-400 block mb-1">
-                      Estado / Provincia / Depto *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Lima"
-                      value={stateInput}
-                      onChange={(e) => setStateInput(e.target.value)}
-                      className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-bold text-neutral-400 block mb-1">
-                      Código Postal (ZIP)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="15027"
-                      value={postalCodeInput}
-                      onChange={(e) => setPostalCodeInput(e.target.value)}
-                      className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500 font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-bold text-neutral-400 block mb-1">
-                      País *
-                    </label>
-                    <select
-                      value={countryInput}
-                      onChange={(e) => setCountryInput(e.target.value)}
-                      className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
-                    >
-                      <option value="Perú">Perú</option>
-                      <option value="Estados Unidos">Estados Unidos</option>
-                      <option value="México">México</option>
-                      <option value="Chile">Chile</option>
-                      <option value="Colombia">Colombia</option>
-                      <option value="España">España</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="text-[11px] font-bold text-neutral-400 block mb-1">
+                    Código Postal (ZIP)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="15027"
+                    value={postalCodeInput}
+                    onChange={(e) => setPostalCodeInput(e.target.value)}
+                    className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500 font-mono"
+                  />
                 </div>
 
                 <div className="flex items-center gap-2 pt-1">
