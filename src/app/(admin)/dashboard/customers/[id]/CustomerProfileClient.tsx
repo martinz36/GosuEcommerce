@@ -25,6 +25,7 @@ import {
   MailX,
   Edit3,
   Save,
+  Cake,
 } from "lucide-react";
 import {
   adjustCustomerPointsAction,
@@ -67,6 +68,7 @@ interface Customer {
   firstName?: string | null;
   lastName?: string | null;
   phone?: string | null;
+  birthDate?: string | Date | null;
   acceptsMarketing?: boolean;
   defaultShippingAddress?: string | null;
   tags?: string[];
@@ -392,12 +394,28 @@ export default function CustomerProfileClient({ customer }: { customer: Customer
               </div>
             </form>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Teléfono de Contacto</span>
                 <p className="font-mono text-slate-800 font-bold flex items-center gap-1.5">
                   <Phone className="w-3.5 h-3.5 text-slate-500" />
                   <span>{phone || "No especificado"}</span>
+                </p>
+              </div>
+
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Fecha de Nacimiento</span>
+                <p className="font-mono text-slate-800 font-bold flex items-center gap-1.5">
+                  <Cake className="w-3.5 h-3.5 text-purple-600" />
+                  <span>
+                    {customer.birthDate
+                      ? new Date(customer.birthDate).toLocaleDateString("es-ES", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "No registrada"}
+                  </span>
                 </p>
               </div>
 
@@ -416,7 +434,7 @@ export default function CustomerProfileClient({ customer }: { customer: Customer
                 )}
               </div>
 
-              <div className="sm:col-span-2 p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+              <div className="sm:col-span-3 p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Dirección de Envío por Defecto</span>
                 <p className="text-slate-800 leading-relaxed font-medium">
                   {address || "No se ha configurado dirección de envío por defecto."}

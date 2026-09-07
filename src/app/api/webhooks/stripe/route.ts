@@ -116,6 +116,51 @@ export async function POST(req: Request) {
 
           // Otorgar puntos por la compra dinámicamente según las reglas del Admin
           await awardLoyaltyPoints(metadata.userId, "PURCHASE", totalAmount);
+
+          // Sincronizar dirección sin crear duplicados en Neon DB
+          try {
+            const shipDetails = session.shipping_details?.address;
+            if (shipDetails && shipDetails.line1) {
+              const street = shipDetails.line1 + (shipDetails.line2 ? `, ${shipDetails.line2}` : "");
+              const city = shipDetails.city || "";
+              const state = shipDetails.state || "";
+              const postalCode = shipDetails.postal_code || "";
+              const country = shipDetails.country || "PE";
+
+              const existingAddr = await prisma.address.findFirst({
+                where: {
+                  userId: metadata.userId,
+                  street,
+                  city,
+                },
+              });
+
+              if (!existingAddr) {
+                const addressCount = await prisma.address.count({ where: { userId: metadata.userId } });
+                await prisma.address.create({
+                  data: {
+                    userId: metadata.userId,
+                    street,
+                    city,
+                    state,
+                    postalCode,
+                    country,
+                    isDefault: addressCount === 0,
+                  },
+                });
+              }
+
+              const formattedAddressString = `${street}, ${city}, ${state} ${postalCode}, ${country}`.replace(/,\s*,/g, ",").trim();
+              await prisma.user.update({
+                where: { id: metadata.userId },
+                data: {
+                  defaultShippingAddress: formattedAddressString,
+                },
+              }).catch(() => {});
+            }
+          } catch (addrErr) {
+            console.error("Error al sincronizar dirección de envío en webhook:", addrErr);
+          }
         }
 
         console.log(`✅ Orden ${orderNumber} creada exitosamente para la sesión ${sessionId}`);

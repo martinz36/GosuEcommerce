@@ -101,6 +101,51 @@ export async function GET(req: Request) {
             },
           })
           .catch(() => {});
+
+        // Sincronizar dirección sin duplicar en Neon DB
+        try {
+          const shipDetails = checkoutSession.shipping_details?.address;
+          if (shipDetails && shipDetails.line1) {
+            const street = shipDetails.line1 + (shipDetails.line2 ? `, ${shipDetails.line2}` : "");
+            const city = shipDetails.city || "";
+            const state = shipDetails.state || "";
+            const postalCode = shipDetails.postal_code || "";
+            const country = shipDetails.country || "PE";
+
+            const existingAddr = await prisma.address.findFirst({
+              where: {
+                userId: targetUserId,
+                street,
+                city,
+              },
+            });
+
+            if (!existingAddr) {
+              const addressCount = await prisma.address.count({ where: { userId: targetUserId } });
+              await prisma.address.create({
+                data: {
+                  userId: targetUserId,
+                  street,
+                  city,
+                  state,
+                  postalCode,
+                  country,
+                  isDefault: addressCount === 0,
+                },
+              });
+            }
+
+            const formattedAddressString = `${street}, ${city}, ${state} ${postalCode}, ${country}`.replace(/,\s*,/g, ",").trim();
+            await prisma.user.update({
+              where: { id: targetUserId },
+              data: {
+                defaultShippingAddress: formattedAddressString,
+              },
+            }).catch(() => {});
+          }
+        } catch (addrErr) {
+          console.error("Error al sincronizar dirección en confirm route:", addrErr);
+        }
       }
     } else {
       // Si la orden ya existía pero no tenía userId asociado y el usuario está autenticado ahora, lo asociamos

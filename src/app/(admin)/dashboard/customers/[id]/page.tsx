@@ -58,6 +58,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
     firstName: user.firstName,
     lastName: user.lastName,
     phone: user.phone || null,
+    birthDate: user.birthdate ? user.birthdate.toISOString() : null,
     acceptsMarketing: user.acceptsMarketing ?? false,
     defaultShippingAddress: activeAddress,
     tags: user.tags || [],

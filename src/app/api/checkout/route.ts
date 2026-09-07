@@ -4,6 +4,18 @@ import { authOptions } from "@/lib/authOptions";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 
+function getCountryIso(cName: string = ""): string {
+  const c = cName.trim().toUpperCase();
+  if (c === "PE" || c === "PERÚ" || c === "PERU") return "PE";
+  if (c === "US" || c === "USA" || c === "ESTADOS UNIDOS") return "US";
+  if (c === "MX" || c === "MÉXICO" || c === "MEXICO") return "MX";
+  if (c === "CL" || c === "CHILE") return "CL";
+  if (c === "CO" || c === "COLOMBIA") return "CO";
+  if (c === "AR" || c === "ARGENTINA") return "AR";
+  if (c === "ES" || c === "ESPAÑA" || c === "ESPANA") return "ES";
+  return c.length === 2 ? c : "PE";
+}
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -83,16 +95,35 @@ export async function POST(req: Request) {
       userDefaultAddress = await prisma.address.findFirst({
         where: { userId: currentUserId, isDefault: true },
       });
+      if (!userDefaultAddress) {
+        userDefaultAddress = await prisma.address.findFirst({
+          where: { userId: currentUserId },
+        });
+      }
     }
 
     // Crear la sesión de checkout en Stripe
-    // Si es Recojo en Tienda, no exigimos rellenar la dirección de envío física
+    // Si el usuario tiene dirección predeterminada, se inyecta en payment_intent_data.shipping para Autofill
     const checkoutSession = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: lineItems,
       mode: "payment",
       discounts: discountsArray.length > 0 ? discountsArray : undefined,
       customer_email: session?.user?.email || undefined,
+      payment_intent_data: (userDefaultAddress && !isPickup)
+        ? {
+            shipping: {
+              name: session?.user?.name || "Cliente GOSU",
+              address: {
+                line1: userDefaultAddress.street,
+                city: userDefaultAddress.city,
+                state: userDefaultAddress.state,
+                postal_code: userDefaultAddress.postalCode || "",
+                country: getCountryIso(userDefaultAddress.country),
+              },
+            },
+          }
+        : undefined,
       shipping_address_collection: isPickup
         ? undefined
         : {
@@ -108,8 +139,10 @@ export async function POST(req: Request) {
         isPickup: isPickup ? "true" : "false",
         pickupAddress: pickupAddress || "",
         currency: formattedCurrency.toUpperCase(),
+        defaultAddressId: userDefaultAddress?.id || "",
         defaultAddressJson: userDefaultAddress
           ? JSON.stringify({
+              id: userDefaultAddress.id,
               street: userDefaultAddress.street,
               city: userDefaultAddress.city,
               state: userDefaultAddress.state,
