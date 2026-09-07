@@ -4,15 +4,34 @@ import { prisma } from "@/lib/prisma";
 
 export const revalidate = 0;
 
+function formatDatePeru(dateInput: any) {
+  try {
+    if (!dateInput) return "Sin registro";
+    return new Date(dateInput).toLocaleString("es-PE", {
+      timeZone: "America/Lima",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch (e) {
+    return "Fecha inválida";
+  }
+}
+
 export default async function AbandonedCartsPage() {
   let abandonedSessions: any[] = [];
   try {
-    abandonedSessions = await prisma.cartSession.findMany({
-      where: {
-        isConverted: false,
-      },
-      orderBy: { lastActiveAt: "desc" },
-    });
+    if (process.env.DATABASE_URL && (prisma as any).cartSession) {
+      abandonedSessions = await (prisma as any).cartSession.findMany({
+        where: {
+          isConverted: false,
+        },
+        orderBy: { lastActiveAt: "desc" },
+      });
+    }
   } catch (err) {
     console.error("Error al cargar carritos abandonados de Neon DB:", err);
   }
@@ -22,6 +41,7 @@ export default async function AbandonedCartsPage() {
   const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 
   const inactiveSessions = abandonedSessions.filter((s) => {
+    if (!s || !s.lastActiveAt) return false;
     const diff = now.getTime() - new Date(s.lastActiveAt).getTime();
     return diff >= TWO_HOURS_MS;
   });
@@ -29,13 +49,18 @@ export default async function AbandonedCartsPage() {
   // Si no hay sesiones de más de 2h, mostramos todas las sesiones no convertidas para pruebas
   const displaySessions = inactiveSessions.length > 0 ? inactiveSessions : abandonedSessions;
 
+  const totalValue = abandonedSessions.reduce((sum, s) => {
+    const val = Number(s?.subtotal || 0);
+    return sum + (isNaN(val) ? 0 : val);
+  }, 0);
+
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-12">
+    <div className="space-y-6 max-w-6xl mx-auto pb-12 font-sans">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Carritos Abandonados</h1>
           <p className="text-sm text-slate-500">
-            Sesiones de compra no convertidas con más de 2 horas de inactividad en la tienda.
+            Sesiones de compra no convertidas registradas en la tienda (tiempo de inactividad &gt; 2h).
           </p>
         </div>
       </div>
@@ -49,7 +74,7 @@ export default async function AbandonedCartsPage() {
             </span>
             <span className="text-2xl font-bold text-slate-900">{abandonedSessions.length}</span>
             <span className="text-[11px] text-amber-600 font-medium block mt-1">
-              En las últimas 24h
+              Pendientes de conversión
             </span>
           </div>
           <div className="p-3 bg-amber-50 text-amber-600 rounded-lg">
@@ -63,7 +88,7 @@ export default async function AbandonedCartsPage() {
               Valor Total Abandonado
             </span>
             <span className="text-2xl font-bold text-slate-900 font-mono">
-              ${abandonedSessions.reduce((sum, s) => sum + Number(s.subtotal), 0).toFixed(2)} USD
+              S/. {totalValue.toFixed(2)} PEN
             </span>
             <span className="text-[11px] text-rose-600 font-medium block mt-1">
               Oportunidad de recuperación
@@ -80,7 +105,7 @@ export default async function AbandonedCartsPage() {
               Correos Capturados
             </span>
             <span className="text-2xl font-bold text-slate-900">
-              {abandonedSessions.filter((s) => s.userEmail).length}
+              {abandonedSessions.filter((s) => s?.userEmail).length}
             </span>
             <span className="text-[11px] text-slate-400 font-medium block mt-1">
               Listos para recordatorios
@@ -101,7 +126,7 @@ export default async function AbandonedCartsPage() {
             </div>
             <h3 className="font-bold text-slate-800 text-base mb-1">No hay carritos abandonados</h3>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Todas las sesiones de compra recientes han sido completadas o no han alcanzado el tiempo límite de 2h.
+              Todas las sesiones de compra recientes han sido completadas o no han registrado productos pendientes.
             </p>
           </div>
         ) : (
@@ -120,8 +145,9 @@ export default async function AbandonedCartsPage() {
               <tbody className="divide-y divide-slate-100">
                 {displaySessions.map((s) => {
                   const itemsCount = Array.isArray(s.itemsJson) ? s.itemsJson.length : 1;
+                  const subtotalNum = Number(s?.subtotal || 0);
                   return (
-                    <tr key={s.id} className="hover:bg-slate-50 transition-colors">
+                    <tr key={s.id || s.sessionId} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 font-mono text-xs text-slate-600 truncate max-w-[120px]">
                         {s.sessionId}
                       </td>
@@ -132,19 +158,18 @@ export default async function AbandonedCartsPage() {
                         {itemsCount} productos
                       </td>
                       <td className="px-6 py-4 font-mono text-xs font-bold text-slate-900">
-                        ${Number(s.subtotal).toFixed(2)} USD
+                        S/. {subtotalNum.toFixed(2)} PEN
                       </td>
                       <td className="px-6 py-4 text-xs font-mono text-slate-500">
-                        {new Date(s.lastActiveAt).toLocaleString()}
+                        {formatDatePeru(s.lastActiveAt)}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => alert(`Enviar recordatorio por correo a: ${s.userEmail || 'Usuario Anónimo'}`)}
-                          disabled={!s.userEmail}
-                          className="px-3 py-1 rounded bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium transition-colors disabled:opacity-40"
+                        <a
+                          href={s.userEmail ? `mailto:${s.userEmail}?subject=Recordatorio de tu carrito en GOSU® TCG` : "#"}
+                          className={`px-3 py-1 rounded bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium transition-colors inline-block ${!s.userEmail ? 'opacity-40 pointer-events-none' : ''}`}
                         >
                           Enviar Recordatorio
-                        </button>
+                        </a>
                       </td>
                     </tr>
                   );
