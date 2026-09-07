@@ -33,3 +33,59 @@
 .btn-pill {
   @apply rounded-full px-6 py-3 font-semibold text-sm transition-all duration-200 ease-out active:scale-95;
 }
+
+/* Custom Phone Input Dark Theme */
+.PhoneInput {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #000000;
+  border: 1px solid #404040;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.PhoneInput:focus-within {
+  border-color: #a855f7;
+  outline: none;
+}
+
+.PhoneInputCountry {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.PhoneInputCountrySelect {
+  background-color: #000000;
+  color: #ffffff;
+  border: none;
+  font-size: 0.75rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.PhoneInputCountrySelect option {
+  background-color: #171717;
+  color: #ffffff;
+}
+
+.PhoneInputInput {
+  background-color: transparent;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-family: monospace;
+  outline: none;
+  border: none;
+  width: 100%;
+}
+
+.PhoneInputInput::placeholder {
+  color: #737373;
+}
+
+/* Date picker dark indicator styling */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}

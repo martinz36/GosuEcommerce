@@ -30,6 +30,8 @@ import {
 } from "lucide-react";
 import { SignOutButton } from "@/components/SignOutButton";
 import { Country, State, City } from "country-state-city";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 import {
   completeUserProfileMissionAction,
   addUserAddressAction,
@@ -827,9 +829,10 @@ export default function CustomerDashboardClient({
                 <input
                   type="date"
                   required
+                  max={new Date().toISOString().split("T")[0]}
                   value={birthdateInput}
                   onChange={(e) => setBirthdateInput(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-black border border-neutral-700 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-purple-500"
+                  className="w-full px-3.5 py-2.5 bg-black border border-neutral-700 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-purple-500 cursor-pointer"
                 />
               </div>
 
@@ -837,12 +840,11 @@ export default function CustomerDashboardClient({
                 <label className="text-xs font-bold text-neutral-300 block mb-1.5 flex items-center gap-1.5">
                   <Phone className="w-3.5 h-3.5 text-purple-400" /> Teléfono de Contacto (Opcional)
                 </label>
-                <input
-                  type="tel"
-                  placeholder="+51 987 654 321"
+                <PhoneInput
+                  defaultCountry="PE"
+                  placeholder="987 654 321"
                   value={phoneInput}
-                  onChange={(e) => setPhoneInput(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-black border border-neutral-700 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-purple-500"
+                  onChange={(val) => setPhoneInput(val || "")}
                 />
               </div>
 
