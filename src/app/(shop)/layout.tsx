@@ -11,6 +11,7 @@ import { CartDrawer } from "@/components/CartDrawer";
 import { CurrencySwitcher } from "@/components/CurrencySwitcher";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { HeaderSearch } from "@/components/HeaderSearch";
+import { NewsletterFooter } from "@/components/NewsletterFooter";
 import esDict from "@/dictionaries/es.json";
 import enDict from "@/dictionaries/en.json";
 
@@ -174,7 +175,10 @@ export default async function ShopLayout({
         </header>
 
         {/* Contenido de la Tienda */}
-        <main className="flex-1">{children}</main>
+        <main className="flex-1">
+          {children}
+          <NewsletterFooter />
+        </main>
 
         {/* Footer */}
         <footer className="py-12 px-6 border-t border-surface-muted text-center text-xs text-neutral-500 bg-black">

@@ -5,6 +5,8 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
+import { sendWelcomeEmail } from "@/lib/resend";
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
@@ -24,6 +26,14 @@ export const authOptions: NextAuthOptions = {
           where: { id: user.id },
           data: { loyaltyPoints: { increment: pointsReward } },
         });
+
+        // Enviar correo transaccional de Bienvenida con Resend
+        if (user.email) {
+          sendWelcomeEmail({
+            toEmail: user.email,
+            userName: user.name,
+          }).catch((err) => console.error("Error enviando bienvenida en createUser:", err));
+        }
       } catch (err) {
         console.error("Error otorgando puntos de bienvenida en OAuth:", err);
       }

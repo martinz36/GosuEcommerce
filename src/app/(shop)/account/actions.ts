@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { awardLoyaltyPoints } from "@/lib/loyalty";
 import { revalidatePath } from "next/cache";
+import { sendWelcomeEmail } from "@/lib/resend";
 
 export async function registerUserAction(formData: FormData) {
   try {
@@ -49,6 +50,12 @@ export async function registerUserAction(formData: FormData) {
 
     // Asignar puntos dinámicos por Misión de Bienvenida (ACCOUNT_CREATION) desde la BD
     await awardLoyaltyPoints(newUser.id, "ACCOUNT_CREATION");
+
+    // Enviar correo de bienvenida transaccional vía Resend
+    sendWelcomeEmail({
+      toEmail: newUser.email,
+      userName: newUser.name,
+    }).catch((err) => console.error("Error enviando bienvenida en registro:", err));
 
     return { success: true, message: "¡Cuenta creada exitosamente! Ahora puedes iniciar sesión." };
   } catch (error: any) {

@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { sendNewsletterWelcomeEmail } from "@/lib/resend";
 
 /**
  * Server Action para sincronizar silenciosamente la sesión del carrito abandonado en Neon DB.
@@ -167,6 +168,31 @@ export async function getCartUpsellSuggestionsAction(currentProductIds: string[]
   } catch (error) {
     console.error("Error obteniendo sugerencias de upselling:", error);
     return { success: false, suggestions: [] };
+  }
+}
+
+/**
+ * Server Action para suscribirse al Newsletter y recibir correo vía Resend.
+ */
+export async function subscribeNewsletterAction(email: string) {
+  try {
+    if (!email || !email.includes("@")) {
+      return { success: false, error: "Por favor ingresa un correo electrónico válido." };
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Enviar correo transaccional de bienvenida al Newsletter vía Resend
+    const res = await sendNewsletterWelcomeEmail(cleanEmail);
+
+    if (!res.success) {
+      console.warn("Advertencia al enviar email de newsletter con Resend:", res.error);
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error al procesar suscripción a newsletter:", error);
+    return { success: false, error: "Ocurrió un error al registrar tu suscripción." };
   }
 }
 

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { sendOrderConfirmationEmail } from "@/lib/resend";
 
 export async function GET(req: Request) {
   try {
@@ -146,6 +147,23 @@ export async function GET(req: Request) {
         } catch (addrErr) {
           console.error("Error al sincronizar dirección en confirm route:", addrErr);
         }
+      }
+
+      // Enviar Correo Transaccional de Confirmación con Resend
+      if (targetEmail) {
+        sendOrderConfirmationEmail({
+          toEmail: targetEmail,
+          orderNumber,
+          totalAmount,
+          currency: (checkoutSession.currency || "PEN").toUpperCase(),
+          items: parsedItems.map((item: any) => ({
+            title: item.title,
+            quantity: item.quantity,
+            unitPrice: item.price,
+          })),
+          shippingAddress: checkoutSession.shipping_details?.address || undefined,
+          loyaltyPointsEarned: Math.floor(totalAmount),
+        }).catch((emailErr) => console.error("Error enviando email de confirmación en confirm route:", emailErr));
       }
     } else {
       // Si la orden ya existía pero no tenía userId asociado y el usuario está autenticado ahora, lo asociamos

@@ -3,6 +3,7 @@ import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
 import { awardLoyaltyPoints } from "@/lib/loyalty";
+import { sendOrderConfirmationEmail } from "@/lib/resend";
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -164,6 +165,24 @@ export async function POST(req: Request) {
         }
 
         console.log(`✅ Orden ${orderNumber} creada exitosamente para la sesión ${sessionId}`);
+
+        // Enviar Correo Transaccional de Confirmación de Pedido con Resend
+        const buyerEmail = session.customer_details?.email || metadata.userEmail;
+        if (buyerEmail) {
+          sendOrderConfirmationEmail({
+            toEmail: buyerEmail,
+            orderNumber,
+            totalAmount,
+            currency: orderCurrency,
+            items: parsedItems.map((item: any) => ({
+              title: item.title,
+              quantity: item.quantity,
+              unitPrice: item.price,
+            })),
+            shippingAddress: session.shipping_details?.address || undefined,
+            loyaltyPointsEarned: Math.floor(totalAmount),
+          }).catch((emailErr) => console.error("Error enviando email de confirmación de orden en webhook:", emailErr));
+        }
       }
     } catch (dbError) {
       console.error("❌ Error al guardar la orden en la base de datos:", dbError);

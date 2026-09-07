@@ -1,6 +1,7 @@
 import React from "react";
 import { ShoppingBag, Clock, Mail, AlertTriangle, RefreshCw } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { SendCartReminderButton } from "./SendCartReminderButton";
 
 export const revalidate = 0;
 
@@ -176,12 +177,7 @@ export default async function AbandonedCartsPage() {
                         {formatDatePeru(s.lastActiveAt)}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <a
-                          href={s.userEmail ? `mailto:${s.userEmail}?subject=Recordatorio de tu carrito en GOSU® TCG` : "#"}
-                          className={`px-3 py-1 rounded bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium transition-colors inline-block ${!s.userEmail ? 'opacity-40 pointer-events-none' : ''}`}
-                        >
-                          Enviar Recordatorio
-                        </a>
+                        <SendCartReminderButton cartSessionId={s.id} userEmail={s.userEmail} />
                       </td>
                     </tr>
                   );
