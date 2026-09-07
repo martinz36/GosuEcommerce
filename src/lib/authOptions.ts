@@ -12,7 +12,22 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/account/login",
-    newUser: "/account/register",
+  },
+  events: {
+    async createUser({ user }) {
+      try {
+        const rule = await prisma.loyaltyEarningRule.findUnique({
+          where: { actionType: "ACCOUNT_CREATION" },
+        });
+        const pointsReward = rule && rule.isActive ? rule.pointsReward : 50;
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { loyaltyPoints: { increment: pointsReward } },
+        });
+      } catch (err) {
+        console.error("Error otorgando puntos de bienvenida en OAuth:", err);
+      }
+    },
   },
   providers: [
     GoogleProvider({
