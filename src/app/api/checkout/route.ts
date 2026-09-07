@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     const body = await req.json();
 
-    const { items, discountCode, loyaltyPointsUsed = 0, currency = "usd", countryCode = "PE", isPickup = false, pickupAddress = "" } = body;
+    const { items, discountCode, loyaltyPointsUsed = 0, currency = "usd", countryCode = "PE", isPickup = false, pickupAddress = "", guestEmail = "" } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
       line_items: lineItems,
       mode: "payment",
       discounts: discountsArray.length > 0 ? discountsArray : undefined,
-      customer_email: session?.user?.email || undefined,
+      customer_email: session?.user?.email || (guestEmail ? guestEmail.trim() : undefined),
       payment_intent_data: hasPredefinedShipping
         ? {
             shipping: {
@@ -135,7 +135,7 @@ export async function POST(req: Request) {
       cancel_url: `${appUrl}/checkout/cancel`,
       metadata: {
         userId: currentUserId || "",
-        userEmail: session?.user?.email || "",
+        userEmail: session?.user?.email || guestEmail || "",
         discountCode: discountCode?.code || "",
         loyaltyPointsUsed: String(loyaltyPointsUsed || 0),
         isPickup: isPickup ? "true" : "false",

@@ -207,7 +207,7 @@ export function CartDrawer() {
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  const executeStripeCheckout = async () => {
+  const executeStripeCheckout = async (guestEmail?: string) => {
     try {
       setIsRedirectingToCheckout(true);
       const res = await fetch("/api/checkout", {
@@ -221,6 +221,7 @@ export function CartDrawer() {
           countryCode,
           isPickup: deliveryType === "PICKUP",
           pickupAddress: pickupMethod?.pickupAddress || "",
+          guestEmail: guestEmail || undefined,
         }),
       });
 

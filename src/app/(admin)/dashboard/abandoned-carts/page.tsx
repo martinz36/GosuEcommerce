@@ -22,10 +22,10 @@ function formatDatePeru(dateInput: any) {
 }
 
 export default async function AbandonedCartsPage() {
-  let abandonedSessions: any[] = [];
+  let rawSessions: any[] = [];
   try {
     if (process.env.DATABASE_URL && (prisma as any).cartSession) {
-      abandonedSessions = await (prisma as any).cartSession.findMany({
+      rawSessions = await (prisma as any).cartSession.findMany({
         where: {
           isConverted: false,
         },
@@ -36,20 +36,32 @@ export default async function AbandonedCartsPage() {
     console.error("Error al cargar carritos abandonados de Neon DB:", err);
   }
 
-  // Filtrar carritos con más de 2 horas de inactividad
-  const now = new Date();
-  const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+  // PASO 1 & 2: Filtro Estricto para CRM Recuperable (Solamente carritos con al menos 1 producto Y correo capturado)
+  const validSessions = rawSessions.filter((s) => {
+    if (!s) return false;
+    // 1. Debe tener un email asociado (invitado o registrado)
+    const hasEmail = Boolean(s.userEmail && String(s.userEmail).trim().length > 0);
+    if (!hasEmail) return false;
 
-  const inactiveSessions = abandonedSessions.filter((s) => {
-    if (!s || !s.lastActiveAt) return false;
-    const diff = now.getTime() - new Date(s.lastActiveAt).getTime();
-    return diff >= TWO_HOURS_MS;
+    // 2. Debe tener al menos 1 producto en itemsJson
+    let items: any[] = [];
+    if (Array.isArray(s.itemsJson)) {
+      items = s.itemsJson;
+    } else if (typeof s.itemsJson === "string") {
+      try {
+        items = JSON.parse(s.itemsJson);
+      } catch {
+        items = [];
+      }
+    }
+    if (!items || items.length === 0) return false;
+
+    return true;
   });
 
-  // Si no hay sesiones de más de 2h, mostramos todas las sesiones no convertidas para pruebas
-  const displaySessions = inactiveSessions.length > 0 ? inactiveSessions : abandonedSessions;
+  const displaySessions = validSessions;
 
-  const totalValue = abandonedSessions.reduce((sum, s) => {
+  const totalValue = validSessions.reduce((sum, s) => {
     const val = Number(s?.subtotal || 0);
     return sum + (isNaN(val) ? 0 : val);
   }, 0);
@@ -72,7 +84,7 @@ export default async function AbandonedCartsPage() {
             <span className="text-xs font-semibold text-slate-500 block uppercase tracking-wider mb-1">
               Carritos Abandonados
             </span>
-            <span className="text-2xl font-bold text-slate-900">{abandonedSessions.length}</span>
+            <span className="text-2xl font-bold text-slate-900">{validSessions.length}</span>
             <span className="text-[11px] text-amber-600 font-medium block mt-1">
               Pendientes de conversión
             </span>
@@ -105,7 +117,7 @@ export default async function AbandonedCartsPage() {
               Correos Capturados
             </span>
             <span className="text-2xl font-bold text-slate-900">
-              {abandonedSessions.filter((s) => s?.userEmail).length}
+              {validSessions.length}
             </span>
             <span className="text-[11px] text-slate-400 font-medium block mt-1">
               Listos para recordatorios
