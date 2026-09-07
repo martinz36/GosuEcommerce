@@ -128,34 +128,36 @@ export default async function ShopLayout({
 
         {/* Navbar Público Estilo Framer / GOSU® */}
         <header className="sticky top-0 z-50 glass-panel border-b border-surface-muted backdrop-blur-md bg-black/80">
-          <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
             {/* Logo Brand Oficial (Blanco) */}
-            <Link href="/" className="flex items-center gap-3 group shrink-0">
+            <Link href="/" className="flex items-center gap-2 sm:gap-3 group shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/gosu-logo-white.png"
                 alt="GOSU® TCG GEAR"
-                className="h-8 sm:h-10 w-auto object-contain group-hover:scale-105 transition-transform"
+                className="h-7 sm:h-10 w-auto object-contain group-hover:scale-105 transition-transform"
               />
             </Link>
 
             {/* Buscador Predictivo en Vivo */}
-            <div className="flex-1 max-w-sm">
+            <div className="flex-1 max-w-[140px] min-w-0 xs:max-w-xs sm:max-w-sm">
               <HeaderSearch />
             </div>
 
             {/* Acciones: Selector de Idioma, Selector de Moneda, Mi Cuenta, Carrito y Panel Admin */}
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              <LanguageSwitcher />
-              <CurrencySwitcher />
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+              <div className="hidden sm:flex items-center gap-1.5 sm:gap-2">
+                <LanguageSwitcher />
+                <CurrencySwitcher />
+              </div>
 
               {/* Botón Mi Cuenta / Login */}
               <Link
                 href={session ? "/account/dashboard" : "/account/login"}
-                className="flex items-center gap-2 p-2 bg-surface-elevated hover:bg-neutral-800 rounded-full border border-neutral-800 transition-colors text-xs font-semibold"
+                className="flex items-center gap-1.5 p-2 bg-surface-elevated hover:bg-neutral-800 rounded-full border border-neutral-800 transition-colors text-xs font-semibold"
                 title={session ? "Mi Cuenta" : "Iniciar Sesión"}
               >
-                <User className="w-5 h-5 text-accent-pink" />
+                <User className="w-4 sm:w-5 h-4 sm:h-5 text-accent-pink" />
                 <span className="hidden lg:inline pr-1">
                   {session ? session.user?.name?.split(" ")[0] || "Cuenta" : "Cuenta"}
                 </span>

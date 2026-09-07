@@ -162,7 +162,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 space-y-16">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12 space-y-8 sm:space-y-16">
       {/* Script Estructurado JSON-LD Schema.org para Google Search */}
       <script
         type="application/ld+json"
@@ -291,9 +291,9 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
       {/* Productos Relacionados */}
       {relatedProducts.length > 0 && (
-        <section className="pt-12 border-t border-surface-muted space-y-8">
+        <section className="pt-12 border-t border-surface-muted space-y-8 pb-16 lg:pb-0">
           <h2 className="text-2xl font-extrabold uppercase tracking-tight">TAMBIÉN TE PUEDE INTERESAR</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-8">
             {relatedProducts.map((rel) => (
               <ProductCard
                 key={rel.id}
@@ -315,6 +315,21 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
           </div>
         </section>
       )}
+
+      {/* Sticky Bottom Bar de Agregar al Carrito para Celulares */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-neutral-950/95 backdrop-blur-md border-t border-neutral-800 p-3 px-4 flex items-center justify-between gap-3 shadow-2xl">
+        <div>
+          <span className="text-[10px] font-mono text-neutral-400 block">PRECIO TOTAL</span>
+          <span className="font-mono font-extrabold text-base text-accent-cyan">{displayPrice}</span>
+        </div>
+        <AddToCartButton
+          productId={product.id}
+          productTitle={product.title}
+          price={cartPrice}
+          imageUrl={mainImage}
+          className="btn-pill bg-white text-black hover:bg-accent-cyan font-extrabold text-xs py-3 px-5 uppercase font-mono shadow-lg flex-1 max-w-[200px]"
+        />
+      </div>
     </div>
   );
 }

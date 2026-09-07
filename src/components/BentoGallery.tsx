@@ -47,13 +47,13 @@ export function BentoGallery({ products }: BentoGalleryProps) {
   };
 
   return (
-    <section className="max-w-7xl mx-auto px-6 space-y-8">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-neutral-800 pb-6">
         <div>
           <span className="text-xs font-mono text-accent-cyan uppercase tracking-widest block mb-1 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-accent-pink" /> SHOWCASE DE EDICIÓN LIMITADA
           </span>
-          <h2 className="text-3xl font-extrabold tracking-tight uppercase">BENTO SELECTION GOSU®</h2>
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight uppercase">BENTO SELECTION GOSU®</h2>
         </div>
         <span className="text-xs text-neutral-400 font-mono">
           Diseño Asimétrico • Animación Levitante ⚡
@@ -61,13 +61,13 @@ export function BentoGallery({ products }: BentoGalleryProps) {
       </div>
 
       {/* Contenedor Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[280px]">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:auto-rows-[280px]">
         {/* Card 1: Tarjeta Principal Gigante con Levitación (Ocupa 2 columnas y 2 filas) */}
         {featured && (
           <motion.div
-            animate={{ y: [0, -10, 0] }}
+            animate={{ y: [0, -8, 0] }}
             transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-            className="md:col-span-2 md:row-span-2 relative rounded-3xl bg-neutral-900/60 backdrop-blur-xl border border-neutral-800 overflow-hidden group shadow-2xl flex flex-col justify-end p-8"
+            className="md:col-span-2 md:row-span-2 relative rounded-3xl bg-neutral-900/60 backdrop-blur-xl border border-neutral-800 overflow-hidden group shadow-2xl flex flex-col justify-end p-5 sm:p-8 min-h-[340px] md:min-h-0"
           >
             <div className="absolute inset-0 z-0 overflow-hidden">
               {featured.imageUrl ? (
