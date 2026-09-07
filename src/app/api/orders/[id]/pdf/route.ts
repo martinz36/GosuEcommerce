@@ -348,7 +348,7 @@ export async function GET(req: Request, { params }: RouteParams) {
         <td>
           <div class="doc-type">PACKING SLIP / RECIBO</div>
           <div class="order-number">${order.orderNumber}</div>
-          <div class="order-date">${new Date(order.createdAt).toLocaleString("es-ES")}</div>
+          <div class="order-date">${new Date(order.createdAt).toLocaleString("es-PE", { timeZone: "America/Lima" })}</div>
         </td>
       </tr>
     </table>

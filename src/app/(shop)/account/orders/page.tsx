@@ -8,6 +8,31 @@ import { prisma } from "@/lib/prisma";
 
 export const revalidate = 0;
 
+function formatOrderMoney(amount: number, currencyCode?: string) {
+  const code = (currencyCode || "PEN").toUpperCase();
+  const isPen = code === "PEN" || code === "SOL" || code === "S/.";
+  const symbol = isPen ? "S/." : "$";
+  const displayCode = isPen ? "PEN" : "USD";
+  return `${symbol} ${Number(amount).toFixed(2)} ${displayCode}`;
+}
+
+function formatOrderDate(dateInput: string | Date) {
+  try {
+    return new Date(dateInput).toLocaleString("es-PE", {
+      timeZone: "America/Lima",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
+  } catch (e) {
+    return new Date(dateInput).toLocaleString();
+  }
+}
+
 export default async function CustomerOrdersPage() {
   const session = await getServerSession(authOptions);
 
@@ -104,13 +129,13 @@ export default async function CustomerOrdersPage() {
                     {getStatusBadge(order.status)}
                   </div>
                   <span className="text-xs text-neutral-400 font-mono">
-                    Realizado el {new Date(order.createdAt).toLocaleString()}
+                    Realizado el {formatOrderDate(order.createdAt)}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <span className="text-lg font-black text-white font-mono">
-                    ${Number(order.totalAmount).toFixed(2)} USD
+                    {formatOrderMoney(order.totalAmount, order.currency)}
                   </span>
                   <Link
                     href={`/account/orders/${order.id}/receipt`}
@@ -157,7 +182,7 @@ export default async function CustomerOrdersPage() {
                         {item.quantity}x {item.product?.title || "Accesorio TCG"}
                       </span>
                       <span className="font-mono text-neutral-300">
-                        ${Number(item.totalPrice).toFixed(2)} USD
+                        {formatOrderMoney(item.totalPrice, order.currency)}
                       </span>
                     </div>
                   ))}

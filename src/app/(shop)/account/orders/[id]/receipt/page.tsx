@@ -139,7 +139,7 @@ export default async function OrderReceiptPage({ params }: ReceiptPageProps) {
                 {order.orderNumber}
               </span>
               <span className="text-xs text-slate-500 font-mono block">
-                {new Date(order.createdAt).toLocaleString("es-ES")}
+                {new Date(order.createdAt).toLocaleString("es-PE", { timeZone: "America/Lima" })}
               </span>
             </div>
           </div>
