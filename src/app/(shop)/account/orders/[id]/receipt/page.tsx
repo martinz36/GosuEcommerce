@@ -126,9 +126,9 @@ export default async function OrderReceiptPage({ params }: ReceiptPageProps) {
             <div className="flex items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="https://res.cloudinary.com/de4so8h01/image/upload/v1784049362/GosuLogo_wletc3.png"
+                src="/gosu-logo-white.png"
                 alt="GOSU® TCG GEAR"
-                className="h-10 w-auto object-contain"
+                className="h-10 w-auto object-contain bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800"
               />
               <div>
                 <span className="text-xs text-slate-500 font-mono block">Accesorios de Torneo & E-commerce</span>

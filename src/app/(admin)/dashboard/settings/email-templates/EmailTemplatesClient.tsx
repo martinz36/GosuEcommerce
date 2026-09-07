@@ -300,11 +300,11 @@ export function EmailTemplatesClient() {
           {/* Renderizador de Plantilla HTML */}
           <div className="bg-[#050505] p-6 rounded-xl border border-slate-800 shadow-inner overflow-hidden font-sans text-white">
             <div className="max-w-md mx-auto bg-[#0D0D0D] border border-neutral-800 rounded-2xl overflow-hidden shadow-2xl">
-              {/* Header en Vivo con Logo Oficial Cloudinary */}
+              {/* Header en Vivo con Logo Oficial Blanco */}
               <div className="p-6 bg-[#141414] border-b border-neutral-800 text-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="https://res.cloudinary.com/de4so8h01/image/upload/v1784049362/GosuLogo_wletc3.png"
+                  src="/gosu-logo-white.png"
                   alt="GOSU® TCG GEAR"
                   className="h-9 w-auto mx-auto object-contain"
                 />

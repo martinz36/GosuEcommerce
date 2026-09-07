@@ -342,7 +342,7 @@ export async function GET(req: Request, { params }: RouteParams) {
     <table class="header-table">
       <tr>
         <td>
-          <img src="https://res.cloudinary.com/de4so8h01/image/upload/v1784049362/GosuLogo_wletc3.png" alt="GOSU® TCG GEAR" style="height: 36px; width: auto; margin-bottom: 4px; display: block;" />
+          <img src="https://gosuecommerce.vercel.app/gosu-logo-white.png" alt="GOSU® TCG GEAR" style="height: 36px; width: auto; margin-bottom: 4px; display: block; background-color: #050505; padding: 4px 8px; border-radius: 6px;" />
           <div class="brand-subtitle">Accesorios de Torneo & E-commerce • soporte@gosu.com</div>
         </td>
         <td>

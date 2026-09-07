@@ -32,7 +32,7 @@ export async function sendTestEmailAction({
     const fromSender = process.env.SENDER_EMAIL || "GOSU® TCG Gear <onboarding@resend.dev>";
 
     // Generar HTML personalizado según la plantilla
-    const logoUrl = "https://res.cloudinary.com/de4so8h01/image/upload/v1784049362/GosuLogo_wletc3.png";
+    const logoUrl = "https://gosuecommerce.vercel.app/gosu-logo-white.png";
 
     const htmlContent = `
       <!DOCTYPE html>

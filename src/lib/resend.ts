@@ -38,7 +38,7 @@ export async function sendWelcomeEmail({
               <!-- Header -->
               <tr>
                 <td align="center" style="padding: 32px 24px; background: linear-gradient(180deg, #141414 0%, #0D0D0D 100%); border-bottom: 1px solid #262626;">
-                  <img src="https://res.cloudinary.com/de4so8h01/image/upload/v1784049362/GosuLogo_wletc3.png" alt="GOSU® TCG GEAR" style="height: 38px; width: auto; display: block; margin: 0 auto;" />
+                  <img src="https://gosuecommerce.vercel.app/gosu-logo-white.png" alt="GOSU® TCG GEAR" style="height: 38px; width: auto; display: block; margin: 0 auto;" />
                 </td>
               </tr>
 
@@ -168,7 +168,7 @@ export async function sendOrderConfirmationEmail({
               <!-- Header -->
               <tr>
                 <td align="center" style="padding: 32px 24px; background-color: #141414; border-bottom: 1px solid #262626;">
-                  <img src="https://res.cloudinary.com/de4so8h01/image/upload/v1784049362/GosuLogo_wletc3.png" alt="GOSU® TCG GEAR" style="height: 38px; width: auto; display: block; margin: 0 auto;" />
+                  <img src="https://gosuecommerce.vercel.app/gosu-logo-white.png" alt="GOSU® TCG GEAR" style="height: 38px; width: auto; display: block; margin: 0 auto;" />
                 </td>
               </tr>
 
@@ -308,7 +308,7 @@ export async function sendAbandonedCartEmail({
               <!-- Header -->
               <tr>
                 <td align="center" style="padding: 32px 24px; background-color: #141414; border-bottom: 1px solid #262626;">
-                  <img src="https://res.cloudinary.com/de4so8h01/image/upload/v1784049362/GosuLogo_wletc3.png" alt="GOSU® TCG GEAR" style="height: 38px; width: auto; display: block; margin: 0 auto;" />
+                  <img src="https://gosuecommerce.vercel.app/gosu-logo-white.png" alt="GOSU® TCG GEAR" style="height: 38px; width: auto; display: block; margin: 0 auto;" />
                 </td>
               </tr>
 
@@ -395,7 +395,7 @@ export async function sendNewsletterWelcomeEmail(toEmail: string) {
             <table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #0D0D0D; border: 1px solid #262626; border-radius: 16px; overflow: hidden; max-width: 600px;">
               <tr>
                 <td align="center" style="padding: 32px 24px; background-color: #141414; border-bottom: 1px solid #262626;">
-                  <img src="https://res.cloudinary.com/de4so8h01/image/upload/v1784049362/GosuLogo_wletc3.png" alt="GOSU® TCG GEAR" style="height: 38px; width: auto; display: block; margin: 0 auto;" />
+                  <img src="https://gosuecommerce.vercel.app/gosu-logo-white.png" alt="GOSU® TCG GEAR" style="height: 38px; width: auto; display: block; margin: 0 auto;" />
                 </td>
               </tr>
               <tr>

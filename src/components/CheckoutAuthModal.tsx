@@ -85,7 +85,7 @@ export function CheckoutAuthModal({ isOpen, onClose, onGuestCheckout }: Checkout
               <div className="text-center space-y-2 pt-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="https://res.cloudinary.com/de4so8h01/image/upload/v1784049362/GosuLogo_wletc3.png"
+                  src="/gosu-logo-white.png"
                   alt="GOSU® TCG GEAR"
                   className="h-9 w-auto mx-auto mb-2 object-contain"
                 />

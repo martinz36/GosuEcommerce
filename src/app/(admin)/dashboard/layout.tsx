@@ -41,14 +41,14 @@ export default function AdminDashboardLayout({
         <div>
           {/* Header Sidebar */}
           <div className="h-16 px-6 border-b border-slate-200 flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="https://res.cloudinary.com/de4so8h01/image/upload/v1784049362/GosuLogo_wletc3.png"
+                src="/gosu-logo-white.png"
                 alt="GOSU® Admin"
-                className="h-7 w-auto object-contain"
+                className="h-6 w-auto object-contain"
               />
-              <span className="font-mono text-[10px] bg-slate-900 text-white font-bold px-1.5 py-0.5 rounded uppercase">
+              <span className="font-mono text-[9px] bg-accent-cyan text-black font-extrabold px-1.5 py-0.5 rounded uppercase">
                 ADMIN
               </span>
             </div>
