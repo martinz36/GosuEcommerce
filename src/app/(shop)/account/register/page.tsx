@@ -67,6 +67,12 @@ function RegisterFormContent() {
   return (
     <div className="w-full max-w-md bg-surface p-8 rounded-2xl border border-neutral-800 shadow-2xl space-y-6">
       <div className="text-center space-y-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://res.cloudinary.com/de4so8h01/image/upload/v1784049362/GosuLogo_wletc3.png"
+          alt="GOSU® TCG GEAR"
+          className="h-10 w-auto mx-auto mb-2 object-contain"
+        />
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent-pink/10 border border-accent-pink/30 text-accent-pink text-[11px] font-mono mb-1">
           <Sparkles className="w-3.5 h-3.5" />
           <span>¡GANA 50 PUNTOS DE BIENVENIDA!</span>

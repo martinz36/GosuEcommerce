@@ -83,6 +83,12 @@ export function CheckoutAuthModal({ isOpen, onClose, onGuestCheckout }: Checkout
 
               {/* Banner / Cabecera Informativa */}
               <div className="text-center space-y-2 pt-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="https://res.cloudinary.com/de4so8h01/image/upload/v1784049362/GosuLogo_wletc3.png"
+                  alt="GOSU® TCG GEAR"
+                  className="h-9 w-auto mx-auto mb-2 object-contain"
+                />
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-accent-pink/20 to-purple-900/30 border border-accent-pink/40 text-accent-pink text-xs font-mono font-bold">
                   <Award className="w-4 h-4 text-accent-pink" />
                   <span>PROGRAMA GOSU® LOYALTY</span>

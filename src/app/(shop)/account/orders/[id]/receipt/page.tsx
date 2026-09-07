@@ -123,12 +123,17 @@ export default async function OrderReceiptPage({ params }: ReceiptPageProps) {
         <div className="bg-white p-8 md:p-12 rounded-2xl border border-slate-200 shadow-2xl space-y-8 print:shadow-none print:border-none print:p-0">
           {/* Header del Recibo GOSU® TCG */}
           <div className="flex justify-between items-start border-b border-slate-900 pb-8">
-            <div>
-              <span className="text-2xl font-black tracking-tighter text-slate-900 block">
-                GOSU® TCG GEAR
-              </span>
-              <span className="text-xs text-slate-500 font-mono">Accesorios de Torneo & E-commerce</span>
-              <span className="text-xs text-slate-400 block mt-1">RUC/Tax ID: 20601234567 • Lima, Perú</span>
+            <div className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://res.cloudinary.com/de4so8h01/image/upload/v1784049362/GosuLogo_wletc3.png"
+                alt="GOSU® TCG GEAR"
+                className="h-10 w-auto object-contain"
+              />
+              <div>
+                <span className="text-xs text-slate-500 font-mono block">Accesorios de Torneo & E-commerce</span>
+                <span className="text-xs text-slate-400 block font-mono">soporte@gosu.com • Lima, Perú</span>
+              </div>
             </div>
 
             <div className="text-right">

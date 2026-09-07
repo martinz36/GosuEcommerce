@@ -129,14 +129,14 @@ export default async function ShopLayout({
         {/* Navbar Público Estilo Framer / GOSU® */}
         <header className="sticky top-0 z-50 glass-panel border-b border-surface-muted backdrop-blur-md bg-black/80">
           <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-4">
-            {/* Logo Brand */}
+            {/* Logo Brand Oficial */}
             <Link href="/" className="flex items-center gap-3 group shrink-0">
-              <span className="text-2xl sm:text-3xl font-extrabold tracking-tighter bg-gradient-to-r from-white via-accent-cyan to-accent-pink bg-clip-text text-transparent group-hover:opacity-90 transition-opacity">
-                GOSU®
-              </span>
-              <span className="hidden sm:inline-block text-[10px] bg-surface-elevated border border-neutral-700 px-2 py-0.5 rounded-full text-accent-cyan font-mono tracking-widest uppercase">
-                TCG GEAR
-              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://res.cloudinary.com/de4so8h01/image/upload/v1784049362/GosuLogo_wletc3.png"
+                alt="GOSU® TCG GEAR"
+                className="h-8 sm:h-10 w-auto object-contain group-hover:scale-105 transition-transform"
+              />
             </Link>
 
             {/* Buscador Predictivo en Vivo */}

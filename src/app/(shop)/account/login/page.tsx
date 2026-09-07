@@ -48,9 +48,12 @@ function LoginFormContent() {
   return (
     <div className="w-full max-w-md bg-surface p-8 rounded-2xl border border-neutral-800 shadow-2xl space-y-6">
       <div className="text-center space-y-2">
-        <span className="text-xs font-mono text-accent-cyan tracking-widest uppercase">
-          ÁREA PRIVADA GOSU®
-        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://res.cloudinary.com/de4so8h01/image/upload/v1784049362/GosuLogo_wletc3.png"
+          alt="GOSU® TCG GEAR"
+          className="h-10 w-auto mx-auto mb-2 object-contain"
+        />
         <h1 className="text-3xl font-extrabold uppercase tracking-tight">INICIAR SESIÓN</h1>
         <p className="text-xs text-neutral-400">
           Ingresa a tu cuenta para ver tus pedidos y acumular Puntos de Fidelidad.

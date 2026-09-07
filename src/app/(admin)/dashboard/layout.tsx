@@ -12,7 +12,8 @@ import {
   Truck,
   ShoppingBag,
   Globe,
-  Award
+  Award,
+  Mail
 } from "lucide-react";
 
 export default function AdminDashboardLayout({
@@ -28,6 +29,7 @@ export default function AdminDashboardLayout({
     { name: "Directorio de Clientes", href: "/dashboard/customers", icon: Users },
     { name: "GOSU® Loyalty", href: "/dashboard/settings/loyalty", icon: Award },
     { name: "Carritos Abandonados", href: "/dashboard/abandoned-carts", icon: ShoppingBag },
+    { name: "Plantillas de Correo", href: "/dashboard/settings/email-templates", icon: Mail },
     { name: "Configurar Envíos", href: "/dashboard/settings/shipping", icon: Truck },
     { name: "Regiones Multi-Moneda", href: "/dashboard/settings/regions", icon: Globe },
   ];
@@ -40,17 +42,15 @@ export default function AdminDashboardLayout({
           {/* Header Sidebar */}
           <div className="h-16 px-6 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-extrabold text-sm tracking-tight">
-                G
-              </div>
-              <div>
-                <span className="font-bold text-sm text-slate-900 block leading-tight">
-                  GOSU Admin
-                </span>
-                <span className="text-[11px] text-slate-500 block leading-tight">
-                  Shopify Engine
-                </span>
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://res.cloudinary.com/de4so8h01/image/upload/v1784049362/GosuLogo_wletc3.png"
+                alt="GOSU® Admin"
+                className="h-7 w-auto object-contain"
+              />
+              <span className="font-mono text-[10px] bg-slate-900 text-white font-bold px-1.5 py-0.5 rounded uppercase">
+                ADMIN
+              </span>
             </div>
           </div>
 
