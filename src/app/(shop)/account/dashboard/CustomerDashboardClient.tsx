@@ -27,6 +27,7 @@ import {
   MailCheck,
   MailX,
   Edit3,
+  ChevronDown,
 } from "lucide-react";
 import { SignOutButton } from "@/components/SignOutButton";
 import { Country, State, City } from "country-state-city";
@@ -65,6 +66,28 @@ export interface AddressItem {
   isDefault: boolean;
 }
 
+const daysList = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0"));
+
+const monthsList = [
+  { value: "01", label: "Enero" },
+  { value: "02", label: "Febrero" },
+  { value: "03", label: "Marzo" },
+  { value: "04", label: "Abril" },
+  { value: "05", label: "Mayo" },
+  { value: "06", label: "Junio" },
+  { value: "07", label: "Julio" },
+  { value: "08", label: "Agosto" },
+  { value: "09", label: "Septiembre" },
+  { value: "10", label: "Octubre" },
+  { value: "11", label: "Noviembre" },
+  { value: "12", label: "Diciembre" },
+];
+
+const currentYear = new Date().getFullYear();
+const maxYear = currentYear - 13;
+const minYear = currentYear - 100;
+const yearsList = Array.from({ length: maxYear - minYear + 1 }, (_, i) => maxYear - i);
+
 interface CustomerDashboardProps {
   userName: string;
   userEmail: string;
@@ -98,9 +121,25 @@ export default function CustomerDashboardClient({
 
   // Estados Perfil & Modales
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [birthdateInput, setBirthdateInput] = useState(
-    birthdate ? new Date(birthdate).toISOString().split("T")[0] : ""
-  );
+  
+  let defaultDay = "";
+  let defaultMonth = "";
+  let defaultYear = "";
+  if (birthdate) {
+    const dStr = typeof birthdate === "string"
+      ? birthdate.split("T")[0]
+      : new Date(birthdate).toISOString().split("T")[0];
+    const parts = dStr.split("-");
+    if (parts.length === 3) {
+      defaultYear = parts[0];
+      defaultMonth = parts[1];
+      defaultDay = parts[2];
+    }
+  }
+
+  const [birthDay, setBirthDay] = useState(defaultDay);
+  const [birthMonth, setBirthMonth] = useState(defaultMonth);
+  const [birthYear, setBirthYear] = useState(defaultYear);
   const [phoneInput, setPhoneInput] = useState(phone || "");
   const [acceptsMarketingInput, setAcceptsMarketingInput] = useState(acceptsMarketing);
   const [missionMessage, setMissionMessage] = useState<string | null>(null);
@@ -168,15 +207,31 @@ export default function CustomerDashboardClient({
 
   const handleCompleteProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!birthdateInput) {
-      alert("Por favor ingresa tu fecha de nacimiento.");
+    if (!birthDay || !birthMonth || !birthYear) {
+      alert("Por favor selecciona tu día, mes y año de nacimiento.");
       return;
     }
+
+    const dNum = parseInt(birthDay, 10);
+    const mNum = parseInt(birthMonth, 10);
+    const yNum = parseInt(birthYear, 10);
+
+    const testDate = new Date(yNum, mNum - 1, dNum);
+    if (
+      testDate.getFullYear() !== yNum ||
+      testDate.getMonth() !== mNum - 1 ||
+      testDate.getDate() !== dNum
+    ) {
+      alert("La fecha seleccionada no existe (ej. 31 de Febrero). Por favor verifica el día y el mes.");
+      return;
+    }
+
+    const fullBirthdateStr = `${birthYear}-${birthMonth}-${birthDay}`;
 
     startTransition(async () => {
       const res = await completeUserProfileMissionAction(
         userId,
-        birthdateInput,
+        fullBirthdateStr,
         phoneInput,
         acceptsMarketingInput
       );
@@ -826,14 +881,67 @@ export default function CustomerDashboardClient({
                 <label className="text-xs font-bold text-neutral-300 block mb-1.5 flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-purple-400" /> Fecha de Nacimiento *
                 </label>
-                <input
-                  type="date"
-                  required
-                  max={new Date().toISOString().split("T")[0]}
-                  value={birthdateInput}
-                  onChange={(e) => setBirthdateInput(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-black border border-neutral-700 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-purple-500 cursor-pointer"
-                />
+                <div className="grid grid-cols-3 gap-2">
+                  {/* Selector Día */}
+                  <div className="relative">
+                    <select
+                      required
+                      value={birthDay}
+                      onChange={(e) => setBirthDay(e.target.value)}
+                      className="w-full appearance-none px-3 py-2.5 bg-black border border-neutral-700 rounded-xl text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent cursor-pointer pr-8"
+                    >
+                      <option value="" disabled className="bg-neutral-900 text-neutral-500">
+                        Día
+                      </option>
+                      {daysList.map((d) => (
+                        <option key={d} value={d} className="bg-neutral-900 text-white">
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+
+                  {/* Selector Mes */}
+                  <div className="relative">
+                    <select
+                      required
+                      value={birthMonth}
+                      onChange={(e) => setBirthMonth(e.target.value)}
+                      className="w-full appearance-none px-3 py-2.5 bg-black border border-neutral-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent cursor-pointer pr-8 truncate"
+                    >
+                      <option value="" disabled className="bg-neutral-900 text-neutral-500">
+                        Mes
+                      </option>
+                      {monthsList.map((m) => (
+                        <option key={m.value} value={m.value} className="bg-neutral-900 text-white">
+                          {m.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+
+                  {/* Selector Año */}
+                  <div className="relative">
+                    <select
+                      required
+                      value={birthYear}
+                      onChange={(e) => setBirthYear(e.target.value)}
+                      className="w-full appearance-none px-3 py-2.5 bg-black border border-neutral-700 rounded-xl text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent cursor-pointer pr-8"
+                    >
+                      <option value="" disabled className="bg-neutral-900 text-neutral-500">
+                        Año
+                      </option>
+                      {yearsList.map((y) => (
+                        <option key={y} value={String(y)} className="bg-neutral-900 text-white">
+                          {y}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
               </div>
 
               <div>
