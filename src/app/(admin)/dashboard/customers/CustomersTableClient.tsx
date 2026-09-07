@@ -37,6 +37,7 @@ export interface SerializedCustomer {
   acceptsMarketing?: boolean;
   defaultShippingAddress?: string | null;
   phone?: string | null;
+  primaryCurrency?: string;
 }
 
 export default function CustomersTableClient({
@@ -146,7 +147,8 @@ export default function CustomersTableClient({
       "Puntos Loyalty",
       "Nivel GOSU",
       "Total Ordenes",
-      "Total Gastado USD",
+      "Total Gastado",
+      "Moneda Principal",
       "Fecha Registro",
     ];
 
@@ -154,6 +156,8 @@ export default function CustomersTableClient({
       const displayName = c.name || `${c.firstName || ""} ${c.lastName || ""}`.trim() || "Cliente";
       const tier = getLoyaltyTier(c.loyaltyPoints).name;
       const tagsStr = (c.tags || []).join("; ");
+      const currSymbol = c.primaryCurrency === "PEN" ? "S/." : "$";
+      const currCode = c.primaryCurrency || "USD";
       return [
         `"${c.id}"`,
         `"${displayName.replace(/"/g, '""')}"`,
@@ -165,7 +169,8 @@ export default function CustomersTableClient({
         `"${c.loyaltyPoints}"`,
         `"${tier}"`,
         `"${c.ordersCount}"`,
-        `"${c.totalSpent.toFixed(2)}"`,
+        `"${currSymbol}${c.totalSpent.toFixed(2)}"`,
+        `"${currCode}"`,
         `"${new Date(c.createdAt).toLocaleDateString()}"`,
       ].join(",");
     });
@@ -443,7 +448,7 @@ export default function CustomersTableClient({
 
                       {/* Total Gastado */}
                       <td className="py-4 px-4 text-right font-mono font-extrabold text-slate-900 text-sm">
-                        ${c.totalSpent.toFixed(2)} USD
+                        {c.primaryCurrency === "PEN" ? `S/. ${c.totalSpent.toFixed(2)} PEN` : `$${c.totalSpent.toFixed(2)} USD`}
                       </td>
 
                       {/* Acciones */}

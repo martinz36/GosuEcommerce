@@ -74,6 +74,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
       orderNumber: order.orderNumber,
       createdAt: order.createdAt,
       status: order.status,
+      currency: order.currency || "PEN",
       totalAmount: Number(order.totalAmount),
       items: order.items.map((item) => ({
         id: item.id,

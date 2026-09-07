@@ -546,7 +546,9 @@ export default function OrdersTableClient({ initialOrders }: { initialOrders: an
 
                       {/* Total */}
                       <td className="py-3.5 px-4 font-mono font-extrabold text-slate-900 whitespace-nowrap text-sm">
-                        ${Number(order.totalAmount).toFixed(2)} USD
+                        {((order as any).currency || "PEN").toUpperCase() === "PEN"
+                          ? `S/. ${Number(order.totalAmount).toFixed(2)} PEN`
+                          : `$${Number(order.totalAmount).toFixed(2)} ${((order as any).currency || "USD").toUpperCase()}`}
                       </td>
 
                       {/* Paso 2: Badge Estado de Pago */}

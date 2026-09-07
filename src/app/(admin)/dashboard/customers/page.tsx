@@ -35,6 +35,11 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
 
   const serializedCustomers: SerializedCustomer[] = users.map((u) => {
     const totalSpent = u.orders ? u.orders.reduce((sum: number, o: any) => sum + Number(o.totalAmount || 0), 0) : 0;
+    const isPeru =
+      (u.defaultShippingAddress && (u.defaultShippingAddress.toLowerCase().includes("peru") || u.defaultShippingAddress.toLowerCase().includes("perú"))) ||
+      (u.orders && u.orders.some((o: any) => (o.currency || "PEN").toUpperCase() === "PEN"));
+    const primaryCurrency = isPeru ? "PEN" : "USD";
+
     return {
       id: u.id,
       name: u.name,
@@ -50,6 +55,7 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
       acceptsMarketing: Boolean(u.acceptsMarketing),
       defaultShippingAddress: u.defaultShippingAddress || null,
       phone: u.phone || null,
+      primaryCurrency,
     };
   });
 

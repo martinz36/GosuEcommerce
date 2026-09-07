@@ -55,6 +55,7 @@ interface Order {
   orderNumber: string;
   createdAt: string | Date;
   status: string;
+  currency?: string;
   totalAmount: number;
   items: OrderItem[];
 }
@@ -104,6 +105,26 @@ export default function CustomerProfileClient({ customer }: { customer: Customer
   const totalOrders = customer.orders.length;
   const totalSpent = customer.orders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
   const averageTicket = totalOrders > 0 ? totalSpent / totalOrders : 0;
+
+  // Helper para formatear montos según moneda
+  const formatMoney = (amount: number, currencyCode?: string) => {
+    const code = (currencyCode || "PEN").toUpperCase();
+    const isPen = code === "PEN" || code === "S/." || code === "SOL";
+    const symbol = isPen ? "S/." : code === "EUR" ? "€" : "$";
+    const displayCode = isPen ? "PEN" : code === "EUR" ? "EUR" : "USD";
+    return `${symbol} ${amount.toFixed(2)} ${displayCode}`;
+  };
+
+  // Detectar moneda principal del cliente (por dirección de envío o por órdenes)
+  const isPeruCustomer =
+    (customer.defaultShippingAddress &&
+      (customer.defaultShippingAddress.toLowerCase().includes("perú") ||
+        customer.defaultShippingAddress.toLowerCase().includes("peru") ||
+        customer.defaultShippingAddress.toLowerCase().includes("lima") ||
+        customer.defaultShippingAddress.toLowerCase().includes("san isidro"))) ||
+    customer.orders.some((o) => (o.currency || "PEN").toUpperCase() === "PEN");
+
+  const primaryCurrencyCode = isPeruCustomer ? "PEN" : "USD";
 
   // Determinar Nivel GOSU Loyalty
   const getLoyaltyTier = (pts: number) => {
@@ -278,7 +299,7 @@ export default function CustomerProfileClient({ customer }: { customer: Customer
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Gastado</span>
-          <span className="text-2xl font-black text-slate-900 font-mono">${totalSpent.toFixed(2)} USD</span>
+          <span className="text-2xl font-black text-slate-900 font-mono">{formatMoney(totalSpent, primaryCurrencyCode)}</span>
           <span className="text-[11px] text-slate-500 block font-mono">En compras procesadas</span>
         </div>
 
@@ -290,7 +311,7 @@ export default function CustomerProfileClient({ customer }: { customer: Customer
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Ticket Promedio</span>
-          <span className="text-2xl font-black text-emerald-600 font-mono">${averageTicket.toFixed(2)} USD</span>
+          <span className="text-2xl font-black text-emerald-600 font-mono">{formatMoney(averageTicket, primaryCurrencyCode)}</span>
           <span className="text-[11px] text-slate-500 block font-mono">Promedio por orden</span>
         </div>
 
@@ -534,7 +555,7 @@ export default function CustomerProfileClient({ customer }: { customer: Customer
                         </td>
                         <td className="py-3 px-4 text-center font-mono">{itemCount} items</td>
                         <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
-                          ${Number(o.totalAmount).toFixed(2)} USD
+                          {formatMoney(Number(o.totalAmount), o.currency)}
                         </td>
                         <td className="py-3 px-4 text-right">
                           <Link

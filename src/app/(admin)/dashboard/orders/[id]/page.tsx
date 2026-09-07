@@ -70,6 +70,9 @@ export default async function OrderDetailPage({ params }: PageProps) {
   }
 
   const shippingInfo = order.shippingAddress || order.shippingAddressJson || null;
+  const isPen = (order.currency || "PEN").toUpperCase() === "PEN" || order.currency === "S/.";
+  const currSym = isPen ? "S/." : "$";
+  const currCode = isPen ? "PEN" : (order.currency || "USD").toUpperCase();
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -186,7 +189,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
               </p>
             )}
             <p className="text-slate-900 font-extrabold text-sm pt-1">
-              Total: ${Number(order.totalAmount).toFixed(2)} USD
+              Total: {currSym} {Number(order.totalAmount).toFixed(2)} {currCode}
             </p>
           </div>
         </div>
@@ -238,10 +241,10 @@ export default async function OrderDetailPage({ params }: PageProps) {
                       {item.quantity}
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-slate-600">
-                      ${Number(item.unitPrice).toFixed(2)}
+                      {currSym} {Number(item.unitPrice).toFixed(2)}
                     </td>
                     <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
-                      ${Number(item.totalPrice).toFixed(2)}
+                      {currSym} {Number(item.totalPrice).toFixed(2)}
                     </td>
                   </tr>
                 );
@@ -255,24 +258,24 @@ export default async function OrderDetailPage({ params }: PageProps) {
           <div className="w-full max-w-xs space-y-2 text-xs font-mono">
             <div className="flex justify-between text-slate-600">
               <span>Subtotal:</span>
-              <span className="font-bold text-slate-900">${Number(order.subtotal).toFixed(2)} USD</span>
+              <span className="font-bold text-slate-900">{currSym} {Number(order.subtotal).toFixed(2)} {currCode}</span>
             </div>
 
             {Number(order.discountAmount) > 0 && (
               <div className="flex justify-between text-rose-600">
                 <span>Descuento Cupón:</span>
-                <span className="font-bold">-${Number(order.discountAmount).toFixed(2)}</span>
+                <span className="font-bold">-{currSym} {Number(order.discountAmount).toFixed(2)}</span>
               </div>
             )}
 
             <div className="flex justify-between text-slate-600">
               <span>Costo de Envío:</span>
-              <span className="font-bold text-slate-900">${Number(order.shippingAmount).toFixed(2)} USD</span>
+              <span className="font-bold text-slate-900">{currSym} {Number(order.shippingAmount).toFixed(2)} {currCode}</span>
             </div>
 
             <div className="flex justify-between text-base font-extrabold text-slate-900 pt-2 border-t border-slate-200">
               <span>TOTAL TOTAL:</span>
-              <span className="text-blue-600">${Number(order.totalAmount).toFixed(2)} USD</span>
+              <span className="text-blue-600">{currSym} {Number(order.totalAmount).toFixed(2)} {currCode}</span>
             </div>
           </div>
         </div>
