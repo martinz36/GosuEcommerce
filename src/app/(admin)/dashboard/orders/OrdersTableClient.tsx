@@ -90,7 +90,18 @@ export default function OrdersTableClient({ initialOrders }: { initialOrders: an
       customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customerEmail.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchStatus = selectedStatus === "ALL" || order.status === selectedStatus;
+    let matchStatus = true;
+    if (selectedStatus === "PAID") {
+      matchStatus = order.status === "PAID" || order.status === "PROCESSING";
+    } else if (selectedStatus === "PROCESSING") {
+      matchStatus = order.status === "PROCESSING" || order.status === "PAID" || order.status === "PENDING";
+    } else if (selectedStatus === "SHIPPED") {
+      matchStatus = order.status === "SHIPPED";
+    } else if (selectedStatus === "DELIVERED") {
+      matchStatus = order.status === "DELIVERED";
+    } else if (selectedStatus === "CANCELLED") {
+      matchStatus = order.status === "CANCELLED" || order.status === "REFUNDED";
+    }
 
     // Filtro por Fechas
     const orderDate = new Date(order.createdAt);
@@ -379,26 +390,38 @@ export default function OrdersTableClient({ initialOrders }: { initialOrders: an
 
         {/* Pestañas de Estado Logístico */}
         <div className="flex items-center gap-1.5 overflow-x-auto pt-2 border-t border-slate-100 text-xs font-semibold">
-          {[
-            { id: "ALL", label: `Todos (${orders.length})` },
-            { id: "PAID", label: "Pagados" },
-            { id: "PROCESSING", label: "En Preparación" },
-            { id: "SHIPPED", label: "Enviados" },
-            { id: "DELIVERED", label: "Entregados" },
-            { id: "CANCELLED", label: "Cancelados" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setSelectedStatus(tab.id)}
-              className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors ${
-                selectedStatus === tab.id
-                  ? "bg-slate-900 text-white font-bold"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {(() => {
+            const getTabCount = (tabId: string) => {
+              if (tabId === "ALL") return orders.length;
+              if (tabId === "PAID") return orders.filter((o) => o.status === "PAID" || o.status === "PROCESSING").length;
+              if (tabId === "PROCESSING") return orders.filter((o) => o.status === "PROCESSING" || o.status === "PAID" || o.status === "PENDING").length;
+              if (tabId === "SHIPPED") return orders.filter((o) => o.status === "SHIPPED").length;
+              if (tabId === "DELIVERED") return orders.filter((o) => o.status === "DELIVERED").length;
+              if (tabId === "CANCELLED") return orders.filter((o) => o.status === "CANCELLED" || o.status === "REFUNDED").length;
+              return 0;
+            };
+
+            return [
+              { id: "ALL", label: `Todos (${orders.length})` },
+              { id: "PAID", label: `Pagados (${getTabCount("PAID")})` },
+              { id: "PROCESSING", label: `En Preparación (${getTabCount("PROCESSING")})` },
+              { id: "SHIPPED", label: `Enviados (${getTabCount("SHIPPED")})` },
+              { id: "DELIVERED", label: `Entregados (${getTabCount("DELIVERED")})` },
+              { id: "CANCELLED", label: `Cancelados (${getTabCount("CANCELLED")})` },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setSelectedStatus(tab.id)}
+                className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors ${
+                  selectedStatus === tab.id
+                    ? "bg-slate-900 text-white font-bold"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ));
+          })()}
         </div>
       </div>
 
