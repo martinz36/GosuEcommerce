@@ -102,15 +102,17 @@ export async function POST(req: Request) {
       }
     }
 
+    const hasPredefinedShipping = Boolean(userDefaultAddress && !isPickup);
+
     // Crear la sesión de checkout en Stripe
-    // Si el usuario tiene dirección predeterminada, se inyecta en payment_intent_data.shipping para Autofill
+    // Si el usuario tiene dirección predeterminada, se inyecta en payment_intent_data.shipping para Autofill y se desactiva shipping_address_collection para evitar conflicto en Stripe
     const checkoutSession = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: lineItems,
       mode: "payment",
       discounts: discountsArray.length > 0 ? discountsArray : undefined,
       customer_email: session?.user?.email || undefined,
-      payment_intent_data: (userDefaultAddress && !isPickup)
+      payment_intent_data: hasPredefinedShipping
         ? {
             shipping: {
               name: session?.user?.name || "Cliente GOSU",
@@ -124,7 +126,7 @@ export async function POST(req: Request) {
             },
           }
         : undefined,
-      shipping_address_collection: isPickup
+      shipping_address_collection: (hasPredefinedShipping || isPickup)
         ? undefined
         : {
             allowed_countries: ["PE", "US", "MX", "CL", "CO", "AR", "ES"],
