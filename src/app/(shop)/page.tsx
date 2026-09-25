@@ -4,8 +4,6 @@ import { cookies } from "next/headers";
 import { Sparkles, ArrowRight, ShieldCheck, Zap, Package, Award } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/ProductCard";
-import { BundleSection } from "@/components/BundleSection";
-import { BentoGallery } from "@/components/BentoGallery";
 
 export const revalidate = 0;
 
@@ -29,89 +27,85 @@ export default async function HomePage() {
       });
     }
   } catch (err) {
-    console.error("Error al consultar productos de Neon DB en la Home:", err);
-  }
-
-  // Si no hay productos en la base de datos, mostramos productos de demostración
-  if (products.length === 0) {
-    products = [
-      {
-        id: "demo-1",
-        title: "GOSU® Armor Sleeves - Matte Black",
-        priceUSD: 14.99,
-        pricePEN: 56.00,
-        basePrice: 14.99,
-        compareAtPrice: 19.99,
-        category: { name: "Sleeves" },
-        images: [{ url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=60" }],
-      },
-      {
-        id: "demo-2",
-        title: "GOSU® Premium 9-Pocket Zip Binder",
-        priceUSD: 34.99,
-        pricePEN: 130.00,
-        basePrice: 34.99,
-        compareAtPrice: 42.99,
-        category: { name: "Binders" },
-        images: [{ url: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&auto=format&fit=crop&q=60" }],
-      },
-      {
-        id: "demo-3",
-        title: "GOSU® Magnetic Deck Box 100+",
-        priceUSD: 24.99,
-        pricePEN: 93.00,
-        basePrice: 24.99,
-        compareAtPrice: 29.99,
-        category: { name: "Deck Boxes" },
-        images: [{ url: "https://images.unsplash.com/photo-1589241062272-c0a000072dfa?w=800&auto=format&fit=crop&q=60" }],
-      },
-    ];
+    console.error("Error al obtener productos de Neon DB:", err);
   }
 
   return (
-    <div className="space-y-20 pb-20">
-      {/* Hero Section Banner */}
-      <section className="relative overflow-hidden pt-10 sm:pt-16 pb-16 sm:pb-24 px-4 sm:px-6 border-b border-surface-muted bg-gradient-to-b from-neutral-950 via-black to-black">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center">
-          <div className="space-y-4 sm:space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 sm:py-1.5 rounded-full bg-surface-elevated border border-neutral-800 text-[11px] sm:text-xs font-mono text-accent-cyan">
-              <Sparkles className="w-3.5 h-3.5 text-accent-pink" />
-              <span>NUEVA COLECCIÓN TCG GEAR 2026</span>
+    <div className="min-h-screen bg-black text-white font-body selection:bg-accent-cyan selection:text-black">
+      {/* Hero Banner Futurista Gamer TCG */}
+      <section className="relative overflow-hidden border-b border-neutral-800 bg-neutral-950 py-16 sm:py-24 px-4 sm:px-6">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f1f_1px,transparent_1px),linear-gradient(to_bottom,#1f1f1f_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-20 pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
+          <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-cyan/10 border border-accent-cyan/30 text-accent-cyan text-xs font-mono font-bold tracking-wider uppercase">
+              <Sparkles className="w-4 h-4 animate-pulse" />
+              <span>GOSU® OFFICIAL STORE • PERÚ & INT.</span>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.1]">
-              PROTECCIÓN <span className="bg-gradient-to-r from-accent-cyan to-accent-pink bg-clip-text text-transparent">PREMIUM</span> PARA TUS CARTAS
+            <h1 className="text-4xl sm:text-6xl font-black uppercase tracking-tight leading-none text-white">
+              EQUIPAMIENTO <span className="text-accent-cyan">PRO TCG</span> PARA JUGADORES COMPETITIVOS
             </h1>
 
-            <p className="text-neutral-400 text-xs sm:text-base max-w-lg leading-relaxed font-normal">
-              Accesorios de grado competitivo para Magic: The Gathering, Yu-Gi-Oh!, Pokémon y Lorcana. Sleeves antideslizantes, Binders y Deck Boxes magnéticos.
+            <p className="text-sm sm:text-base text-neutral-400 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+              Protectores Matte Rough, carpetas Zip Armor, Deckboxes magnéticos y accesorios diseñados con máxima protección para proteger tus cartas y elevar tu nivel en torneo.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-2">
-              <Link
-                href="/catalog"
-                className="btn-pill bg-white text-black font-extrabold text-xs py-3.5 px-8 hover:bg-accent-cyan transition-colors flex items-center justify-center gap-2 shadow-lg shadow-white/10"
-              >
-                <span>VER CATÁLOGO</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
               <a
-                href="#bundles"
-                className="btn-pill bg-surface-elevated hover:bg-neutral-800 border border-neutral-700 text-white font-bold text-xs py-3.5 px-8 transition-colors text-center"
+                href="#catalog"
+                className="w-full sm:w-auto btn-pill bg-white hover:bg-accent-cyan text-black font-extrabold text-xs py-3.5 px-8 transition-all flex items-center justify-center gap-2 uppercase font-mono shadow-xl"
               >
-                PACKS PROMOCIONALES
+                <span>Explorar Catálogo</span>
+                <ArrowRight className="w-4 h-4" />
               </a>
+
+              <Link
+                href="/account/dashboard"
+                className="w-full sm:w-auto btn-pill bg-neutral-900 hover:bg-neutral-800 text-white border border-neutral-700 text-xs py-3.5 px-6 font-mono font-semibold transition-colors text-center"
+              >
+                Mi Cuenta & Puntos GOSU
+              </Link>
+            </div>
+
+            {/* Badges de Garantía & Envíos */}
+            <div className="grid grid-cols-3 gap-2 pt-6 border-t border-neutral-800/80 text-[11px] font-mono text-neutral-400">
+              <div className="flex items-center justify-center lg:justify-start gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-accent-cyan shrink-0" />
+                <span>Calidad Torneo</span>
+              </div>
+              <div className="flex items-center justify-center lg:justify-start gap-1.5">
+                <Zap className="w-4 h-4 text-accent-pink shrink-0" />
+                <span>Envíos Rápidos</span>
+              </div>
+              <div className="flex items-center justify-center lg:justify-start gap-1.5">
+                <Award className="w-4 h-4 text-accent-yellow shrink-0" />
+                <span>GOSU Loyalty</span>
+              </div>
             </div>
           </div>
 
-          <div className="relative flex justify-center">
-            <div className="w-full max-w-sm sm:max-w-md aspect-square rounded-3xl bg-surface border border-neutral-800 p-3 sm:p-4 shadow-2xl relative overflow-hidden group">
-              <img
-                src={products[0]?.images?.[0]?.url || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=60"}
-                alt="GOSU Featured Product"
-                className="w-full h-full object-cover rounded-2xl group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute bottom-4 sm:bottom-8 left-4 sm:left-8 right-4 sm:right-8 p-3 sm:p-4 rounded-xl bg-black/80 backdrop-blur-md border border-neutral-800 flex items-center justify-between">
+          {/* Hero Card Destacado */}
+          <div className="lg:col-span-5 relative">
+            <div className="absolute -inset-1 bg-gradient-to-r from-accent-cyan via-accent-pink to-purple-600 rounded-2xl blur-lg opacity-30 animate-pulse" />
+            <div className="relative bg-surface rounded-2xl border border-neutral-800 p-4 sm:p-6 space-y-4 shadow-2xl">
+              <div className="aspect-square w-full rounded-xl bg-black border border-neutral-800 overflow-hidden flex items-center justify-center relative">
+                {products[0]?.images?.[0]?.url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={products[0].images[0].url}
+                    alt={products[0].title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  />
+                ) : (
+                  <Package className="w-16 h-16 text-neutral-700" />
+                )}
+                <span className="absolute top-3 left-3 bg-accent-pink text-white font-mono text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">
+                  BEST SELLER
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
                 <div>
                   <span className="text-[9px] sm:text-[10px] font-mono text-accent-cyan uppercase tracking-widest block">DESTACADO</span>
                   <h3 className="font-bold text-xs text-white truncate max-w-[140px] sm:max-w-[200px]">{products[0]?.title}</h3>
@@ -125,23 +119,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Bento Grid Interactivo con Levitación (Apple Style) */}
-      <BentoGallery
-        products={products.map((p) => ({
-          id: p.id,
-          title: p.title,
-          priceUSD: Number(p.priceUSD || p.basePrice),
-          pricePEN: Number(p.pricePEN || (Number(p.basePrice) * 3.75).toFixed(2)),
-          imageUrl: p.images?.[0]?.url || null,
-          categoryName: p.category?.name || "Accesorios TCG",
-          description: p.description,
-        }))}
-      />
-
       {/* Transición Suave de Negro a Lienzo Claro para el Catálogo */}
       <div className="h-20 bg-gradient-to-b from-black via-neutral-950 to-neutral-50" />
 
-      {/* Sección del Catálogo de Productos en Lienzo Claro (Lienzo blanco donde los productos flotan sin bordes) */}
+      {/* Sección del Catálogo de Productos en Lienzo Claro */}
       <section id="catalog" className="bg-neutral-50 text-slate-900 py-12 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto space-y-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-neutral-200 pb-6">
@@ -185,13 +166,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Transición Suave de Lienzo Claro de Vuelta a Negro */}
+      {/* Transición Suave de Lienzo Claro de Vuelta a Negro hacia el Footer */}
       <div className="h-20 bg-gradient-to-b from-neutral-50 via-neutral-950 to-black" />
-
-      {/* Sección de Bundles & Packs */}
-      <section id="bundles">
-        <BundleSection />
-      </section>
     </div>
   );
 }
