@@ -274,3 +274,37 @@ export async function updateUserMarketingToggleAction(userId: string, acceptsMar
     return { success: false, error: error.message || "Error al actualizar preferencias de correo." };
   }
 }
+
+export async function changeUserPasswordAction(userId: string, currentPassword: string, newPassword: string) {
+  try {
+    if (!userId || !currentPassword || !newPassword) {
+      return { success: false, error: "Todos los campos son obligatorios." };
+    }
+
+    if (newPassword.length < 6) {
+      return { success: false, error: "La nueva contraseña debe tener al menos 6 caracteres." };
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.passwordHash) {
+      return { success: false, error: "Usuario no encontrado o autenticado por proveedor externo (OAuth)." };
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isMatch) {
+      return { success: false, error: "La contraseña actual ingresada es incorrecta." };
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: newPasswordHash },
+    });
+
+    return { success: true, message: "¡Contraseña actualizada exitosamente!" };
+  } catch (error: any) {
+    console.error("Error al cambiar contraseña:", error);
+    return { success: false, error: error?.message || "Error al actualizar la contraseña." };
+  }
+}
+
