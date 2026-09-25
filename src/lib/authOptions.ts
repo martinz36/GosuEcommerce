@@ -88,8 +88,21 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role || "CUSTOMER";
+        token.role = (user as any).role || "USER";
         token.loyaltyPoints = (user as any).loyaltyPoints || 0;
+      } else if (token?.id) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { role: true, loyaltyPoints: true },
+          });
+          if (dbUser) {
+            token.role = dbUser.role;
+            token.loyaltyPoints = dbUser.loyaltyPoints;
+          }
+        } catch (err) {
+          console.error("Error al consultar rol en jwt callback:", err);
+        }
       }
 
       // Permite actualizar puntos de fidelidad dinámicamente desde la sesión
@@ -102,8 +115,8 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
-        (session.user as any).loyaltyPoints = token.loyaltyPoints;
+        (session.user as any).role = token.role || "USER";
+        (session.user as any).loyaltyPoints = token.loyaltyPoints || 0;
       }
       return session;
     },

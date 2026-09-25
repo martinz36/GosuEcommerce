@@ -1,7 +1,26 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // PASO 4: Middleware de Seguridad para Control de Acceso Basado en Roles (RBAC)
+  // Proteger cualquier ruta que empiece con /dashboard o /admin
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) {
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET || "gosu_ecommerce_secret_key_2026_super_secure",
+    });
+
+    const userRole = (token as any)?.role;
+
+    // Si el usuario no está logueado O si su rol no es 'ADMIN' (ej. es 'USER' o 'CUSTOMER'), redirigir a '/' con código 307
+    if (!token || userRole !== "ADMIN") {
+      return NextResponse.redirect(new URL("/", request.url), 307);
+    }
+  }
+
   const response = NextResponse.next();
 
   // 1. Detectar país mediante Vercel Geolocation headers o request.geo
@@ -16,7 +35,6 @@ export function middleware(request: NextRequest) {
   const existingCountryCookie = request.cookies.get("user-country")?.value;
 
   if (!existingCountryCookie) {
-    // Si el país es Perú ('PE'), asignar PE. De lo contrario 'US'
     const defaultCountry = upperCountry === "PE" ? "PE" : "US";
     response.cookies.set("user-country", defaultCountry, {
       path: "/",
@@ -40,7 +58,6 @@ export function middleware(request: NextRequest) {
   const existingLangCookie = request.cookies.get("user-lang")?.value;
   if (!existingLangCookie) {
     const acceptLanguage = request.headers.get("accept-language") || "";
-    // Si el header incluye 'es', por defecto es español ('es'), de lo contrario inglés ('en')
     const defaultLang = acceptLanguage.toLowerCase().includes("es") ? "es" : "en";
     response.cookies.set("user-lang", defaultLang, {
       path: "/",

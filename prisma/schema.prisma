@@ -11,6 +11,7 @@ generator client {
 // USER, NEXTAUTH & AFFILIATES SYSTEM
 // ------------------------------------------------------
 enum Role {
+  USER
   CUSTOMER
   AFFILIATE
   ADMIN
@@ -27,7 +28,7 @@ model User {
   lastName         String?
   phone            String?
   avatarUrl        String?         // Cloudinary URL
-  role             Role            @default(CUSTOMER)
+  role             Role            @default(USER)
   loyaltyPoints    Int             @default(0) // Puntos de fidelidad acumulados por compras
   birthdate        DateTime?
   isProfileCompleted Boolean         @default(false)

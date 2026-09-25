@@ -1,6 +1,5 @@
 import React from "react";
 import Link from "next/link";
-import { User, LayoutDashboard } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/prisma";
@@ -11,6 +10,7 @@ import { CurrencySwitcher } from "@/components/CurrencySwitcher";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { HeaderSearch } from "@/components/HeaderSearch";
 import { MainFooter } from "@/components/MainFooter";
+import { UserAccountMenu } from "@/components/UserAccountMenu";
 
 export default async function ShopLayout({
   children,
@@ -122,32 +122,15 @@ export default async function ShopLayout({
               <HeaderSearch />
             </div>
 
-            {/* Acciones: Selector de Idioma, Selector de Moneda, Mi Cuenta, Carrito y Panel Admin */}
+            {/* Acciones: Selector de Idioma, Selector de Moneda, Mi Cuenta (con Dropdown Privado) y Carrito */}
             <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
               <div className="hidden sm:flex items-center gap-1.5 sm:gap-2">
                 <LanguageSwitcher />
                 <CurrencySwitcher />
               </div>
 
-              {/* Botón Mi Cuenta / Login */}
-              <Link
-                href={session ? "/account/dashboard" : "/account/login"}
-                className="flex items-center gap-1.5 p-2 bg-surface-elevated hover:bg-neutral-800 rounded-full border border-neutral-800 transition-colors text-xs font-semibold"
-                title={session ? "Mi Cuenta" : "Iniciar Sesión"}
-              >
-                <User className="w-4 sm:w-5 h-4 sm:h-5 text-accent-pink" />
-                <span className="hidden xl:inline pr-1">
-                  {session ? session.user?.name?.split(" ")[0] || "Cuenta" : "Cuenta"}
-                </span>
-              </Link>
-
-              <Link
-                href="/dashboard"
-                className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-elevated hover:bg-neutral-800 border border-neutral-700 text-xs font-semibold transition-colors"
-              >
-                <LayoutDashboard className="w-3.5 h-3.5 text-accent-cyan" />
-                <span>Admin</span>
-              </Link>
+              {/* Componente de Menú de Cuenta con Dropdown Privado y Renderizado Condicional del Portal Admin */}
+              <UserAccountMenu />
 
               <CartButton />
             </div>
