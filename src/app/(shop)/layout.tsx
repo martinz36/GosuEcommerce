@@ -1,21 +1,16 @@
 import React from "react";
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { getServerSession } from "next-auth/next";
-import { LayoutDashboard, User } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { User, LayoutDashboard } from "lucide-react";
+import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
+import { prisma } from "@/lib/prisma";
 import { StoreProvider } from "@/providers/StoreProvider";
-import { CartButton } from "@/components/CartButton";
 import { CartDrawer } from "@/components/CartDrawer";
+import { CartButton } from "@/components/CartButton";
 import { CurrencySwitcher } from "@/components/CurrencySwitcher";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { HeaderSearch } from "@/components/HeaderSearch";
 import { MainFooter } from "@/components/MainFooter";
-import esDict from "@/dictionaries/es.json";
-import enDict from "@/dictionaries/en.json";
-
-export const revalidate = 0;
 
 export default async function ShopLayout({
   children,
@@ -24,96 +19,44 @@ export default async function ShopLayout({
 }) {
   const session = await getServerSession(authOptions);
 
-  // 1. Leer cookies geolocalizadas e idioma generadas por Middleware
-  const cookieStore = cookies();
-  const userCountry = cookieStore.get("user-country")?.value || "PE";
-  const userCurrencyPref = cookieStore.get("user-currency")?.value;
-  const userLangPref = cookieStore.get("user-lang")?.value || "es";
-
-  const activeLanguage = userLangPref === "en" ? "en" : "es";
-  const dictionary = activeLanguage === "en" ? enDict : esDict;
-
-  // 2. Valores por defecto para la región
+  // Valores predeterminados seguros para StoreSettings
   let storeSettings = {
-    freeShippingThreshold: userCountry === "PE" ? 150.00 : 50.00,
-    standardShippingCost: userCountry === "PE" ? 15.00 : 4.99,
-    currency: userCurrencyPref || (userCountry === "PE" ? "PEN" : "USD"),
-    currencySymbol: userCurrencyPref === "PEN" || (userCountry === "PE" && !userCurrencyPref) ? "S/." : "$",
-    exchangeRate: userCurrencyPref === "PEN" || (userCountry === "PE" && !userCurrencyPref) ? 3.75 : 1.00,
-    countryCode: userCountry,
+    freeShippingThreshold: 50.0,
+    standardShippingCost: 4.99,
+    countryCode: "PE",
+    currency: "PEN",
+    currencySymbol: "S/.",
+    exchangeRate: 3.75,
     isRegionActive: true,
     shippingMethods: [] as any[],
-    language: activeLanguage,
-    dictionary: dictionary as any,
+    language: "es",
+    dictionary: undefined as any,
   };
 
-  // 3. Consultar Neon DB (RegionConfig & ShippingMethods con Fallback a Región por Defecto "Rest of World")
   try {
     if (process.env.DATABASE_URL) {
-      let region = await prisma.regionConfig.findUnique({
-        where: { countryCode: userCountry },
-        include: {
-          shippingMethods: {
-            where: { isActive: true },
-            orderBy: { cost: "asc" },
-          },
-        },
+      const defaultRegion = await prisma.regionConfig.findFirst({
+        where: { isDefault: true, isActive: true },
+        include: { shippingMethods: { where: { isActive: true } } },
       });
-
-      // Fallback a Región por Defecto (isDefault = true o "US") si el país no está registrado
-      if (!region) {
-        region = await prisma.regionConfig.findFirst({
-          where: { isDefault: true, isActive: true },
-          include: {
-            shippingMethods: {
-              where: { isActive: true },
-              orderBy: { cost: "asc" },
-            },
-          },
-        });
-      }
-
-      if (!region) {
-        region = await prisma.regionConfig.findFirst({
-          where: { countryCode: "US" },
-          include: {
-            shippingMethods: {
-              where: { isActive: true },
-              orderBy: { cost: "asc" },
-            },
-          },
-        });
-      }
-
-      if (region) {
-        storeSettings.isRegionActive = region.isActive;
-
-        if (region.isActive) {
-          if (!userCurrencyPref) {
-            storeSettings.currency = region.currency;
-            storeSettings.currencySymbol = region.currencySymbol;
-            storeSettings.exchangeRate = Number(region.exchangeRate);
-          }
-
-          if (region.shippingMethods && region.shippingMethods.length > 0) {
-            const firstMethod = region.shippingMethods.find((m) => !m.isPickup) || region.shippingMethods[0];
-            storeSettings.standardShippingCost = Number(firstMethod.cost);
-            if (firstMethod.freeShippingThreshold) {
-              storeSettings.freeShippingThreshold = Number(firstMethod.freeShippingThreshold);
-            }
-
-            storeSettings.shippingMethods = region.shippingMethods.map((m) => ({
-              id: m.id,
-              name: m.name,
-              cost: Number(m.cost),
-              freeShippingThreshold: m.freeShippingThreshold ? Number(m.freeShippingThreshold) : null,
-              isPickup: m.isPickup,
-              pickupAddress: m.pickupAddress,
-              pickupSchedule: m.pickupSchedule,
-              targetZones: m.targetZones,
-            }));
-          }
-        }
+      if (defaultRegion) {
+        storeSettings = {
+          ...storeSettings,
+          countryCode: defaultRegion.countryCode,
+          currency: defaultRegion.currency,
+          currencySymbol: defaultRegion.currencySymbol,
+          exchangeRate: Number(defaultRegion.exchangeRate),
+          shippingMethods: defaultRegion.shippingMethods.map((m) => ({
+            id: m.id,
+            name: m.name,
+            cost: Number(m.cost),
+            freeShippingThreshold: m.freeShippingThreshold ? Number(m.freeShippingThreshold) : null,
+            isPickup: m.isPickup,
+            pickupAddress: m.pickupAddress,
+            pickupSchedule: m.pickupSchedule,
+            targetZones: m.targetZones,
+          })),
+        };
       }
     }
   } catch (err) {
@@ -126,26 +69,61 @@ export default async function ShopLayout({
         {/* Drawer del Carrito Global */}
         <CartDrawer />
 
-        {/* Navbar Público Estilo Framer / GOSU® */}
+        {/* Navbar Público Estilo GOSU® */}
         <header className="sticky top-0 z-50 glass-panel border-b border-surface-muted backdrop-blur-md bg-black/80">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-3 sm:gap-6">
+            
             {/* Logo Brand Oficial (Blanco) */}
             <Link href="/" className="flex items-center gap-2 sm:gap-3 group shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/gosu-logo-white.png"
                 alt="GOSU® TCG GEAR"
-                className="h-7 sm:h-10 w-auto object-contain group-hover:scale-105 transition-transform"
+                className="h-7 sm:h-9 w-auto object-contain group-hover:scale-105 transition-transform"
               />
             </Link>
 
+            {/* Menú de Navegación Principal */}
+            <nav className="hidden md:flex items-center gap-4 lg:gap-6 text-xs font-semibold text-neutral-300 shrink-0">
+              <a
+                href="https://gosuaccessories.com/about-us/es"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white transition-colors"
+              >
+                Nosotros
+              </a>
+              <Link
+                href="/catalog"
+                className="text-accent-cyan font-bold hover:text-white transition-colors"
+              >
+                Tienda
+              </Link>
+              <a
+                href="https://gosuaccessories.com/stores/es"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white transition-colors"
+              >
+                Tiendas
+              </a>
+              <a
+                href="https://gosuaccessories.com/become-partner/es"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white transition-colors"
+              >
+                Vuélvete partner
+              </a>
+            </nav>
+
             {/* Buscador Predictivo en Vivo */}
-            <div className="flex-1 max-w-[140px] min-w-0 xs:max-w-xs sm:max-w-sm">
+            <div className="flex-1 max-w-[120px] xs:max-w-[180px] sm:max-w-xs">
               <HeaderSearch />
             </div>
 
             {/* Acciones: Selector de Idioma, Selector de Moneda, Mi Cuenta, Carrito y Panel Admin */}
-            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
               <div className="hidden sm:flex items-center gap-1.5 sm:gap-2">
                 <LanguageSwitcher />
                 <CurrencySwitcher />
@@ -158,14 +136,14 @@ export default async function ShopLayout({
                 title={session ? "Mi Cuenta" : "Iniciar Sesión"}
               >
                 <User className="w-4 sm:w-5 h-4 sm:h-5 text-accent-pink" />
-                <span className="hidden lg:inline pr-1">
+                <span className="hidden xl:inline pr-1">
                   {session ? session.user?.name?.split(" ")[0] || "Cuenta" : "Cuenta"}
                 </span>
               </Link>
 
               <Link
                 href="/dashboard"
-                className="hidden xl:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-elevated hover:bg-neutral-800 border border-neutral-700 text-xs font-semibold transition-colors"
+                className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-elevated hover:bg-neutral-800 border border-neutral-700 text-xs font-semibold transition-colors"
               >
                 <LayoutDashboard className="w-3.5 h-3.5 text-accent-cyan" />
                 <span>Admin</span>
