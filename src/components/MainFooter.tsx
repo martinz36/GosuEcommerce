@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Mail, Send, Loader2, CheckCircle2, ShieldCheck, FileText, ArrowRight } from "lucide-react";
+import { Mail, Send, Loader2, CheckCircle2, ShieldCheck, FileText, ArrowRight, BookOpen } from "lucide-react";
 import { subscribeNewsletterAction } from "@/app/(shop)/actions";
 
 interface MainFooterProps {
@@ -40,7 +40,7 @@ export function MainFooter({ countryCode, currency }: MainFooterProps) {
         {/* Grid Principal del Footer (4 Columnas) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-12">
           
-          {/* Columna 1: Logo Oficial & Descripción de Marca (Columna 4/12) */}
+          {/* Columna 1: Logo Oficial, Descripción & Insignia Libro de Reclamaciones (Columna 4/12) */}
           <div className="lg:col-span-4 space-y-4">
             <Link href="/" className="inline-block group">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -53,9 +53,31 @@ export function MainFooter({ countryCode, currency }: MainFooterProps) {
             <p className="text-xs text-neutral-400 leading-relaxed max-w-sm">
               Accesorios TCG de calidad premium diseñados para jugadores competitivos. Protectores, deckboxes, binders y carpetas con máxima protección de grado torneo.
             </p>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-900 border border-neutral-800 text-[11px] font-mono text-neutral-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Envíos Activos a {countryCode} ({currency})</span>
+
+            <div className="flex flex-col gap-2 pt-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-900 border border-neutral-800 text-[11px] font-mono text-neutral-400 w-fit">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Envíos Activos a {countryCode} ({currency})</span>
+              </div>
+
+              {/* LOGO E INSIGNIA LIBRO DE RECLAMACIONES DE PERÚ */}
+              <Link
+                href="/libro-de-reclamaciones"
+                className="group flex items-center gap-3 p-3 rounded-xl bg-neutral-900 hover:bg-neutral-850 border border-neutral-800 hover:border-accent-cyan transition-all w-fit max-w-xs mt-1"
+                title="Libro de Reclamaciones Virtual - Conforme a Ley Indecopi"
+              >
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 via-cyan-600 to-indigo-600 flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform shrink-0">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-xs font-extrabold text-white group-hover:text-accent-cyan transition-colors block uppercase tracking-tight leading-none">
+                    Libro de Reclamaciones
+                  </span>
+                  <span className="text-[10px] font-mono text-neutral-400 block mt-1">
+                    Hoja de Reclamación Virtual
+                  </span>
+                </div>
+              </Link>
             </div>
           </div>
 
@@ -104,6 +126,12 @@ export function MainFooter({ countryCode, currency }: MainFooterProps) {
                 <Link href="/terms" className="hover:text-white transition-colors inline-flex items-center gap-1">
                   <FileText className="w-3.5 h-3.5 text-accent-pink" />
                   <span>Términos del Servicio</span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/libro-de-reclamaciones" className="hover:text-accent-yellow transition-colors inline-flex items-center gap-1">
+                  <BookOpen className="w-3.5 h-3.5 text-accent-yellow" />
+                  <span>Libro de Reclamaciones</span>
                 </Link>
               </li>
               <li>
@@ -184,6 +212,10 @@ export function MainFooter({ countryCode, currency }: MainFooterProps) {
             <span>•</span>
             <Link href="/terms" className="hover:text-neutral-300 transition-colors">
               Términos
+            </Link>
+            <span>•</span>
+            <Link href="/libro-de-reclamaciones" className="hover:text-neutral-300 transition-colors">
+              Libro de Reclamaciones
             </Link>
             <span>•</span>
             <span className="text-neutral-600">Región: {countryCode}</span>

@@ -490,4 +490,62 @@ model ProductReview {
   updatedAt          DateTime @updatedAt
 }
 
+// ------------------------------------------------------
+// LIBRO DE RECLAMACIONES VIRTUAL (INDECOPI PERÚ)
+// ------------------------------------------------------
+enum ClaimType {
+  RECLAMO
+  QUEJA
+}
+
+enum ContractType {
+  PRODUCTO
+  SERVICIO
+}
+
+enum ClaimStatus {
+  PENDING
+  IN_REVIEW
+  RESPONDED
+}
+
+model ClaimSheet {
+  id              String       @id @default(cuid())
+  claimNumber     String       @unique // Ej. "LR-2026-0001"
+  providerName    String       @default("MV INVESTMENTS S.A.C.")
+  providerRuc     String       @default("20601338409")
+  providerAddress String       @default("JR. LOS CONQUISTADORES 154, SURCO, LIMA, PERU")
+  
+  // 1. Identificación del Consumidor Reclamante
+  fullName        String
+  documentType    String       @default("DNI") // DNI, CE, PASAPORTE, RUC
+  documentNumber  String
+  address         String
+  phone           String
+  email           String
+  isMinor         Boolean      @default(false)
+  parentName      String?
+  parentDocument  String?
+
+  // 2. Identificación del Bien Contratado
+  contractType    ContractType @default(PRODUCTO)
+  claimedAmount   Decimal      @default(0.00) @db.Decimal(10, 2)
+  currency        String       @default("PEN") // PEN / USD
+  description     String       @db.Text
+
+  // 3. Detalle de Reclamación y Pedido
+  claimType       ClaimType    @default(RECLAMO)
+  claimDetail     String       @db.Text
+  consumerRequest String       @db.Text
+
+  // Estado y Respuestas del Proveedor
+  status          ClaimStatus  @default(PENDING)
+  providerAction  String?      @db.Text
+  responseDate    DateTime?
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+
 

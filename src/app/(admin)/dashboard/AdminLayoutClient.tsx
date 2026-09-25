@@ -18,6 +18,7 @@ import {
   Mail,
   Menu,
   X,
+  BookOpen,
 } from "lucide-react";
 
 export function AdminLayoutClient({ children }: { children: React.ReactNode }) {
@@ -29,6 +30,7 @@ export function AdminLayoutClient({ children }: { children: React.ReactNode }) {
     { name: "Descuentos & Afiliados", href: "/dashboard/discounts", icon: Percent },
     { name: "Pedidos & Recibos", href: "/dashboard/orders", icon: ShoppingCart },
     { name: "Directorio de Clientes", href: "/dashboard/customers", icon: Users },
+    { name: "Libro de Reclamaciones", href: "/dashboard/claims", icon: BookOpen },
     { name: "GOSU® Loyalty", href: "/dashboard/settings/loyalty", icon: Award },
     { name: "Carritos Abandonados", href: "/dashboard/abandoned-carts", icon: ShoppingBag },
     { name: "Plantillas de Correo", href: "/dashboard/settings/email-templates", icon: Mail },
