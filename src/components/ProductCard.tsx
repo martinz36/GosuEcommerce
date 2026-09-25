@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Layers, Image as ImageIcon, Flame, ShoppingBag } from "lucide-react";
+import { Image as ImageIcon, ShoppingBag } from "lucide-react";
 import { AddToCartButton } from "./AddToCartButton";
 import { useStoreSettings } from "@/providers/StoreProvider";
 
@@ -14,11 +14,16 @@ interface ProductCardProps {
     description?: string | null;
     priceUSD?: number | null;
     pricePEN?: number | null;
+    compareAtPriceUSD?: number | null;
+    compareAtPricePEN?: number | null;
+    compareAtPrice?: number | null;
     basePrice?: number | null;
     stock?: number | null;
     imageUrl?: string | null;
     secondaryImageUrl?: string | null;
     images?: { url: string }[] | null;
+    badgeText?: string | null;
+    isNew?: boolean | null;
     isFamily?: boolean | null;
     familyId?: string | null;
     categoryName?: string | null;
@@ -34,7 +39,42 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const displayPrice = isPEN ? rawPricePEN : rawPriceUSD;
   const safePrice = isNaN(displayPrice) ? 0 : displayPrice;
-  const stock = typeof product.stock === "number" ? product.stock : 10;
+  const stock = typeof product.stock === "number" ? product.stock : 0;
+
+  const comparePrice = isPEN
+    ? Number(product.compareAtPricePEN || (product.compareAtPriceUSD ? product.compareAtPriceUSD * 3.75 : product.compareAtPrice || 0))
+    : Number(product.compareAtPriceUSD || product.compareAtPrice || 0);
+
+  // Lógica Condicional de Etiquetas Dinámicas de Marketing
+  // Prioridad 1: Agotado (Gris con texto blanco 'AGOTADO')
+  // Prioridad 2: Oferta (-X% en Magenta)
+  // Prioridad 3: Nuevo/Personalizado (Cyan con texto del badge)
+  let badge: { text: string; className: string } | null = null;
+
+  if (stock <= 0) {
+    badge = {
+      text: "AGOTADO",
+      className: "bg-neutral-700 text-white font-bold border border-neutral-600",
+    };
+  } else if (comparePrice > safePrice && comparePrice > 0 && safePrice > 0) {
+    const discountPercent = Math.round(((comparePrice - safePrice) / comparePrice) * 100);
+    if (discountPercent > 0) {
+      badge = {
+        text: `-${discountPercent}%`,
+        className: "bg-accent-pink text-white font-black shadow-md shadow-pink-900/30",
+      };
+    }
+  } else if (product.badgeText && product.badgeText.trim()) {
+    badge = {
+      text: product.badgeText.trim().toUpperCase(),
+      className: "bg-accent-cyan text-black font-black shadow-md shadow-cyan-900/30",
+    };
+  } else if (product.isNew) {
+    badge = {
+      text: "NUEVO",
+      className: "bg-accent-cyan text-black font-black shadow-md shadow-cyan-900/30",
+    };
+  }
 
   const mainImg = product.imageUrl || product.images?.[0]?.url || null;
   const secondaryImg = product.secondaryImageUrl || product.images?.[1]?.url || null;
@@ -49,28 +89,17 @@ export function ProductCard({ product }: ProductCardProps) {
     >
       <div className="flex flex-col h-full justify-between">
         <div>
-          {/* Contenedor de Imagen con Efecto Hover Swap & Badges Minimalistas */}
+          {/* Contenedor de Imagen con Efecto Hover Swap */}
           <div className="relative aspect-square w-full rounded-xl bg-neutral-950 overflow-hidden flex items-center justify-center mb-4">
-            {/* Badge 'Variante' o Escasez Flotante en top-2 left-2 z-10 */}
-            <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
-              {product.isFamily && (
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold uppercase tracking-wider bg-black/80 backdrop-blur-md text-white border border-neutral-700 flex items-center gap-1 shadow-md">
-                  <Layers className="w-3 h-3 text-accent-pink" /> Variante
+            
+            {/* Contenedor del Badge Dinámico (Solo si se cumple alguna condición) */}
+            {badge && (
+              <div className="absolute top-2.5 left-2.5 z-10">
+                <span className={`px-2.5 py-1 rounded-md text-[10px] font-mono uppercase tracking-wider shadow-md ${badge.className}`}>
+                  {badge.text}
                 </span>
-              )}
-
-              {stock <= 3 && stock > 0 && (
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider bg-amber-500 text-black shadow-md flex items-center gap-1 animate-pulse">
-                  <Flame className="w-3 h-3 text-black" /> ¡Últimas {stock}!
-                </span>
-              )}
-
-              {stock <= 0 && (
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider bg-rose-600 text-white shadow-md">
-                  Agotado
-                </span>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Imagen Principal y Secundaria en Hover */}
             {mainImg ? (
@@ -110,15 +139,20 @@ export function ProductCard({ product }: ProductCardProps) {
               </h3>
             </Link>
 
-            <div className="pt-1">
+            <div className="pt-1 flex items-baseline gap-2">
               <span className="text-lg font-bold text-white font-mono block">
                 {currencySymbol}{safePrice.toFixed(2)}
               </span>
+              {comparePrice > safePrice && comparePrice > 0 && (
+                <span className="text-xs text-neutral-500 line-through font-mono">
+                  {currencySymbol}{comparePrice.toFixed(2)}
+                </span>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Botón 'Agregar al Carrito' de Ancho Completo con Aparición Suave en Hover */}
+        {/* Botón 'Agregar al Carrito' */}
         <div className="pt-2">
           <AddToCartButton
             productId={product.id}
@@ -128,7 +162,7 @@ export function ProductCard({ product }: ProductCardProps) {
             className="w-full bg-white hover:bg-accent-cyan text-black font-extrabold text-xs py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg opacity-100 sm:opacity-0 sm:translate-y-4 sm:group-hover:opacity-100 sm:group-hover:translate-y-0 uppercase font-mono"
           >
             <ShoppingBag className="w-4 h-4 shrink-0" />
-            <span className="truncate">AGREGAR AL CARRITO</span>
+            <span>Agregar al Carrito</span>
           </AddToCartButton>
         </div>
       </div>

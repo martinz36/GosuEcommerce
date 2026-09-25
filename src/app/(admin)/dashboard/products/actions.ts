@@ -146,6 +146,8 @@ export async function updateProductFullAction(id: string, formData: FormData): P
   const sku = formData.get("sku") as string;
   const priceUSDStr = formData.get("priceUSD") as string;
   const pricePENStr = formData.get("pricePEN") as string;
+  const compareAtPriceUSDStr = formData.get("compareAtPriceUSD") as string;
+  const compareAtPricePENStr = formData.get("compareAtPricePEN") as string;
   const costUSDStr = formData.get("costUSD") as string;
   const costPENStr = formData.get("costPEN") as string;
   const stockStr = formData.get("stock") as string;
@@ -153,16 +155,21 @@ export async function updateProductFullAction(id: string, formData: FormData): P
   const familyId = formData.get("familyId") as string;
   const isFamilyStr = formData.get("isFamily") as string;
   const productType = formData.get("productType") as string;
+  const badgeText = formData.get("badgeText") as string;
+  const isNewStr = formData.get("isNew") as string;
   const description = formData.get("description") as string;
 
   if (!title || !sku) return;
 
   const priceUSD = priceUSDStr !== "" && priceUSDStr !== null ? parseFloat(priceUSDStr) : 0;
   const pricePEN = pricePENStr !== "" && pricePENStr !== null ? parseFloat(pricePENStr) : Math.round(priceUSD * 3.75 * 100) / 100;
+  const compareAtPriceUSD = compareAtPriceUSDStr ? parseFloat(compareAtPriceUSDStr) : null;
+  const compareAtPricePEN = compareAtPricePENStr ? parseFloat(compareAtPricePENStr) : null;
   const costUSD = costUSDStr !== "" && costUSDStr !== null ? parseFloat(costUSDStr) : null;
   const costPEN = costPENStr !== "" && costPENStr !== null ? parseFloat(costPENStr) : null;
   const stock = stockStr ? parseInt(stockStr, 10) : 0;
   const isFamily = isFamilyStr === "true" || isFamilyStr === "on";
+  const isNew = isNewStr === "true" || isNewStr === "on";
 
   await prisma.product.update({
     where: { id },
@@ -171,6 +178,9 @@ export async function updateProductFullAction(id: string, formData: FormData): P
       sku: sku.trim(),
       priceUSD,
       pricePEN,
+      compareAtPriceUSD,
+      compareAtPricePEN,
+      compareAtPrice: compareAtPriceUSD,
       basePrice: priceUSD,
       costUSD,
       costPEN,
@@ -180,6 +190,8 @@ export async function updateProductFullAction(id: string, formData: FormData): P
       familyId: familyId ? familyId.trim() : null,
       isFamily,
       productType: productType ? productType.trim() : null,
+      badgeText: badgeText ? badgeText.trim() : null,
+      isNew,
       description: description ? description.trim() : title,
     },
   });

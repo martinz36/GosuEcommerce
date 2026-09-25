@@ -144,6 +144,18 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
             </div>
 
             <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Precio Oferta / Tachado (S/.)</label>
+              <input
+                type="number"
+                step="0.01"
+                name="compareAtPricePEN"
+                defaultValue={product.compareAtPricePEN ? Number(product.compareAtPricePEN) : ""}
+                placeholder="Ej: 50.00 (Mayor al precio)"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-rose-600 focus:outline-none"
+              />
+            </div>
+
+            <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Costo en Soles (S/.)</label>
               <input
                 type="number"
@@ -175,6 +187,18 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
             </div>
 
             <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Precio Oferta / Tachado ($ USD)</label>
+              <input
+                type="number"
+                step="0.01"
+                name="compareAtPriceUSD"
+                defaultValue={product.compareAtPriceUSD ? Number(product.compareAtPriceUSD) : ""}
+                placeholder="Ej: 14.99 (Mayor al precio)"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-rose-600 focus:outline-none"
+              />
+            </div>
+
+            <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Costo en Dólares ($ USD)</label>
               <input
                 type="number"
@@ -184,6 +208,42 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
                 placeholder="Ej: 4.00"
                 className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Marketing & Etiquetas Dinámicas */}
+        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+          <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+            Etiquetas Dinámicas de Marketing (Badge)
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Etiqueta Manual (Texto Cyan)
+              </label>
+              <input
+                type="text"
+                name="badgeText"
+                defaultValue={product.badgeText || ""}
+                placeholder="Ej: MÁS VENDIDO, EXCLUSIVO, PROMO"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold uppercase text-cyan-600 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 pt-6">
+              <input
+                type="checkbox"
+                id="isNew"
+                name="isNew"
+                value="true"
+                defaultChecked={product.isNew}
+                className="w-4 h-4 rounded text-slate-900 border-slate-300 focus:ring-slate-900"
+              />
+              <label htmlFor="isNew" className="text-xs font-bold text-slate-800 cursor-pointer">
+                Marcar como "NUEVO" (Muestra badge Cyan)
+              </label>
             </div>
           </div>
         </div>
