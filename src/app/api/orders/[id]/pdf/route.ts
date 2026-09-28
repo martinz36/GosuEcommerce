@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getPaymentGatewayName } from "@/lib/paymentUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -97,9 +98,9 @@ export async function GET(req: Request, { params }: RouteParams) {
       .join(", ");
 
     // Método de pago enmascarado
-    const maskedPaymentMethod = order.stripePaymentIntentId
-      ? `Tarjeta Stripe (PI: ****${order.stripePaymentIntentId.slice(-6)})`
-      : "Pago en Línea Confirmado";
+    const maskedPaymentMethod = `${getPaymentGatewayName(order)}${
+      order.stripePaymentIntentId ? ` (ID: ****${order.stripePaymentIntentId.slice(-6)})` : ""
+    }`;
 
     // Moneda & Puntos
     const currencyCode = (order.currency || "PEN").toUpperCase();

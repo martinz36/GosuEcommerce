@@ -136,7 +136,7 @@ export function CheckoutAuthModal({ isOpen, onClose, onGuestCheckout }: Checkout
                     type="submit"
                     className="w-full btn-pill bg-white hover:bg-accent-cyan text-black font-extrabold text-xs py-3.5 px-4 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-white/10 uppercase font-mono"
                   >
-                    <span>IR A PAGAR EN STRIPE</span>
+                    <span>CONTINUAR A DATOS DE ENVÍO</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
 

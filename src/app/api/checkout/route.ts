@@ -31,6 +31,9 @@ export async function POST(req: Request) {
       isPickup = false,
       pickupAddress = "",
       guestEmail = "",
+      guestName = "",
+      guestPhone = "",
+      shippingAddress = null,
     } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -55,7 +58,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // Paso 3: Consultar en Neon DB la pasarela de pago activa (Stripe o Mercado Pago)
+    // Consultar en Neon DB la pasarela de pago activa (Stripe o Mercado Pago)
     let activePaymentGateway = "stripe";
     if (process.env.DATABASE_URL) {
       const storeSettings = await prisma.storeSettings.findUnique({
@@ -74,6 +77,21 @@ export async function POST(req: Request) {
     // Determinar la moneda obligatoria según el país (Región Multi-Moneda)
     const upperCountry = (countryCode || "PE").toUpperCase();
     const formattedCurrency = upperCountry === "PE" ? "pen" : (currency || "usd").toLowerCase();
+
+    const currentUserId = (session?.user as any)?.id;
+    let userDefaultAddress: any = null;
+    if (currentUserId && process.env.DATABASE_URL) {
+      userDefaultAddress = await prisma.address.findFirst({
+        where: { userId: currentUserId, isDefault: true },
+      });
+      if (!userDefaultAddress) {
+        userDefaultAddress = await prisma.address.findFirst({
+          where: { userId: currentUserId },
+        });
+      }
+    }
+
+    const finalShippingAddress = shippingAddress || userDefaultAddress || null;
 
     // ==========================================
     // PASARELA 1: MERCADO PAGO
@@ -102,12 +120,11 @@ export async function POST(req: Request) {
           title: item.title,
           unit_price: itemPrice,
           quantity: Number(item.quantity),
-          currency_id: formattedCurrency.toUpperCase(), // "PEN" o "USD"
+          currency_id: formattedCurrency.toUpperCase(),
           picture_url: item.imageUrl || undefined,
         };
       });
 
-      // Si hay descuento, agregar un ítem con valor negativo
       if (totalDiscount > 0) {
         mpItems.push({
           id: "discount-coupon",
@@ -118,23 +135,9 @@ export async function POST(req: Request) {
         });
       }
 
-      // Crear la orden pendiente en Neon DB si hay conexión a la base de datos
+      // Crear la orden pendiente en Neon DB
       let pendingOrder: any = null;
-      const currentUserId = (session?.user as any)?.id;
-      let userDefaultAddress: any = null;
-
       if (process.env.DATABASE_URL) {
-        if (currentUserId) {
-          userDefaultAddress = await prisma.address.findFirst({
-            where: { userId: currentUserId, isDefault: true },
-          });
-          if (!userDefaultAddress) {
-            userDefaultAddress = await prisma.address.findFirst({
-              where: { userId: currentUserId },
-            });
-          }
-        }
-
         const subtotalCalc = items.reduce((sum: number, i: any) => sum + Number(i.price) * Number(i.quantity), 0);
         const finalTotal = Math.max(0, subtotalCalc - totalDiscount);
         const orderNumber = `GOSU-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -147,10 +150,11 @@ export async function POST(req: Request) {
               guestEmail: session?.user?.email || (guestEmail ? guestEmail.trim() : null),
               status: "PENDING",
               currency: formattedCurrency.toUpperCase(),
+              paymentGateway: "mercadopago",
               subtotal: subtotalCalc,
               discountAmount: totalDiscount,
               totalAmount: finalTotal,
-              shippingAddressJson: userDefaultAddress ? (userDefaultAddress as any) : undefined,
+              shippingAddressJson: finalShippingAddress ? (finalShippingAddress as any) : undefined,
               items: {
                 create: items.map((item: any) => ({
                   productId: item.productId || null,
@@ -180,7 +184,8 @@ export async function POST(req: Request) {
         auto_return: "approved",
         payer: {
           email: session?.user?.email || (guestEmail ? guestEmail.trim() : "cliente@gosuaccessories.com"),
-          name: session?.user?.name || "Cliente GOSU",
+          name: session?.user?.name || guestName || "Cliente GOSU",
+          phone: guestPhone ? { number: guestPhone } : undefined,
         },
         metadata: {
           orderId: pendingOrder?.id || "",
@@ -191,6 +196,7 @@ export async function POST(req: Request) {
           isPickup: isPickup ? "true" : "false",
           pickupAddress: pickupAddress || "",
           currency: formattedCurrency.toUpperCase(),
+          shippingAddressJson: finalShippingAddress ? JSON.stringify(finalShippingAddress) : "",
           itemsJson: JSON.stringify(
             items.map((i: any) => ({
               productId: i.productId,
@@ -219,7 +225,6 @@ export async function POST(req: Request) {
           .catch(() => {});
       }
 
-      // Devuelve la URL de pago de Mercado Pago (init_point o sandbox_init_point)
       const mpCheckoutUrl = mpResponse.init_point || mpResponse.sandbox_init_point;
       return NextResponse.json({ url: mpCheckoutUrl });
     }
@@ -227,10 +232,8 @@ export async function POST(req: Request) {
     // ==========================================
     // PASARELA 2: STRIPE (POR DEFECTO)
     // ==========================================
-    // Transformar items del carrito en line_items para Stripe
     const lineItems = items.map((item: any) => {
       const unitAmount = Math.round(Number(item.price) * 100);
-
       return {
         price_data: {
           currency: formattedCurrency,
@@ -247,7 +250,6 @@ export async function POST(req: Request) {
       };
     });
 
-    // Calcular cupón de descuento en Stripe
     let discountsArray: any[] = [];
     if (discountCode) {
       try {
@@ -265,22 +267,8 @@ export async function POST(req: Request) {
       }
     }
 
-    let userDefaultAddress: any = null;
-    const currentUserId = (session?.user as any)?.id;
-    if (currentUserId && process.env.DATABASE_URL) {
-      userDefaultAddress = await prisma.address.findFirst({
-        where: { userId: currentUserId, isDefault: true },
-      });
-      if (!userDefaultAddress) {
-        userDefaultAddress = await prisma.address.findFirst({
-          where: { userId: currentUserId },
-        });
-      }
-    }
+    const hasPredefinedShipping = Boolean(finalShippingAddress && !isPickup);
 
-    const hasPredefinedShipping = Boolean(userDefaultAddress && !isPickup);
-
-    // Crear la sesión de checkout en Stripe
     const checkoutSession = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: lineItems,
@@ -290,13 +278,13 @@ export async function POST(req: Request) {
       payment_intent_data: hasPredefinedShipping
         ? {
             shipping: {
-              name: session?.user?.name || "Cliente GOSU",
+              name: session?.user?.name || guestName || "Cliente GOSU",
               address: {
-                line1: userDefaultAddress.street,
-                city: userDefaultAddress.city,
-                state: userDefaultAddress.state,
-                postal_code: userDefaultAddress.postalCode || "",
-                country: getCountryIso(userDefaultAddress.country),
+                line1: finalShippingAddress.street || finalShippingAddress.line1 || "",
+                city: finalShippingAddress.city || "",
+                state: finalShippingAddress.state || "",
+                postal_code: finalShippingAddress.postalCode || finalShippingAddress.postal_code || "",
+                country: getCountryIso(finalShippingAddress.country || "PE"),
               },
             },
           }
@@ -306,7 +294,7 @@ export async function POST(req: Request) {
         : {
             allowed_countries: ["PE", "US", "MX", "CL", "CO", "AR", "ES"],
           },
-      success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}&gateway=stripe`,
       cancel_url: `${appUrl}/checkout/cancel`,
       metadata: {
         userId: currentUserId || "",
@@ -316,17 +304,8 @@ export async function POST(req: Request) {
         isPickup: isPickup ? "true" : "false",
         pickupAddress: pickupAddress || "",
         currency: formattedCurrency.toUpperCase(),
-        defaultAddressId: userDefaultAddress?.id || "",
-        defaultAddressJson: userDefaultAddress
-          ? JSON.stringify({
-              id: userDefaultAddress.id,
-              street: userDefaultAddress.street,
-              city: userDefaultAddress.city,
-              state: userDefaultAddress.state,
-              postalCode: userDefaultAddress.postalCode,
-              country: userDefaultAddress.country,
-            })
-          : "",
+        paymentGateway: "stripe",
+        defaultAddressJson: finalShippingAddress ? JSON.stringify(finalShippingAddress) : "",
         itemsJson: JSON.stringify(
           items.map((i: any) => ({
             productId: i.productId,

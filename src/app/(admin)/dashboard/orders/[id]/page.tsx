@@ -28,6 +28,8 @@ import {
   setOrderStatusRefundedAction,
 } from "../actions";
 
+import { getPaymentGatewayName } from "@/lib/paymentUtils";
+
 export const revalidate = 0;
 
 interface PageProps {
@@ -181,7 +183,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
           </div>
           <div className="text-xs space-y-1.5 font-mono">
             <p className="text-slate-600">
-              Pasarela: <span className="font-bold text-slate-900">Stripe Checkout</span>
+              Pasarela: <span className="font-bold text-slate-900">{getPaymentGatewayName(order)}</span>
             </p>
             {order.stripePaymentIntentId && (
               <p className="text-[11px] text-slate-500 truncate" title={order.stripePaymentIntentId}>

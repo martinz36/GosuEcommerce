@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Sparkles, Download } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { PrintReceiptButton } from "./PrintReceiptButton";
+import { getPaymentGatewayName } from "@/lib/paymentUtils";
 
 export const revalidate = 0;
 
@@ -78,9 +79,9 @@ export default async function OrderReceiptPage({ params }: ReceiptPageProps) {
   const country = shipObj?.country || "PE";
   const fullAddressDisplay = [street, city, state, postalCode, country].filter(Boolean).join(", ");
 
-  const maskedPaymentMethod = order.stripePaymentIntentId
-    ? `Tarjeta Stripe (PI: ****${order.stripePaymentIntentId.slice(-6)})`
-    : "Pago en Línea Confirmado";
+  const maskedPaymentMethod = `${getPaymentGatewayName(order)}${
+    order.stripePaymentIntentId ? ` (ID: ****${order.stripePaymentIntentId.slice(-6)})` : ""
+  }`;
 
   const currencyCode = (order.currency || "PEN").toUpperCase();
   const currencySymbol = currencyCode === "PEN" ? "S/." : "$";

@@ -208,36 +208,11 @@ export function CartDrawer() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const executeStripeCheckout = async (guestEmail?: string) => {
-    try {
-      setIsRedirectingToCheckout(true);
-      const res = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items,
-          discountCode: discount,
-          loyaltyPointsUsed,
-          currency: currency.toLowerCase(),
-          countryCode,
-          isPickup: deliveryType === "PICKUP",
-          pickupAddress: pickupMethod?.pickupAddress || "",
-          guestEmail: guestEmail || undefined,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.url) {
-        toggleCart(false);
-        window.location.href = data.url;
-      } else {
-        alert(data.error || "Ocurrió un error al preparar el pago.");
-        setIsRedirectingToCheckout(false);
-      }
-    } catch (err) {
-      console.error("Error al procesar checkout:", err);
-      alert("Error al conectar con la pasarela de pagos.");
-      setIsRedirectingToCheckout(false);
+    toggleCart(false);
+    if (guestEmail) {
+      window.location.href = `/checkout?guestEmail=${encodeURIComponent(guestEmail)}`;
+    } else {
+      window.location.href = "/checkout";
     }
   };
 
@@ -251,7 +226,8 @@ export function CartDrawer() {
     if (sessionResult?.status === "unauthenticated" || !session?.user) {
       setIsAuthModalOpen(true);
     } else {
-      executeStripeCheckout();
+      toggleCart(false);
+      window.location.href = "/checkout";
     }
   };
 

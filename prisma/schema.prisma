@@ -387,9 +387,10 @@ model Order {
   user                    User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
   guestEmail              String?
 
-  // Estado del Pedido y Stripe
+  // Estado del Pedido y Pasarela de Pago
   status                  OrderStatus    @default(PENDING)
   currency                String         @default("PEN")
+  paymentGateway          String         @default("stripe")
   stripePaymentIntentId   String?        @unique
   stripeCheckoutSessionId String?        @unique
 

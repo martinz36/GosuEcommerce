@@ -8,7 +8,10 @@ import { useCartStore } from "@/store/cartStore";
 
 export default function CheckoutSuccessPage() {
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get("session_id");
+  const gateway = searchParams.get("gateway");
+  const orderId = searchParams.get("order_id");
+  const sessionId = searchParams.get("session_id") || searchParams.get("payment_id") || orderId;
+
   const clearCart = useCartStore((state) => state.clearCart);
   const toggleCart = useCartStore((state) => state.toggleCart);
 
@@ -17,7 +20,7 @@ export default function CheckoutSuccessPage() {
     clearCart();
     toggleCart(false);
 
-    if (sessionId) {
+    if (sessionId && !orderId) {
       fetch(`/api/checkout/confirm?session_id=${sessionId}`)
         .then((res) => res.json())
         .then((data) => {
@@ -27,7 +30,9 @@ export default function CheckoutSuccessPage() {
         })
         .catch((err) => console.error("Error confirmando orden:", err));
     }
-  }, [sessionId, clearCart, toggleCart]);
+  }, [sessionId, orderId, clearCart, toggleCart]);
+
+  const isMercadoPago = gateway === "mercadopago" || (sessionId && sessionId.startsWith("MP-"));
 
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 py-16 text-center">
@@ -42,11 +47,17 @@ export default function CheckoutSuccessPage() {
         Gracias por tu compra en <span className="text-accent-cyan font-bold">GOSU® TCG</span>. Hemos recibido tu pedido correctamente y estamos procesando tu orden.
       </p>
 
-      {sessionId && (
-        <div className="mt-4 p-3 bg-neutral-900 border border-neutral-800 rounded-lg text-xs font-mono text-neutral-400">
-          ID de Transacción: <span className="text-white">{sessionId.substring(0, 24)}...</span>
-        </div>
-      )}
+      <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+        <span className="px-3 py-1 rounded-full bg-neutral-900 border border-neutral-800 text-xs font-mono font-bold text-accent-cyan">
+          {isMercadoPago ? "💳 Procesado con Mercado Pago" : "💳 Procesado con Stripe Payments"}
+        </span>
+
+        {sessionId && (
+          <div className="p-2.5 bg-neutral-900 border border-neutral-800 rounded-lg text-xs font-mono text-neutral-400">
+            ID de Transacción: <span className="text-white">{sessionId.length > 24 ? `${sessionId.substring(0, 24)}...` : sessionId}</span>
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-col sm:flex-row items-center gap-4 mt-8">
         <Link
