@@ -1,16 +1,11 @@
 import React from "react";
-import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/prisma";
 import { StoreProvider } from "@/providers/StoreProvider";
 import { CartDrawer } from "@/components/CartDrawer";
-import { CartButton } from "@/components/CartButton";
-import { CurrencySwitcher } from "@/components/CurrencySwitcher";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { HeaderSearch } from "@/components/HeaderSearch";
+import { Navbar } from "@/components/Navbar";
 import { MainFooter } from "@/components/MainFooter";
-import { UserAccountMenu } from "@/components/UserAccountMenu";
 
 export default async function ShopLayout({
   children,
@@ -69,73 +64,8 @@ export default async function ShopLayout({
         {/* Drawer del Carrito Global */}
         <CartDrawer />
 
-        {/* Navbar Público Estilo GOSU® */}
-        <header className="sticky top-0 z-50 glass-panel border-b border-surface-muted backdrop-blur-md bg-black/80">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-3 sm:gap-6">
-            
-            {/* Logo Brand Oficial (Blanco) */}
-            <Link href="/" className="flex items-center gap-2 sm:gap-3 group shrink-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/gosu-logo-white.png"
-                alt="GOSU® TCG GEAR"
-                className="h-7 sm:h-9 w-auto object-contain group-hover:scale-105 transition-transform"
-              />
-            </Link>
-
-            {/* Menú de Navegación Principal */}
-            <nav className="hidden md:flex items-center gap-4 lg:gap-6 text-xs font-semibold text-neutral-300 shrink-0">
-              <a
-                href="https://gosuaccessories.com/about-us/es"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white transition-colors"
-              >
-                Nosotros
-              </a>
-              <Link
-                href="/catalog"
-                className="text-accent-cyan font-bold hover:text-white transition-colors"
-              >
-                Tienda
-              </Link>
-              <a
-                href="https://gosuaccessories.com/stores/es"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white transition-colors"
-              >
-                Tiendas
-              </a>
-              <a
-                href="https://gosuaccessories.com/become-partner/es"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white transition-colors"
-              >
-                Vuélvete partner
-              </a>
-            </nav>
-
-            {/* Buscador Predictivo en Vivo */}
-            <div className="flex-1 max-w-[120px] xs:max-w-[180px] sm:max-w-xs">
-              <HeaderSearch />
-            </div>
-
-            {/* Acciones: Selector de Idioma, Selector de Moneda, Mi Cuenta (con Dropdown Privado) y Carrito */}
-            <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-              <div className="hidden sm:flex items-center gap-1.5 sm:gap-2">
-                <LanguageSwitcher />
-                <CurrencySwitcher />
-              </div>
-
-              {/* Componente de Menú de Cuenta con Dropdown Privado y Renderizado Condicional del Portal Admin */}
-              <UserAccountMenu />
-
-              <CartButton />
-            </div>
-          </div>
-        </header>
+        {/* Navbar Premium de Dos Niveles (Announcement Bar + Main Header) */}
+        <Navbar />
 
         {/* Contenido de la Tienda */}
         <main className="flex-1">

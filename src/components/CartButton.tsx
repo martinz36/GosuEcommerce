@@ -4,7 +4,11 @@ import React, { useEffect, useState } from "react";
 import { ShoppingBag } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 
-export function CartButton() {
+interface CartButtonProps {
+  variant?: "icon" | "capsule";
+}
+
+export function CartButton({ variant = "icon" }: CartButtonProps) {
   const toggleCart = useCartStore((state) => state.toggleCart);
   const items = useCartStore((state) => state.items);
   
@@ -15,6 +19,23 @@ export function CartButton() {
   const totalItems = mounted
     ? items.reduce((total, item) => total + item.quantity, 0)
     : 0;
+
+  if (variant === "icon") {
+    return (
+      <button
+        className="relative p-2 rounded-full text-neutral-300 hover:text-accent-cyan hover:bg-neutral-800/60 transition-colors bg-transparent focus:outline-none"
+        onClick={() => toggleCart(true)}
+        title="Carrito de Compras"
+      >
+        <ShoppingBag className="w-5 h-5" />
+        {totalItems > 0 && (
+          <span className="absolute -top-1 -right-1 bg-accent-pink text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center border border-black animate-in fade-in font-mono">
+            {totalItems}
+          </span>
+        )}
+      </button>
+    );
+  }
 
   return (
     <button

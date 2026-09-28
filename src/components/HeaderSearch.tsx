@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Search, Loader2, Image as ImageIcon, AlertTriangle } from "lucide-react";
+import { Search, Loader2, Image as ImageIcon, AlertTriangle, X } from "lucide-react";
 import { useStoreSettings } from "@/providers/StoreProvider";
 
 interface SearchResult {
@@ -17,7 +17,11 @@ interface SearchResult {
   isFamily: boolean;
 }
 
-export function HeaderSearch() {
+interface HeaderSearchProps {
+  variant?: "icon" | "input";
+}
+
+export function HeaderSearch({ variant = "icon" }: HeaderSearchProps) {
   const { currency, currencySymbol } = useStoreSettings();
   const isPEN = currency === "PEN";
 
@@ -25,7 +29,10 @@ export function HeaderSearch() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
   const searchRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -36,6 +43,12 @@ export function HeaderSearch() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (isModalOpen && inputRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [isModalOpen]);
 
   useEffect(() => {
     if (!query.trim() || query.length < 2) {
@@ -63,6 +76,114 @@ export function HeaderSearch() {
     return () => clearTimeout(timer);
   }, [query]);
 
+  // Si la variante es 'icon' (Lupa minimalista con fondo transparente)
+  if (variant === "icon") {
+    return (
+      <div ref={searchRef} className="font-body">
+        {/* Ícono de Lupa Minimalista */}
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="p-2 rounded-full text-neutral-300 hover:text-accent-cyan hover:bg-neutral-800/60 transition-colors bg-transparent focus:outline-none flex items-center justify-center"
+          title="Buscar productos"
+        >
+          <Search className="w-5 h-5" />
+        </button>
+
+        {/* Modal Overlay para Búsqueda Predicativa */}
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-start justify-center pt-16 px-4 animate-in fade-in">
+            <div className="w-full max-w-2xl bg-surface border border-neutral-800 rounded-2xl shadow-2xl p-4 sm:p-6 space-y-4">
+              
+              <div className="flex items-center justify-between gap-3 border-b border-neutral-800 pb-3">
+                <div className="flex items-center gap-3 flex-1">
+                  <Search className="w-5 h-5 text-accent-cyan shrink-0" />
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    placeholder="Buscar fundas, carpetas, deckboxes..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="w-full bg-transparent text-sm text-white placeholder:text-neutral-500 focus:outline-none font-medium"
+                  />
+                  {isLoading && (
+                    <Loader2 className="w-4 h-4 text-accent-cyan animate-spin shrink-0" />
+                  )}
+                </div>
+
+                <button
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setQuery("");
+                  }}
+                  className="p-1 rounded-full text-neutral-400 hover:text-white hover:bg-neutral-800"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Resultados en Modal */}
+              {results.length > 0 ? (
+                <div className="max-h-96 overflow-y-auto divide-y divide-neutral-800/80">
+                  {results.map((product) => {
+                    const displayPrice = isPEN ? (product.pricePEN || 0) : (product.priceUSD || 0);
+                    const safePrice = isNaN(displayPrice) ? 0 : displayPrice;
+
+                    return (
+                      <Link
+                        key={product.id}
+                        href={`/products/${product.id}`}
+                        onClick={() => {
+                          setIsModalOpen(false);
+                          setQuery("");
+                        }}
+                        className="p-3 flex items-center gap-3 hover:bg-neutral-800/60 transition-colors group block rounded-xl"
+                      >
+                        <div className="w-12 h-12 rounded-lg bg-black border border-neutral-800 overflow-hidden shrink-0 flex items-center justify-center">
+                          {product.imageUrl ? (
+                            <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <ImageIcon className="w-5 h-5 text-neutral-600" />
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-xs font-bold text-white group-hover:text-accent-cyan truncate transition-colors">
+                            {product.title}
+                          </h4>
+                          <span className="text-[11px] text-neutral-400 font-mono block">
+                            {product.categoryName} • SKU: {product.sku}
+                          </span>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="font-mono font-bold text-xs text-accent-cyan block">
+                            {currencySymbol}{safePrice.toFixed(2)}
+                          </span>
+                          {product.stock <= 3 && product.stock > 0 ? (
+                            <span className="text-[10px] text-amber-400 font-bold flex items-center justify-end gap-0.5">
+                              <AlertTriangle className="w-2.5 h-2.5" /> Últimas {product.stock} un.
+                            </span>
+                          ) : product.stock <= 0 ? (
+                            <span className="text-[10px] text-rose-500 font-bold">Agotado</span>
+                          ) : null}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : query.length >= 2 && !isLoading ? (
+                <div className="p-8 text-center text-xs font-mono text-neutral-400">
+                  No se encontraron productos coincidentes para "{query}"
+                </div>
+              ) : null}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Variante Input Clásica
   return (
     <div ref={searchRef} className="relative w-full max-w-xs sm:max-w-md font-body">
       <div className="relative">
@@ -100,7 +221,6 @@ export function HeaderSearch() {
                   onClick={() => setIsOpen(false)}
                   className="p-3 flex items-center gap-3 hover:bg-neutral-800/60 transition-colors group block"
                 >
-                  {/* Thumbnail */}
                   <div className="w-10 h-10 rounded-lg bg-black border border-neutral-800 overflow-hidden shrink-0 flex items-center justify-center">
                     {product.imageUrl ? (
                       <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover" />
@@ -109,7 +229,6 @@ export function HeaderSearch() {
                     )}
                   </div>
 
-                  {/* Detalle Producto */}
                   <div className="flex-1 min-w-0">
                     <h4 className="text-xs font-bold text-white group-hover:text-accent-cyan truncate transition-colors leading-tight">
                       {product.title}
@@ -119,7 +238,6 @@ export function HeaderSearch() {
                     </span>
                   </div>
 
-                  {/* Precio & Badge de Escasez */}
                   <div className="text-right shrink-0">
                     <span className="font-mono font-bold text-xs text-accent-cyan block">
                       {currencySymbol}{safePrice.toFixed(2)}
