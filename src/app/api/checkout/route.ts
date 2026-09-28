@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { MercadoPagoConfig, Preference } from "mercadopago";
 
 function getCountryIso(cName: string = ""): string {
   const c = cName.trim().toUpperCase();
@@ -21,7 +22,16 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     const body = await req.json();
 
-    const { items, discountCode, loyaltyPointsUsed = 0, currency = "usd", countryCode = "PE", isPickup = false, pickupAddress = "", guestEmail = "" } = body;
+    const {
+      items,
+      discountCode,
+      loyaltyPointsUsed = 0,
+      currency = "usd",
+      countryCode = "PE",
+      isPickup = false,
+      pickupAddress = "",
+      guestEmail = "",
+    } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -37,20 +47,110 @@ export async function POST(req: Request) {
       });
       if (region && !region.isActive) {
         return NextResponse.json(
-          { error: `Los envíos a ${region.countryName} están deshabilitados temporalmente por el administrador.` },
+          {
+            error: `Los envíos a ${region.countryName} están deshabilitados temporalmente por el administrador.`,
+          },
           { status: 400 }
         );
       }
     }
 
+    // Paso 3: Consultar en Neon DB la pasarela de pago activa (Stripe o Mercado Pago)
+    let activePaymentGateway = "stripe";
+    if (process.env.DATABASE_URL) {
+      const storeSettings = await prisma.storeSettings.findUnique({
+        where: { id: "default" },
+      });
+      if (storeSettings?.activePaymentGateway) {
+        activePaymentGateway = storeSettings.activePaymentGateway.toLowerCase();
+      }
+    }
+
     const originHeader = req.headers.get("origin") || req.headers.get("referer");
     let dynamicOrigin = originHeader ? new URL(originHeader).origin : null;
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || dynamicOrigin || "http://localhost:3000";
-    
+    const appUrl =
+      process.env.NEXT_PUBLIC_APP_URL || dynamicOrigin || "http://localhost:3000";
+
     // Determinar la moneda obligatoria según el país (Región Multi-Moneda)
     const upperCountry = (countryCode || "PE").toUpperCase();
     const formattedCurrency = upperCountry === "PE" ? "pen" : (currency || "usd").toLowerCase();
 
+    // ==========================================
+    // PASARELA 1: MERCADO PAGO
+    // ==========================================
+    if (activePaymentGateway === "mercadopago") {
+      const mpAccessToken = process.env.MP_ACCESS_TOKEN || "TEST-0000000000000000-000000-00000000000000000000000000000000-000000000";
+      const mpClient = new MercadoPagoConfig({ accessToken: mpAccessToken });
+      const preference = new Preference(mpClient);
+
+      // Calcular descuento unitario si existe cupón
+      let totalDiscount = 0;
+      if (discountCode) {
+        if (discountCode.type === "PERCENTAGE") {
+          const subtotal = items.reduce((sum: number, i: any) => sum + Number(i.price) * Number(i.quantity), 0);
+          totalDiscount = (subtotal * Number(discountCode.value)) / 100;
+        } else if (discountCode.type === "FIXED_AMOUNT") {
+          totalDiscount = Number(discountCode.value);
+        }
+      }
+
+      // Preparar ítems para la Preferencia de Pago de Mercado Pago
+      const mpItems: any[] = items.map((item: any) => {
+        const itemPrice = Number(item.price);
+        return {
+          id: String(item.productId || item.id || "item"),
+          title: item.title,
+          unit_price: itemPrice,
+          quantity: Number(item.quantity),
+          currency_id: formattedCurrency.toUpperCase(), // "PEN" o "USD"
+          picture_url: item.imageUrl || undefined,
+        };
+      });
+
+      // Si hay descuento, agregar un ítem con valor negativo
+      if (totalDiscount > 0) {
+        mpItems.push({
+          id: "discount-coupon",
+          title: `Descuento: ${discountCode.code}`,
+          unit_price: -Math.abs(totalDiscount),
+          quantity: 1,
+          currency_id: formattedCurrency.toUpperCase(),
+        });
+      }
+
+      const mpResponse = await preference.create({
+        body: {
+          items: mpItems,
+          back_urls: {
+            success: `${appUrl}/checkout/success?gateway=mercadopago`,
+            failure: `${appUrl}/checkout/cancel?gateway=mercadopago`,
+            pending: `${appUrl}/checkout/success?gateway=mercadopago`,
+          },
+          auto_return: "approved",
+          payer: {
+            email: session?.user?.email || (guestEmail ? guestEmail.trim() : "cliente@gosuaccessories.com"),
+            name: session?.user?.name || "Cliente GOSU",
+          },
+          metadata: {
+            userId: (session?.user as any)?.id || "",
+            userEmail: session?.user?.email || guestEmail || "",
+            discountCode: discountCode?.code || "",
+            loyaltyPointsUsed: String(loyaltyPointsUsed || 0),
+            isPickup: isPickup ? "true" : "false",
+            pickupAddress: pickupAddress || "",
+            currency: formattedCurrency.toUpperCase(),
+          },
+        },
+      });
+
+      // Devuelve la URL de pago de Mercado Pago (init_point o sandbox_init_point)
+      const mpCheckoutUrl = mpResponse.init_point || mpResponse.sandbox_init_point;
+      return NextResponse.json({ url: mpCheckoutUrl });
+    }
+
+    // ==========================================
+    // PASARELA 2: STRIPE (POR DEFECTO)
+    // ==========================================
     // Transformar items del carrito en line_items para Stripe
     const lineItems = items.map((item: any) => {
       const unitAmount = Math.round(Number(item.price) * 100);
@@ -71,7 +171,7 @@ export async function POST(req: Request) {
       };
     });
 
-    // Calcular cupón de descuento si existe
+    // Calcular cupón de descuento en Stripe
     let discountsArray: any[] = [];
     if (discountCode) {
       try {
@@ -105,7 +205,6 @@ export async function POST(req: Request) {
     const hasPredefinedShipping = Boolean(userDefaultAddress && !isPickup);
 
     // Crear la sesión de checkout en Stripe
-    // Si el usuario tiene dirección predeterminada, se inyecta en payment_intent_data.shipping para Autofill y se desactiva shipping_address_collection para evitar conflicto en Stripe
     const checkoutSession = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: lineItems,
@@ -165,7 +264,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ url: checkoutSession.url });
   } catch (error: any) {
-    console.error("Error al crear sesión de Checkout de Stripe:", error);
+    console.error("Error al crear sesión de Checkout:", error);
     return NextResponse.json(
       { error: error.message || "Error al procesar el pago." },
       { status: 500 }
