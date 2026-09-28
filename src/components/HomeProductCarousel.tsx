@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, Layers } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight, Sparkles } from "lucide-react";
+import useEmblaCarousel from "embla-carousel-react";
+import Autoplay from "embla-carousel-autoplay";
 import { ProductCard } from "./ProductCard";
 
 interface ProductItem {
@@ -35,7 +37,28 @@ const CATEGORY_TABS = ["Todo", "Sleeves", "Deckboxes", "Binders"];
 
 export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
   const [activeTab, setActiveTab] = useState("Todo");
-  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Configuración del plugin de Autoplay: deslice cada 3500ms, pausa al interactuar o hover
+  const autoplayPlugin = useMemo(() => {
+    return Autoplay({ delay: 3500, stopOnInteraction: true, stopOnMouseEnter: true });
+  }, []);
+
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    {
+      loop: true,
+      align: "start",
+      skipSnaps: false,
+    },
+    [autoplayPlugin]
+  );
+
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
+
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
 
   // Filtrado dinámico por categoría / pestaña activa
   const filteredProducts = useMemo(() => {
@@ -59,18 +82,6 @@ export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
     });
   }, [products, activeTab]);
 
-  const scrollLeft = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: -360, behavior: "smooth" });
-    }
-  };
-
-  const scrollRight = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: 360, behavior: "smooth" });
-    }
-  };
-
   return (
     <section className="bg-neutral-950 text-white py-16 px-4 sm:px-6 font-body border-b border-neutral-800/80">
       <div className="max-w-7xl mx-auto space-y-10">
@@ -87,8 +98,8 @@ export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
             </h2>
           </div>
 
-          {/* Menú de Pestañas de Categorías (Todo, Sleeves, Deckboxes, Binders) */}
-          <div className="flex items-center gap-1.5 p-1.5 bg-neutral-900 border border-neutral-800 rounded-2xl overflow-x-auto shrink-0 scrollbar-none">
+          {/* Menú de Pestañas de Categorías (Sin scrollbars nativas) */}
+          <div className="flex items-center gap-1.5 p-1.5 bg-neutral-900 border border-neutral-800 rounded-2xl overflow-x-auto shrink-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {CATEGORY_TABS.map((tab) => {
               const isActive = activeTab === tab;
               return (
@@ -108,50 +119,56 @@ export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
           </div>
         </div>
 
-        {/* Carrusel Interactivo de Productos con Flechas de Navegación */}
+        {/* Carrusel Interactivo Embla con Autoplay y Máscara de Desvanecimiento */}
         <div className="relative group">
           
           {/* Flecha Izquierda */}
           <button
-            onClick={scrollLeft}
-            className="absolute -left-3 sm:-left-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/90 border border-neutral-700 text-white hover:text-accent-cyan hover:border-accent-cyan transition-all flex items-center justify-center shadow-xl opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus:outline-none"
+            onClick={scrollPrev}
+            className="absolute -left-3 sm:-left-5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/90 border border-neutral-700 text-white hover:text-accent-cyan hover:border-accent-cyan transition-all flex items-center justify-center shadow-xl opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus:outline-none"
             title="Anterior"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
 
-          {/* Contenedor Deslizable de Tarjetas */}
-          <div
-            ref={scrollRef}
-            className="flex items-stretch gap-4 sm:gap-6 overflow-x-auto scrollbar-none snap-x snap-mandatory py-2 px-1"
-          >
-            {filteredProducts.length > 0 ? (
-              filteredProducts.map((product) => (
-                <div
-                  key={product.id}
-                  className="w-[280px] sm:w-[320px] lg:w-[340px] shrink-0 snap-start"
-                >
-                  <ProductCard product={product} />
-                </div>
-              ))
-            ) : (
-              <div className="w-full p-12 text-center bg-neutral-900/60 border border-neutral-800 rounded-2xl font-mono text-xs text-neutral-400">
-                No hay productos disponibles en la categoría {activeTab}.
+          {/* Paso 2: Contenedor con Máscara de Desvanecimiento en los Bordes (10% inicial y final) */}
+          <div className="[mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
+            {/* Paso 1: Viewport de Embla con Scrollbars Ocultas */}
+            <div
+              ref={emblaRef}
+              className="overflow-hidden py-2 px-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            >
+              {/* Embla Track */}
+              <div className="flex items-stretch gap-4 sm:gap-6 -ml-4 sm:-ml-6">
+                {filteredProducts.length > 0 ? (
+                  filteredProducts.map((product) => (
+                    <div
+                      key={product.id}
+                      className="pl-4 sm:pl-6 min-w-0 flex-none w-[280px] sm:w-[320px] lg:w-[340px]"
+                    >
+                      <ProductCard product={product} />
+                    </div>
+                  ))
+                ) : (
+                  <div className="w-full p-12 text-center bg-neutral-900/60 border border-neutral-800 rounded-2xl font-mono text-xs text-neutral-400">
+                    No hay productos disponibles en la categoría {activeTab}.
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
 
           {/* Flecha Derecha */}
           <button
-            onClick={scrollRight}
-            className="absolute -right-3 sm:-right-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/90 border border-neutral-700 text-white hover:text-accent-cyan hover:border-accent-cyan transition-all flex items-center justify-center shadow-xl opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus:outline-none"
+            onClick={scrollNext}
+            className="absolute -right-3 sm:-right-5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/90 border border-neutral-700 text-white hover:text-accent-cyan hover:border-accent-cyan transition-all flex items-center justify-center shadow-xl opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus:outline-none"
             title="Siguiente"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Paso 3: Llamada a la Acción (CTA) Final -> Apunta a /catalog */}
+        {/* Llamada a la Acción (CTA) Final */}
         <div className="flex justify-center pt-4">
           <Link
             href="/catalog"
