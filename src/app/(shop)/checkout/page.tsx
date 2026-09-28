@@ -19,10 +19,17 @@ import {
   Tag,
   Sparkles,
   AlertCircle,
+  Eye,
+  EyeOff,
+  UserPlus,
 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { useStoreSettings } from "@/providers/StoreProvider";
 import { useSession } from "next-auth/react";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
+import { PERU_DEPARTMENTS } from "@/data/peruUbigeo";
+import { convertGuestOrderToUserAction } from "@/actions/userActions";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -49,10 +56,15 @@ export default function CheckoutPage() {
   const [phone, setPhone] = useState<string>("");
 
   const [street, setStreet] = useState<string>("");
-  const [city, setCity] = useState<string>("");
-  const [state, setState] = useState<string>("");
-  const [postalCode, setPostalCode] = useState<string>("");
   const [country, setCountry] = useState<string>("PE");
+  const [state, setState] = useState<string>("Lima");
+  const [city, setCity] = useState<string>("Santiago de Surco");
+  const [postalCode, setPostalCode] = useState<string>("");
+
+  // Opción A: Crear cuenta opcional desde Checkout
+  const [createAccount, setCreateAccount] = useState<boolean>(false);
+  const [accountPassword, setAccountPassword] = useState<string>("");
+  const [showPassword, setShowPassword] = useState<boolean>(false);
 
   // Pre-cargar datos del usuario autenticado o query param
   useEffect(() => {
@@ -107,11 +119,36 @@ export default function CheckoutPage() {
   const currencySymbol = (countryCode === "PE" || currency.toLowerCase() === "pen") ? "S/." : "$";
   const currencyText = (countryCode === "PE" || currency.toLowerCase() === "pen") ? "PEN" : "USD";
 
+  // Manejo de Departamentos y Distritos en Cascada (UBIGEO Perú)
+  const currentPeruDept = PERU_DEPARTMENTS.find((d) => d.name === state) || PERU_DEPARTMENTS[0];
+  const availableDistricts = currentPeruDept ? currentPeruDept.districts : [];
+
+  const handleCountryChange = (newCountry: string) => {
+    setCountry(newCountry);
+    if (newCountry === "PE") {
+      setState("Lima");
+      setCity("Santiago de Surco");
+    } else {
+      setState("");
+      setCity("");
+    }
+  };
+
+  const handleDepartmentChange = (newDeptName: string) => {
+    setState(newDeptName);
+    const deptObj = PERU_DEPARTMENTS.find((d) => d.name === newDeptName);
+    if (deptObj && deptObj.districts.length > 0) {
+      setCity(deptObj.districts[0]);
+    } else {
+      setCity("");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
-    // Validaciones básicas
+    // Validaciones
     if (!email || !email.includes("@")) {
       setErrorMessage("Por favor ingresa un correo electrónico válido.");
       return;
@@ -122,7 +159,14 @@ export default function CheckoutPage() {
     }
     if (deliveryMethod === "SHIPPING") {
       if (!street.trim() || !city.trim() || !state.trim()) {
-        setErrorMessage("Por favor completa los datos de la dirección de envío (Dirección, Distrito/Ciudad y Departamento).");
+        setErrorMessage("Por favor completa los datos de la dirección de envío (Dirección, Distrito y Departamento).");
+        return;
+      }
+    }
+
+    if (!session?.user && createAccount) {
+      if (!accountPassword || accountPassword.length < 6) {
+        setErrorMessage("La contraseña para crear tu cuenta debe tener al menos 6 caracteres.");
         return;
       }
     }
@@ -138,8 +182,23 @@ export default function CheckoutPage() {
         state: state.trim(),
         postalCode: postalCode.trim(),
         country: country || "PE",
-        phone: phone.trim(),
+        phone: phone ? String(phone).trim() : "",
       } : null;
+
+      // Opción A: Si solicitó crear cuenta, registrar silenciosamente antes de ir al pago
+      if (!session?.user && createAccount && accountPassword) {
+        try {
+          await convertGuestOrderToUserAction({
+            email: email.trim(),
+            password: accountPassword,
+            name: fullName,
+            phone: phone ? String(phone).trim() : undefined,
+            addressStr: street.trim(),
+          });
+        } catch (authErr) {
+          console.error("Advertencia creando cuenta en checkout:", authErr);
+        }
+      }
 
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -154,7 +213,7 @@ export default function CheckoutPage() {
           pickupAddress: "Tienda Principal GOSU® TCG - Surco, Lima, Perú",
           guestEmail: email.trim(),
           guestName: fullName,
-          guestPhone: phone.trim(),
+          guestPhone: phone ? String(phone).trim() : "",
           shippingAddress: shippingAddressData,
         }),
       });
@@ -162,7 +221,6 @@ export default function CheckoutPage() {
       const data = await res.json();
 
       if (res.ok && data.url) {
-        // Redirección directa a la pasarela activa (Stripe o Mercado Pago)
         window.location.href = data.url;
       } else {
         throw new Error(data.error || "Ocurrió un error al preparar el pago.");
@@ -188,7 +246,7 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-neutral-950 text-white font-body py-8 sm:py-12 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto space-y-8">
-        {/* Header Superior y Pasos de Navegación */}
+        {/* Header Superior */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-800 pb-6">
           <div className="space-y-1">
             <Link
@@ -286,21 +344,66 @@ export default function CheckoutPage() {
                   />
                 </div>
 
+                {/* Requisito 1: Formato de Teléfono Internacional */}
                 <div className="sm:col-span-2">
                   <label className="block text-[11px] font-mono text-neutral-400 mb-1 uppercase font-bold">
-                    Teléfono / Celular (Para coordinación del envío)
+                    Teléfono / Celular Internacional *
                   </label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-neutral-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="tel"
+                  <div className="gosu-phone-wrapper bg-black border border-neutral-800 rounded-xl px-3 py-1.5 focus-within:border-accent-cyan">
+                    <PhoneInput
+                      international
+                      defaultCountry={(country as any) || "PE"}
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+51 987 654 321"
-                      className="w-full pl-10 pr-4 py-2.5 bg-black border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-accent-cyan"
+                      onChange={(val) => setPhone(val || "")}
+                      className="w-full text-xs font-mono text-white"
                     />
                   </div>
                 </div>
+
+                {/* Opción A: Checkbox para Crear Cuenta */}
+                {!session && (
+                  <div className="sm:col-span-2 pt-2 border-t border-neutral-800/80 space-y-3">
+                    <label className="flex items-center gap-2.5 cursor-pointer text-xs text-neutral-300 font-mono">
+                      <input
+                        type="checkbox"
+                        checked={createAccount}
+                        onChange={(e) => setCreateAccount(e.target.checked)}
+                        className="w-4 h-4 rounded border-neutral-700 bg-black text-accent-cyan focus:ring-accent-cyan"
+                      />
+                      <span className="font-bold flex items-center gap-1.5 text-white">
+                        <UserPlus className="w-4 h-4 text-accent-pink" />
+                        Crear una cuenta GOSU® con estos datos
+                      </span>
+                    </label>
+
+                    {createAccount && (
+                      <div className="p-4 bg-black/80 rounded-xl border border-neutral-800 space-y-2 animate-in fade-in">
+                        <label className="block text-[11px] font-mono text-neutral-400 uppercase font-bold">
+                          Contraseña para tu nueva cuenta *
+                        </label>
+                        <div className="relative">
+                          <Lock className="w-4 h-4 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            required={createAccount}
+                            minLength={6}
+                            value={accountPassword}
+                            onChange={(e) => setAccountPassword(e.target.value)}
+                            placeholder="Mínimo 6 caracteres"
+                            className="w-full pl-9 pr-10 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-xs text-white focus:outline-none focus:border-accent-cyan font-mono"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -343,6 +446,92 @@ export default function CheckoutPage() {
               {/* Campos de Dirección de Envío */}
               {deliveryMethod === "SHIPPING" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div>
+                    <label className="block text-[11px] font-mono text-neutral-400 mb-1 uppercase font-bold">
+                      País *
+                    </label>
+                    <select
+                      value={country}
+                      onChange={(e) => handleCountryChange(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-black border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-accent-cyan font-mono"
+                    >
+                      <option value="PE">Perú (PEN S/.)</option>
+                      <option value="US">Estados Unidos (USD $)</option>
+                      <option value="MX">México (MXN / USD)</option>
+                      <option value="CL">Chile (CLP / USD)</option>
+                      <option value="CO">Colombia (COP / USD)</option>
+                    </select>
+                  </div>
+
+                  {/* Requisito 2: Dropdowns en Cascada para Direcciones (UBIGEO Perú) */}
+                  {country === "PE" ? (
+                    <>
+                      <div>
+                        <label className="block text-[11px] font-mono text-neutral-400 mb-1 uppercase font-bold">
+                          Departamento / Provincia *
+                        </label>
+                        <select
+                          value={state}
+                          onChange={(e) => handleDepartmentChange(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-black border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-accent-cyan font-mono"
+                        >
+                          {PERU_DEPARTMENTS.map((dept) => (
+                            <option key={dept.id} value={dept.name}>
+                              {dept.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-mono text-neutral-400 mb-1 uppercase font-bold">
+                          Distrito / Ciudad *
+                        </label>
+                        <select
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-black border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-accent-cyan font-mono"
+                        >
+                          {availableDistricts.map((dist) => (
+                            <option key={dist} value={dist}>
+                              {dist}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-[11px] font-mono text-neutral-400 mb-1 uppercase font-bold">
+                          Estado / Provincia *
+                        </label>
+                        <input
+                          type="text"
+                          required={deliveryMethod === "SHIPPING"}
+                          value={state}
+                          onChange={(e) => setState(e.target.value)}
+                          placeholder="Ej. California / Jalisco"
+                          className="w-full px-3.5 py-2.5 bg-black border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-accent-cyan"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-mono text-neutral-400 mb-1 uppercase font-bold">
+                          Ciudad / Distrito *
+                        </label>
+                        <input
+                          type="text"
+                          required={deliveryMethod === "SHIPPING"}
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          placeholder="Ej. Los Angeles / Guadalajara"
+                          className="w-full px-3.5 py-2.5 bg-black border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-accent-cyan"
+                        />
+                      </div>
+                    </>
+                  )}
+
                   <div className="sm:col-span-2">
                     <label className="block text-[11px] font-mono text-neutral-400 mb-1 uppercase font-bold">
                       Dirección Completa (Calle, Av., Nro, Dpto/Mz) *
@@ -360,35 +549,7 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-mono text-neutral-400 mb-1 uppercase font-bold">
-                      Distrito / Ciudad *
-                    </label>
-                    <input
-                      type="text"
-                      required={deliveryMethod === "SHIPPING"}
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder="Ej. Santiago de Surco"
-                      className="w-full px-3.5 py-2.5 bg-black border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-accent-cyan"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-mono text-neutral-400 mb-1 uppercase font-bold">
-                      Departamento / Provincia *
-                    </label>
-                    <input
-                      type="text"
-                      required={deliveryMethod === "SHIPPING"}
-                      value={state}
-                      onChange={(e) => setState(e.target.value)}
-                      placeholder="Ej. Lima"
-                      className="w-full px-3.5 py-2.5 bg-black border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-accent-cyan"
-                    />
-                  </div>
-
-                  <div>
+                  <div className="sm:col-span-2">
                     <label className="block text-[11px] font-mono text-neutral-400 mb-1 uppercase font-bold">
                       Código Postal (Opcional)
                     </label>
@@ -399,23 +560,6 @@ export default function CheckoutPage() {
                       placeholder="15033"
                       className="w-full px-3.5 py-2.5 bg-black border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-accent-cyan font-mono"
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-mono text-neutral-400 mb-1 uppercase font-bold">
-                      País
-                    </label>
-                    <select
-                      value={country}
-                      onChange={(e) => setCountry(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-black border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-accent-cyan"
-                    >
-                      <option value="PE">Perú (PEN S/.)</option>
-                      <option value="US">Estados Unidos (USD $)</option>
-                      <option value="MX">México (MXN / USD)</option>
-                      <option value="CL">Chile (CLP / USD)</option>
-                      <option value="CO">Colombia (COP / USD)</option>
-                    </select>
                   </div>
                 </div>
               ) : (

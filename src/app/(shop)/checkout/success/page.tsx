@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
+import { GuestAccountConvertUpsell } from "@/components/GuestAccountConvertUpsell";
 
 export default function CheckoutSuccessPage() {
   const searchParams = useSearchParams();
@@ -75,6 +76,9 @@ export default function CheckoutSuccessPage() {
           <span>Seguir Comprando</span>
         </Link>
       </div>
+
+      {/* Componente Upsell de Conversión 1-Clic de Invitado a Usuario */}
+      <GuestAccountConvertUpsell orderId={sessionId || undefined} />
     </div>
   );
 }
