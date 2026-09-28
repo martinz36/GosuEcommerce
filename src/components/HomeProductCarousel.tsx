@@ -4,7 +4,7 @@ import React, { useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, ArrowRight, Sparkles } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
-import Autoplay from "embla-carousel-autoplay";
+import AutoScroll from "embla-carousel-auto-scroll";
 import { ProductCard } from "./ProductCard";
 
 interface ProductItem {
@@ -38,18 +38,17 @@ const CATEGORY_TABS = ["Todo", "Sleeves", "Deckboxes", "Binders"];
 export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
   const [activeTab, setActiveTab] = useState("Todo");
 
-  // Configuración estricta de Autoplay: delay 3000ms, stopOnInteraction: false, stopOnMouseEnter: true
-  const autoplayPlugin = useMemo(() => {
-    return Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true });
+  // Configuración de AutoScroll: movimiento fluido estilo marquesina continua (speed: 1.5)
+  const autoScrollPlugin = useMemo(() => {
+    return AutoScroll({ speed: 1.5, stopOnInteraction: false, stopOnMouseEnter: true });
   }, []);
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {
       loop: true,
-      align: "start",
-      skipSnaps: false,
+      dragFree: true,
     },
-    [autoplayPlugin]
+    [autoScrollPlugin]
   );
 
   const scrollPrev = useCallback(() => {
