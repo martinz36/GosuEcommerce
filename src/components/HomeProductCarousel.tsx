@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import AutoScroll from "embla-carousel-auto-scroll";
-import { ProductCard } from "./ProductCard";
+import { MarqueeCard } from "./MarqueeCard";
 
 interface ProductItem {
   id: string;
@@ -37,14 +37,14 @@ export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
   // Paso 2: Preparar los datos (Split en 2 filas)
   const row1Products = useMemo(() => {
     if (!products || products.length === 0) return [];
-    if (products.length <= 4) return [...products, ...products];
+    if (products.length <= 6) return [...products, ...products, ...products];
     const half = Math.ceil(products.length / 2);
     return products.slice(0, half);
   }, [products]);
 
   const row2Products = useMemo(() => {
     if (!products || products.length === 0) return [];
-    if (products.length <= 4) return [...products, ...products].reverse();
+    if (products.length <= 6) return [...products, ...products, ...products].reverse();
     const half = Math.ceil(products.length / 2);
     return products.slice(half);
   }, [products]);
@@ -52,7 +52,7 @@ export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
   // Paso 3: Fila Superior (Desplazamiento Hacia Adelante: 'forward')
   const autoScrollRow1 = useMemo(() => {
     return AutoScroll({
-      speed: 1.5,
+      speed: 1.2,
       direction: "forward",
       stopOnInteraction: false,
       stopOnMouseEnter: true,
@@ -67,7 +67,7 @@ export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
   // Paso 3: Fila Inferior (Desplazamiento Hacia Atrás: 'backward')
   const autoScrollRow2 = useMemo(() => {
     return AutoScroll({
-      speed: 1.5,
+      speed: 1.2,
       direction: "backward",
       stopOnInteraction: false,
       stopOnMouseEnter: true,
@@ -80,57 +80,57 @@ export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
   );
 
   return (
-    <section className="bg-neutral-950 text-white py-16 px-4 sm:px-6 font-body border-b border-neutral-800/80 overflow-hidden">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <section className="bg-neutral-950 text-white py-14 px-4 sm:px-6 font-body border-b border-neutral-800/80 overflow-hidden">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
         
         {/* Paso 1: Limpieza de UI - Título alineado a la izquierda sin pestañas */}
-        <div className="border-b border-neutral-800 pb-6">
+        <div className="border-b border-neutral-800 pb-5">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-accent-cyan uppercase tracking-widest">
               <Sparkles className="w-3.5 h-3.5" />
               <span>EQUIPAMIENTO DESTACADO GOSU®</span>
             </div>
-            <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-white">
+            <h2 className="text-2xl sm:text-4xl font-black uppercase tracking-tight text-white">
               PRODUCTOS POPULARES
             </h2>
           </div>
         </div>
 
-        {/* Doble Instancia de Embla (Direcciones Opuestas con gap-6 / gap-8) */}
-        <div className="space-y-6 sm:space-y-8">
+        {/* Doble Instancia de Embla con MarqueeCard Densas y Separación Ajustada */}
+        <div className="space-y-4 sm:space-y-6">
           
-          {/* Paso 3 & 4: Fila 1 (Forward + Máscara 3% + Scrollbars Ocultas) */}
+          {/* Fila 1 (Forward + MarqueeCard + Mask 3% + gap-3) */}
           <div className="relative [mask-image:linear-gradient(to_right,transparent,black_3%,black_97%,transparent)]">
             <div
               ref={emblaRefRow1}
-              className="overflow-hidden py-2 px-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+              className="overflow-hidden py-1 px-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
             >
-              <div className="flex items-stretch gap-4 sm:gap-6 -ml-4 sm:-ml-6">
+              <div className="flex items-stretch gap-3 sm:gap-4 -ml-3 sm:-ml-4">
                 {row1Products.map((product, idx) => (
                   <div
                     key={`row1-${product.id}-${idx}`}
-                    className="pl-4 sm:pl-6 min-w-0 flex-none w-[280px] sm:w-[320px] lg:w-[340px]"
+                    className="pl-3 sm:pl-4 min-w-0 flex-none w-44 sm:w-52"
                   >
-                    <ProductCard product={product} />
+                    <MarqueeCard product={product} />
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Paso 3 & 4: Fila 2 (Backward + Máscara 3% + Scrollbars Ocultas) */}
+          {/* Fila 2 (Backward + MarqueeCard + Mask 3% + gap-3) */}
           <div className="relative [mask-image:linear-gradient(to_right,transparent,black_3%,black_97%,transparent)]">
             <div
               ref={emblaRefRow2}
-              className="overflow-hidden py-2 px-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+              className="overflow-hidden py-1 px-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
             >
-              <div className="flex items-stretch gap-4 sm:gap-6 -ml-4 sm:-ml-6">
+              <div className="flex items-stretch gap-3 sm:gap-4 -ml-3 sm:-ml-4">
                 {row2Products.map((product, idx) => (
                   <div
                     key={`row2-${product.id}-${idx}`}
-                    className="pl-4 sm:pl-6 min-w-0 flex-none w-[280px] sm:w-[320px] lg:w-[340px]"
+                    className="pl-3 sm:pl-4 min-w-0 flex-none w-44 sm:w-52"
                   >
-                    <ProductCard product={product} />
+                    <MarqueeCard product={product} />
                   </div>
                 ))}
               </div>
