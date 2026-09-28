@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import AutoScroll from "embla-carousel-auto-scroll";
 import { ProductCard } from "./ProductCard";
@@ -33,60 +33,58 @@ interface HomeProductCarouselProps {
   products: ProductItem[];
 }
 
-const CATEGORY_TABS = ["Todo", "Sleeves", "Deckboxes", "Binders"];
-
 export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
-  const [activeTab, setActiveTab] = useState("Todo");
+  // Paso 2: Preparar los datos (Split en 2 filas)
+  const row1Products = useMemo(() => {
+    if (!products || products.length === 0) return [];
+    if (products.length <= 4) return [...products, ...products];
+    const half = Math.ceil(products.length / 2);
+    return products.slice(0, half);
+  }, [products]);
 
-  // Configuración de AutoScroll: movimiento fluido estilo marquesina continua (speed: 1.5)
-  const autoScrollPlugin = useMemo(() => {
-    return AutoScroll({ speed: 1.5, stopOnInteraction: false, stopOnMouseEnter: true });
+  const row2Products = useMemo(() => {
+    if (!products || products.length === 0) return [];
+    if (products.length <= 4) return [...products, ...products].reverse();
+    const half = Math.ceil(products.length / 2);
+    return products.slice(half);
+  }, [products]);
+
+  // Paso 3: Fila Superior (Desplazamiento Hacia Adelante: 'forward')
+  const autoScrollRow1 = useMemo(() => {
+    return AutoScroll({
+      speed: 1.5,
+      direction: "forward",
+      stopOnInteraction: false,
+      stopOnMouseEnter: true,
+    });
   }, []);
 
-  const [emblaRef, emblaApi] = useEmblaCarousel(
-    {
-      loop: true,
-      dragFree: true,
-    },
-    [autoScrollPlugin]
+  const [emblaRefRow1] = useEmblaCarousel(
+    { loop: true, dragFree: true },
+    [autoScrollRow1]
   );
 
-  const scrollPrev = useCallback(() => {
-    if (emblaApi) emblaApi.scrollPrev();
-  }, [emblaApi]);
-
-  const scrollNext = useCallback(() => {
-    if (emblaApi) emblaApi.scrollNext();
-  }, [emblaApi]);
-
-  // Filtrado dinámico por categoría / pestaña activa
-  const filteredProducts = useMemo(() => {
-    if (activeTab === "Todo") return products;
-
-    return products.filter((p) => {
-      const cat = (p.categoryName || "").toLowerCase();
-      const type = (p.productType || "").toLowerCase();
-      const title = (p.title || "").toLowerCase();
-
-      if (activeTab === "Sleeves") {
-        return cat.includes("sleeve") || type.includes("sleeve") || title.includes("sleeve") || cat.includes("funda") || title.includes("funda");
-      }
-      if (activeTab === "Deckboxes") {
-        return cat.includes("deck") || type.includes("deck") || title.includes("deck") || cat.includes("box") || title.includes("box") || title.includes("portamazo");
-      }
-      if (activeTab === "Binders") {
-        return cat.includes("binder") || type.includes("binder") || title.includes("binder") || cat.includes("carpeta") || title.includes("carpeta");
-      }
-      return true;
+  // Paso 3: Fila Inferior (Desplazamiento Hacia Atrás: 'backward')
+  const autoScrollRow2 = useMemo(() => {
+    return AutoScroll({
+      speed: 1.5,
+      direction: "backward",
+      stopOnInteraction: false,
+      stopOnMouseEnter: true,
     });
-  }, [products, activeTab]);
+  }, []);
+
+  const [emblaRefRow2] = useEmblaCarousel(
+    { loop: true, dragFree: true },
+    [autoScrollRow2]
+  );
 
   return (
-    <section className="bg-neutral-950 text-white py-16 px-4 sm:px-6 font-body border-b border-neutral-800/80">
-      <div className="max-w-7xl mx-auto space-y-10">
+    <section className="bg-neutral-950 text-white py-16 px-4 sm:px-6 font-body border-b border-neutral-800/80 overflow-hidden">
+      <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* Cabecera & Menú de Pestañas de Categoría (Tabs) */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-neutral-800 pb-6">
+        {/* Paso 1: Limpieza de UI - Título alineado a la izquierda sin pestañas */}
+        <div className="border-b border-neutral-800 pb-6">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-accent-cyan uppercase tracking-widest">
               <Sparkles className="w-3.5 h-3.5" />
@@ -96,75 +94,49 @@ export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
               PRODUCTOS POPULARES
             </h2>
           </div>
-
-          {/* Menú de Pestañas de Categorías (Sin scrollbars nativas) */}
-          <div className="flex items-center gap-1.5 p-1.5 bg-neutral-900 border border-neutral-800 rounded-2xl overflow-x-auto shrink-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {CATEGORY_TABS.map((tab) => {
-              const isActive = activeTab === tab;
-              return (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase transition-all whitespace-nowrap ${
-                    isActive
-                      ? "bg-accent-cyan text-black shadow-md shadow-cyan-900/30"
-                      : "text-neutral-400 hover:text-white hover:bg-neutral-800/60"
-                  }`}
-                >
-                  {tab}
-                </button>
-              );
-            })}
-          </div>
         </div>
 
-        {/* Carrusel Interactivo Embla con Autoplay y Máscara de Desvanecimiento */}
-        <div className="relative group">
+        {/* Doble Instancia de Embla (Direcciones Opuestas con gap-6 / gap-8) */}
+        <div className="space-y-6 sm:space-y-8">
           
-          {/* Flecha Izquierda (z-30 sobre el contenedor difuminado) */}
-          <button
-            onClick={scrollPrev}
-            className="absolute -left-3 sm:-left-5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/90 border border-neutral-700 text-white hover:text-accent-cyan hover:border-accent-cyan transition-all flex items-center justify-center shadow-xl opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus:outline-none"
-            title="Anterior"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-
-          {/* Paso 1: Contenedor con Máscara Afinada de Desvanecimiento (3% y 97%) */}
-          <div className="[mask-image:linear-gradient(to_right,transparent,black_3%,black_97%,transparent)]">
-            {/* Viewport de Embla con Scrollbars Ocultas */}
+          {/* Paso 3 & 4: Fila 1 (Forward + Máscara 3% + Scrollbars Ocultas) */}
+          <div className="relative [mask-image:linear-gradient(to_right,transparent,black_3%,black_97%,transparent)]">
             <div
-              ref={emblaRef}
+              ref={emblaRefRow1}
               className="overflow-hidden py-2 px-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
             >
-              {/* Embla Track */}
               <div className="flex items-stretch gap-4 sm:gap-6 -ml-4 sm:-ml-6">
-                {filteredProducts.length > 0 ? (
-                  filteredProducts.map((product) => (
-                    <div
-                      key={product.id}
-                      className="pl-4 sm:pl-6 min-w-0 flex-none w-[280px] sm:w-[320px] lg:w-[340px]"
-                    >
-                      <ProductCard product={product} />
-                    </div>
-                  ))
-                ) : (
-                  <div className="w-full p-12 text-center bg-neutral-900/60 border border-neutral-800 rounded-2xl font-mono text-xs text-neutral-400">
-                    No hay productos disponibles en la categoría {activeTab}.
+                {row1Products.map((product, idx) => (
+                  <div
+                    key={`row1-${product.id}-${idx}`}
+                    className="pl-4 sm:pl-6 min-w-0 flex-none w-[280px] sm:w-[320px] lg:w-[340px]"
+                  >
+                    <ProductCard product={product} />
                   </div>
-                )}
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Flecha Derecha (z-30 sobre el contenedor difuminado) */}
-          <button
-            onClick={scrollNext}
-            className="absolute -right-3 sm:-right-5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/90 border border-neutral-700 text-white hover:text-accent-cyan hover:border-accent-cyan transition-all flex items-center justify-center shadow-xl opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus:outline-none"
-            title="Siguiente"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+          {/* Paso 3 & 4: Fila 2 (Backward + Máscara 3% + Scrollbars Ocultas) */}
+          <div className="relative [mask-image:linear-gradient(to_right,transparent,black_3%,black_97%,transparent)]">
+            <div
+              ref={emblaRefRow2}
+              className="overflow-hidden py-2 px-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            >
+              <div className="flex items-stretch gap-4 sm:gap-6 -ml-4 sm:-ml-6">
+                {row2Products.map((product, idx) => (
+                  <div
+                    key={`row2-${product.id}-${idx}`}
+                    className="pl-4 sm:pl-6 min-w-0 flex-none w-[280px] sm:w-[320px] lg:w-[340px]"
+                  >
+                    <ProductCard product={product} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
         </div>
 
         {/* Llamada a la Acción (CTA) Final */}
