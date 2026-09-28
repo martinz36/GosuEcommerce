@@ -118,30 +118,106 @@ export async function POST(req: Request) {
         });
       }
 
-      const mpResponse = await preference.create({
-        body: {
-          items: mpItems,
-          back_urls: {
-            success: `${appUrl}/checkout/success?gateway=mercadopago`,
-            failure: `${appUrl}/checkout/cancel?gateway=mercadopago`,
-            pending: `${appUrl}/checkout/success?gateway=mercadopago`,
-          },
-          auto_return: "approved",
-          payer: {
-            email: session?.user?.email || (guestEmail ? guestEmail.trim() : "cliente@gosuaccessories.com"),
-            name: session?.user?.name || "Cliente GOSU",
-          },
-          metadata: {
-            userId: (session?.user as any)?.id || "",
-            userEmail: session?.user?.email || guestEmail || "",
-            discountCode: discountCode?.code || "",
-            loyaltyPointsUsed: String(loyaltyPointsUsed || 0),
-            isPickup: isPickup ? "true" : "false",
-            pickupAddress: pickupAddress || "",
-            currency: formattedCurrency.toUpperCase(),
-          },
+      // Crear la orden pendiente en Neon DB si hay conexión a la base de datos
+      let pendingOrder: any = null;
+      const currentUserId = (session?.user as any)?.id;
+      let userDefaultAddress: any = null;
+
+      if (process.env.DATABASE_URL) {
+        if (currentUserId) {
+          userDefaultAddress = await prisma.address.findFirst({
+            where: { userId: currentUserId, isDefault: true },
+          });
+          if (!userDefaultAddress) {
+            userDefaultAddress = await prisma.address.findFirst({
+              where: { userId: currentUserId },
+            });
+          }
+        }
+
+        const subtotalCalc = items.reduce((sum: number, i: any) => sum + Number(i.price) * Number(i.quantity), 0);
+        const finalTotal = Math.max(0, subtotalCalc - totalDiscount);
+        const orderNumber = `GOSU-${Math.floor(100000 + Math.random() * 900000)}`;
+
+        try {
+          pendingOrder = await prisma.order.create({
+            data: {
+              orderNumber,
+              userId: currentUserId || null,
+              guestEmail: session?.user?.email || (guestEmail ? guestEmail.trim() : null),
+              status: "PENDING",
+              currency: formattedCurrency.toUpperCase(),
+              subtotal: subtotalCalc,
+              discountAmount: totalDiscount,
+              totalAmount: finalTotal,
+              shippingAddressJson: userDefaultAddress ? (userDefaultAddress as any) : undefined,
+              items: {
+                create: items.map((item: any) => ({
+                  productId: item.productId || null,
+                  quantity: Number(item.quantity),
+                  unitPrice: Number(item.price),
+                  totalPrice: Number(item.price) * Number(item.quantity),
+                })),
+              },
+            },
+          });
+        } catch (orderErr) {
+          console.error("Error al crear orden pendiente en Neon DB para Mercado Pago:", orderErr);
+        }
+      }
+
+      const externalReference = pendingOrder?.id || `MP-${Date.now()}`;
+      const notificationUrl = process.env.MP_WEBHOOK_URL || (appUrl.startsWith("https://") ? `${appUrl}/api/webhooks/mercadopago` : undefined);
+
+      const mpPreferenceBody: any = {
+        items: mpItems,
+        external_reference: externalReference,
+        back_urls: {
+          success: `${appUrl}/checkout/success?gateway=mercadopago&order_id=${externalReference}`,
+          failure: `${appUrl}/checkout/cancel?gateway=mercadopago`,
+          pending: `${appUrl}/checkout/success?gateway=mercadopago&order_id=${externalReference}`,
         },
+        auto_return: "approved",
+        payer: {
+          email: session?.user?.email || (guestEmail ? guestEmail.trim() : "cliente@gosuaccessories.com"),
+          name: session?.user?.name || "Cliente GOSU",
+        },
+        metadata: {
+          orderId: pendingOrder?.id || "",
+          userId: currentUserId || "",
+          userEmail: session?.user?.email || guestEmail || "",
+          discountCode: discountCode?.code || "",
+          loyaltyPointsUsed: String(loyaltyPointsUsed || 0),
+          isPickup: isPickup ? "true" : "false",
+          pickupAddress: pickupAddress || "",
+          currency: formattedCurrency.toUpperCase(),
+          itemsJson: JSON.stringify(
+            items.map((i: any) => ({
+              productId: i.productId,
+              title: i.title,
+              price: i.price,
+              quantity: i.quantity,
+            }))
+          ),
+        },
+      };
+
+      if (notificationUrl) {
+        mpPreferenceBody.notification_url = notificationUrl;
+      }
+
+      const mpResponse = await preference.create({
+        body: mpPreferenceBody,
       });
+
+      if (pendingOrder) {
+        await prisma.order
+          .update({
+            where: { id: pendingOrder.id },
+            data: { stripeCheckoutSessionId: mpResponse.id },
+          })
+          .catch(() => {});
+      }
 
       // Devuelve la URL de pago de Mercado Pago (init_point o sandbox_init_point)
       const mpCheckoutUrl = mpResponse.init_point || mpResponse.sandbox_init_point;
