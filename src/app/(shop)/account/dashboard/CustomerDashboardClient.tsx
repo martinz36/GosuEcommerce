@@ -29,6 +29,7 @@ import {
   Edit3,
   ChevronDown,
 } from "lucide-react";
+import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 import { SignOutButton } from "@/components/SignOutButton";
 import { Country, State, City } from "country-state-city";
 import PhoneInput from "react-phone-number-input";
@@ -607,6 +608,9 @@ export default function CustomerDashboardClient({
           </div>
         </div>
       </div>
+
+      {/* Cambiar Contraseña */}
+      <ChangePasswordForm />
 
       {/* Modal Paso 2: Gestionar Libreta de Direcciones */}
       {showAddressModal && (

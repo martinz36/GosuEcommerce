@@ -31,7 +31,17 @@ function LoginFormContent() {
       if (res?.error) {
         setError(res.error);
       } else {
-        router.push(callbackUrl);
+        // Paso 2: Redirección Inteligente según el Rol de Usuario (ADMIN -> /dashboard, USER -> /catalog)
+        const sessionRes = await fetch("/api/auth/session");
+        const sessionData = await sessionRes.json();
+
+        if (sessionData?.user?.role === "ADMIN") {
+          router.push("/dashboard");
+        } else if (callbackUrl && callbackUrl !== "/account/dashboard") {
+          router.push(callbackUrl);
+        } else {
+          router.push("/catalog");
+        }
         router.refresh();
       }
     } catch (err: any) {
