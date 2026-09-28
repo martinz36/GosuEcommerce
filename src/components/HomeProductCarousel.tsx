@@ -38,9 +38,9 @@ const CATEGORY_TABS = ["Todo", "Sleeves", "Deckboxes", "Binders"];
 export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
   const [activeTab, setActiveTab] = useState("Todo");
 
-  // Configuración del plugin de Autoplay: deslice cada 3500ms, pausa al interactuar o hover
+  // Configuración estricta de Autoplay: delay 3000ms, stopOnInteraction: false, stopOnMouseEnter: true
   const autoplayPlugin = useMemo(() => {
-    return Autoplay({ delay: 3500, stopOnInteraction: true, stopOnMouseEnter: true });
+    return Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true });
   }, []);
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
@@ -122,7 +122,7 @@ export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
         {/* Carrusel Interactivo Embla con Autoplay y Máscara de Desvanecimiento */}
         <div className="relative group">
           
-          {/* Flecha Izquierda */}
+          {/* Flecha Izquierda (z-30 sobre el contenedor difuminado) */}
           <button
             onClick={scrollPrev}
             className="absolute -left-3 sm:-left-5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/90 border border-neutral-700 text-white hover:text-accent-cyan hover:border-accent-cyan transition-all flex items-center justify-center shadow-xl opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus:outline-none"
@@ -131,9 +131,9 @@ export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
             <ChevronLeft className="w-5 h-5" />
           </button>
 
-          {/* Paso 2: Contenedor con Máscara de Desvanecimiento en los Bordes (10% inicial y final) */}
-          <div className="[mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
-            {/* Paso 1: Viewport de Embla con Scrollbars Ocultas */}
+          {/* Paso 1: Contenedor con Máscara Afinada de Desvanecimiento (3% y 97%) */}
+          <div className="[mask-image:linear-gradient(to_right,transparent,black_3%,black_97%,transparent)]">
+            {/* Viewport de Embla con Scrollbars Ocultas */}
             <div
               ref={emblaRef}
               className="overflow-hidden py-2 px-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
@@ -158,7 +158,7 @@ export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
             </div>
           </div>
 
-          {/* Flecha Derecha */}
+          {/* Flecha Derecha (z-30 sobre el contenedor difuminado) */}
           <button
             onClick={scrollNext}
             className="absolute -right-3 sm:-right-5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/90 border border-neutral-700 text-white hover:text-accent-cyan hover:border-accent-cyan transition-all flex items-center justify-center shadow-xl opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus:outline-none"
