@@ -88,12 +88,18 @@ export default function CheckoutPage() {
     fetchGateway();
   }, []);
 
-  // Redirigir a inicio si el carrito está vacío
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+
   useEffect(() => {
-    if (items.length === 0) {
+    setIsMounted(true);
+  }, []);
+
+  // Redirigir a inicio únicamente si el cliente ya hidrató y el carrito realmente está vacío
+  useEffect(() => {
+    if (isMounted && items.length === 0) {
       router.replace("/");
     }
-  }, [items, router]);
+  }, [isMounted, items.length, router]);
 
   const subtotal = getSubtotal();
   const discountVal = getDiscountAmount();
@@ -167,6 +173,15 @@ export default function CheckoutPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (!isMounted) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center text-center p-6 font-body">
+        <Loader2 className="w-8 h-8 animate-spin text-accent-cyan mb-3" />
+        <p className="text-xs font-mono text-neutral-400">Cargando datos de tu pedido...</p>
+      </div>
+    );
+  }
 
   if (items.length === 0) return null;
 
