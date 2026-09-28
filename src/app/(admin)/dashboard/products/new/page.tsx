@@ -13,7 +13,7 @@ import {
   X,
   Package,
   DollarSign,
-  Tag
+  Coins
 } from "lucide-react";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
 import { createProductAction } from "../actions";
@@ -24,11 +24,19 @@ export default function NewProductPage() {
   // Estados del Formulario y Carga de Imagen
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [basePrice, setBasePrice] = useState("");
-  const [compareAtPrice, setCompareAtPrice] = useState("");
-  const [stock, setStock] = useState("50");
   const [sku, setSku] = useState("");
   const [categoryName, setCategoryName] = useState("Sleeves");
+
+  // Precios Explícitos en Soles (PEN) y Dólares (USD)
+  const [priceUSD, setPriceUSD] = useState("");
+  const [compareAtPriceUSD, setCompareAtPriceUSD] = useState("");
+  const [costUSD, setCostUSD] = useState("");
+
+  const [pricePEN, setPricePEN] = useState("");
+  const [compareAtPricePEN, setCompareAtPricePEN] = useState("");
+  const [costPEN, setCostPEN] = useState("");
+
+  const [stock, setStock] = useState("50");
 
   // Estados de Cloudinary
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -39,6 +47,27 @@ export default function NewProductPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  // Cálculo conveniente sugerido si el otro campo está vacío
+  const handlePriceUSDChange = (val: string) => {
+    setPriceUSD(val);
+    if (val && !pricePEN) {
+      const num = parseFloat(val);
+      if (!isNaN(num)) {
+        setPricePEN((num * 3.75).toFixed(2));
+      }
+    }
+  };
+
+  const handlePricePENChange = (val: string) => {
+    setPricePEN(val);
+    if (val && !priceUSD) {
+      const num = parseFloat(val);
+      if (!isNaN(num)) {
+        setPriceUSD((num / 3.75).toFixed(2));
+      }
+    }
+  };
 
   // Handler para subir imagen a Cloudinary
   const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,8 +94,8 @@ export default function NewProductPage() {
   // Handler para enviar formulario a Neon Postgres vía Server Action
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !description || !basePrice) {
-      setSubmitError("Por favor completa los campos obligatorios: Nombre, Descripción y Precio.");
+    if (!title || (!priceUSD && !pricePEN)) {
+      setSubmitError("Por favor completa los campos obligatorios: Nombre y al menos un Precio (Soles o Dólares).");
       return;
     }
 
@@ -76,11 +105,16 @@ export default function NewProductPage() {
     const formData = new FormData();
     formData.append("title", title);
     formData.append("description", description);
-    formData.append("basePrice", basePrice);
-    formData.append("compareAtPrice", compareAtPrice);
-    formData.append("stock", stock);
     formData.append("sku", sku);
     formData.append("categoryName", categoryName);
+    formData.append("priceUSD", priceUSD);
+    formData.append("pricePEN", pricePEN);
+    formData.append("compareAtPriceUSD", compareAtPriceUSD);
+    formData.append("compareAtPricePEN", compareAtPricePEN);
+    formData.append("costUSD", costUSD);
+    formData.append("costPEN", costPEN);
+    formData.append("stock", stock);
+
     if (imageUrl) {
       formData.append("imageUrl", imageUrl);
     }
@@ -99,7 +133,7 @@ export default function NewProductPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-16">
+    <div className="max-w-4xl mx-auto space-y-6 pb-16 font-body">
       {/* Volver al listado */}
       <div className="flex items-center justify-between">
         <Link
@@ -115,7 +149,7 @@ export default function NewProductPage() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Crear Nuevo Producto</h1>
         <p className="text-sm text-slate-500">
-          Sube la imagen a Cloudinary y guarda la ficha técnica en la base de datos Neon.
+          Sube la imagen a Cloudinary y configura los precios duales e inventario en Neon DB.
         </p>
       </div>
 
@@ -221,11 +255,10 @@ export default function NewProductPage() {
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Descripción Detallada *
+                Descripción Detallada
               </label>
               <textarea
                 rows={4}
-                required
                 placeholder="Describe las características técnicas, durabilidad y compatibilidad..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -236,7 +269,7 @@ export default function NewProductPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Categoría
+                  Categoría *
                 </label>
                 <select
                   value={categoryName}
@@ -267,56 +300,124 @@ export default function NewProductPage() {
           </div>
         </div>
 
-        {/* Bloque 3: Precios e Inventario */}
+        {/* Bloque 3: Precios Duales Independientes e Inventario */}
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-slate-500" />
-            <span>Precios e Inventario</span>
-          </h2>
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-slate-500" />
+              <span>Precios Duales Independientes e Inventario</span>
+            </h2>
+          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Precio de Venta ($ USD) *
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                required
-                placeholder="14.99"
-                value={basePrice}
-                onChange={(e) => setBasePrice(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-slate-900 transition-all"
-              />
+          {/* Banner Informativo */}
+          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 flex items-center gap-2">
+            <Coins className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>
+              <strong>Precios Independientes:</strong> Los clientes de Perú verán el precio en Soles (S/.) y los internacionales en Dólares ($ USD).
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Tarjeta Soles PEN */}
+            <div className="p-4 bg-emerald-50/50 border border-emerald-200/60 rounded-xl space-y-3">
+              <h3 className="text-xs font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1.5">
+                <span>🇵🇪 Precio para Perú (Soles PEN)</span>
+              </h3>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Precio en Soles (S/.) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Ej: 40.00"
+                  value={pricePEN}
+                  onChange={(e) => handlePricePENChange(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Precio Oferta / Tachado (S/.)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Ej: 50.00 (Mayor al precio)"
+                  value={compareAtPricePEN}
+                  onChange={(e) => setCompareAtPricePEN(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-rose-600 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Costo en Soles (S/.)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Ej: 15.00"
+                  value={costPEN}
+                  onChange={(e) => setCostPEN(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Precio Comparativo ($ USD)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                placeholder="19.99 (Opcional)"
-                value={compareAtPrice}
-                onChange={(e) => setCompareAtPrice(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-slate-900 transition-all"
-              />
-            </div>
+            {/* Tarjeta Dólares USD */}
+            <div className="p-4 bg-blue-50/50 border border-blue-200/60 rounded-xl space-y-3">
+              <h3 className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
+                <span>🇺🇸 Precio Internacional (Dólares USD)</span>
+              </h3>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Cantidad en Stock *
-              </label>
-              <input
-                type="number"
-                required
-                placeholder="50"
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-slate-900 transition-all"
-              />
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Precio en Dólares ($ USD) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Ej: 10.67"
+                  value={priceUSD}
+                  onChange={(e) => handlePriceUSDChange(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Precio Oferta / Tachado ($ USD)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Ej: 14.99 (Mayor al precio)"
+                  value={compareAtPriceUSD}
+                  onChange={(e) => setCompareAtPriceUSD(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-rose-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Costo en Dólares ($ USD)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Ej: 4.00"
+                  value={costUSD}
+                  onChange={(e) => setCostUSD(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
+          </div>
+
+          {/* Inventario */}
+          <div className="pt-4 border-t border-slate-100">
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Cantidad en Stock *
+            </label>
+            <input
+              type="number"
+              required
+              placeholder="50"
+              value={stock}
+              onChange={(e) => setStock(e.target.value)}
+              className="w-full sm:w-1/2 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-slate-900 transition-all"
+            />
           </div>
         </div>
 

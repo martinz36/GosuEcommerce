@@ -89,8 +89,8 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         </div>
 
         {/* Datos Principales */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className="sm:col-span-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="sm:col-span-3">
             <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre del Producto *</label>
             <input
               type="text"
@@ -110,6 +110,22 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
               required
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono uppercase focus:outline-none focus:bg-white"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Categoría</label>
+            <select
+              name="categoryId"
+              defaultValue={product.categoryId || ""}
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:bg-white"
+            >
+              <option value="">Sin Categoría</option>
+              {categories.map((cat: any) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

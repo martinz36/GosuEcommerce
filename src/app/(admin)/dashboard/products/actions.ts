@@ -144,6 +144,7 @@ export async function bulkUpdateStockAction(
 export async function updateProductFullAction(id: string, formData: FormData): Promise<void> {
   const title = formData.get("title") as string;
   const sku = formData.get("sku") as string;
+  const categoryId = formData.get("categoryId") as string;
   const priceUSDStr = formData.get("priceUSD") as string;
   const pricePENStr = formData.get("pricePEN") as string;
   const compareAtPriceUSDStr = formData.get("compareAtPriceUSD") as string;
@@ -171,11 +172,106 @@ export async function updateProductFullAction(id: string, formData: FormData): P
   const isFamily = isFamilyStr === "true" || isFamilyStr === "on";
   const isNew = isNewStr === "true" || isNewStr === "on";
 
+  const updateData: any = {
+    title: title.trim(),
+    sku: sku.trim(),
+    priceUSD,
+    pricePEN,
+    compareAtPriceUSD,
+    compareAtPricePEN,
+    compareAtPrice: compareAtPriceUSD,
+    basePrice: priceUSD,
+    costUSD,
+    costPEN,
+    costPerItem: costUSD,
+    stock: Math.max(0, stock),
+    uniqueId: uniqueId ? uniqueId.trim() : null,
+    familyId: familyId ? familyId.trim() : null,
+    isFamily,
+    productType: productType ? productType.trim() : null,
+    badgeText: badgeText ? badgeText.trim() : null,
+    isNew,
+    description: description ? description.trim() : title,
+  };
+
+  if (categoryId) {
+    updateData.categoryId = categoryId;
+  }
+
   await prisma.product.update({
     where: { id },
+    data: updateData,
+  });
+
+  revalidatePath("/dashboard/products");
+  revalidatePath(`/dashboard/products/${id}/edit`);
+  revalidatePath(`/products/${id}`);
+  revalidatePath("/");
+
+  redirect("/dashboard/products");
+}
+
+export async function createProductAction(formData: FormData) {
+  const title = formData.get("title") as string;
+  const rawSku = formData.get("sku") as string;
+  const priceUSDStr = (formData.get("priceUSD") as string) || (formData.get("basePrice") as string);
+  const pricePENStr = formData.get("pricePEN") as string;
+  const compareAtPriceUSDStr = (formData.get("compareAtPriceUSD") as string) || (formData.get("compareAtPrice") as string);
+  const compareAtPricePENStr = formData.get("compareAtPricePEN") as string;
+  const costUSDStr = formData.get("costUSD") as string;
+  const costPENStr = formData.get("costPEN") as string;
+  const stockStr = formData.get("stock") as string;
+  const description = formData.get("description") as string;
+  const categoryName = (formData.get("categoryName") as string) || (formData.get("category") as string) || "General";
+  const categoryId = formData.get("categoryId") as string;
+  const imageUrl = formData.get("imageUrl") as string;
+  const uniqueId = formData.get("uniqueId") as string;
+  const familyId = formData.get("familyId") as string;
+  const isFamilyStr = formData.get("isFamily") as string;
+  const productType = formData.get("productType") as string;
+  const badgeText = formData.get("badgeText") as string;
+  const isNewStr = formData.get("isNew") as string;
+
+  if (!title) {
+    return { success: false, error: "El título del producto es obligatorio." };
+  }
+
+  const sku = rawSku && rawSku.trim() !== "" ? rawSku.trim() : `GOSU-${Math.floor(100000 + Math.random() * 900000)}`;
+
+  const priceUSD = priceUSDStr ? parseFloat(priceUSDStr) : 0;
+  const pricePEN = pricePENStr ? parseFloat(pricePENStr) : Math.round(priceUSD * 3.75 * 100) / 100;
+  const compareAtPriceUSD = compareAtPriceUSDStr ? parseFloat(compareAtPriceUSDStr) : null;
+  const compareAtPricePEN = compareAtPricePENStr ? parseFloat(compareAtPricePENStr) : null;
+  const costUSD = costUSDStr ? parseFloat(costUSDStr) : null;
+  const costPEN = costPENStr ? parseFloat(costPENStr) : null;
+  const stock = stockStr ? parseInt(stockStr, 10) : 50;
+  const isFamily = isFamilyStr === "true" || isFamilyStr === "on";
+  const isNew = isNewStr === "true" || isNewStr === "on";
+  const slug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${sku.toLowerCase()}`;
+
+  let targetCategoryId = categoryId;
+
+  if (!targetCategoryId) {
+    let category = await prisma.category.findFirst({
+      where: { name: { equals: categoryName, mode: "insensitive" } },
+    });
+
+    if (!category) {
+      category = await prisma.category.create({
+        data: {
+          name: categoryName,
+          slug: categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        },
+      });
+    }
+    targetCategoryId = category.id;
+  }
+
+  const newProduct = await prisma.product.create({
     data: {
       title: title.trim(),
-      sku: sku.trim(),
+      sku: sku,
+      slug: slug,
       priceUSD,
       pricePEN,
       compareAtPriceUSD,
@@ -193,60 +289,7 @@ export async function updateProductFullAction(id: string, formData: FormData): P
       badgeText: badgeText ? badgeText.trim() : null,
       isNew,
       description: description ? description.trim() : title,
-    },
-  });
-
-  revalidatePath("/dashboard/products");
-  revalidatePath(`/dashboard/products/${id}/edit`);
-  revalidatePath(`/products/${id}`);
-  revalidatePath("/");
-
-  redirect("/dashboard/products");
-}
-
-export async function createProductAction(formData: FormData) {
-  const title = formData.get("title") as string;
-  const sku = formData.get("sku") as string;
-  const priceUSDStr = formData.get("priceUSD") as string;
-  const pricePENStr = formData.get("pricePEN") as string;
-  const stockStr = formData.get("stock") as string;
-  const description = formData.get("description") as string;
-  const categoryName = (formData.get("category") as string) || "General";
-  const imageUrl = formData.get("imageUrl") as string;
-
-  if (!title || !sku) {
-    return { success: false, error: "El título y SKU son obligatorios." };
-  }
-
-  const priceUSD = priceUSDStr ? parseFloat(priceUSDStr) : 0;
-  const pricePEN = pricePENStr ? parseFloat(pricePENStr) : Math.round(priceUSD * 3.75 * 100) / 100;
-  const stock = stockStr ? parseInt(stockStr, 10) : 100;
-  const slug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${sku.toLowerCase()}`;
-
-  let category = await prisma.category.findFirst({
-    where: { name: { equals: categoryName, mode: "insensitive" } },
-  });
-
-  if (!category) {
-    category = await prisma.category.create({
-      data: {
-        name: categoryName,
-        slug: categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-      },
-    });
-  }
-
-  const newProduct = await prisma.product.create({
-    data: {
-      title: title.trim(),
-      sku: sku.trim(),
-      slug: slug,
-      priceUSD,
-      pricePEN,
-      basePrice: priceUSD,
-      stock: Math.max(0, stock),
-      description: description ? description.trim() : title,
-      categoryId: category.id,
+      categoryId: targetCategoryId,
       isActive: true,
     },
   });
@@ -264,5 +307,5 @@ export async function createProductAction(formData: FormData) {
   revalidatePath("/dashboard/products");
   revalidatePath("/");
 
-  redirect("/dashboard/products");
+  return { success: true };
 }
