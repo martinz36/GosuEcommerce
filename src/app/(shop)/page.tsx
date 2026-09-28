@@ -3,7 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { Sparkles, ArrowRight, ShieldCheck, Zap, Package, Award } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { ProductCard } from "@/components/ProductCard";
+import { HomeProductCarousel } from "@/components/HomeProductCarousel";
 
 export const revalidate = 0;
 
@@ -52,13 +52,13 @@ export default async function HomePage() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
-              <a
-                href="#catalog"
+              <Link
+                href="/catalog"
                 className="w-full sm:w-auto btn-pill bg-white hover:bg-accent-cyan text-black font-extrabold text-xs py-3.5 px-8 transition-all flex items-center justify-center gap-2 uppercase font-mono shadow-xl"
               >
                 <span>Explorar Catálogo</span>
                 <ArrowRight className="w-4 h-4" />
-              </a>
+              </Link>
 
               <Link
                 href="/account/dashboard"
@@ -119,55 +119,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Transición Suave de Negro a Lienzo Claro para el Catálogo */}
-      <div className="h-20 bg-gradient-to-b from-black via-neutral-950 to-neutral-50" />
-
-      {/* Sección del Catálogo de Productos en Lienzo Claro */}
-      <section id="catalog" className="bg-neutral-50 text-slate-900 py-12 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto space-y-8">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-neutral-200 pb-6">
-            <div>
-              <span className="text-xs font-mono font-bold text-cyan-700 uppercase tracking-widest block mb-1">
-                PRODUCTOS DISPONIBLES EN NEON DB
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-black tracking-tight uppercase text-slate-900">
-                CATÁLOGO DE PRODUCTOS
-              </h2>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-            {products.map((product) => {
-              return (
-                <ProductCard
-                  key={product.id}
-                  product={{
-                    id: product.id,
-                    title: product.title,
-                    priceUSD: Number(product.priceUSD || product.basePrice),
-                    pricePEN: Number(product.pricePEN || (Number(product.basePrice) * 3.75).toFixed(2)),
-                    compareAtPriceUSD: product.compareAtPriceUSD ? Number(product.compareAtPriceUSD) : null,
-                    compareAtPricePEN: product.compareAtPricePEN ? Number(product.compareAtPricePEN) : null,
-                    compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
-                    badgeText: product.badgeText,
-                    isNew: product.isNew,
-                    stock: product.stock,
-                    imageUrl: product.images?.[0]?.url || null,
-                    secondaryImageUrl: product.images?.[1]?.url || null,
-                    images: product.images,
-                    isFamily: product.isFamily,
-                    familyId: product.familyId,
-                    categoryName: product.category?.name || "Accesorios TCG",
-                  }}
-                />
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Transición Suave de Lienzo Claro de Vuelta a Negro hacia el Footer */}
-      <div className="h-20 bg-gradient-to-b from-neutral-50 via-neutral-950 to-black" />
+      {/* Sección del Carrusel Interactivo de Productos con Filtros por Categoría */}
+      <HomeProductCarousel products={products} />
     </div>
   );
 }
