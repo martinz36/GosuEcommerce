@@ -105,17 +105,17 @@ export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
         {/* Doble Escaparate con CSS Estricto de Embla y Loop Filler */}
         <div className="space-y-4 sm:space-y-6">
           
-          {/* Fila 1 (Forward + Mask 3% + Estricto Viewport/Track/Slide) */}
+          {/* Fila 1 (Forward + Mask 3% + Método Oficial Embla: -ml-4 sm:-ml-6 & pl-4 sm:pl-6) */}
           <div className="relative [mask-image:linear-gradient(to_right,transparent,black_3%,black_97%,transparent)]">
-            {/* Paso 1: Viewport estrictamente con overflow-hidden */}
+            {/* Viewport */}
             <div ref={emblaRefRow1} className="overflow-hidden">
-              {/* Contenedor Track con flex y gap */}
-              <div className="flex gap-4 sm:gap-6">
+              {/* Track con margen negativo (sin gap) */}
+              <div className="flex -ml-4 sm:-ml-6">
                 {infiniteRow1.map((product, idx) => (
-                  /* CRÍTICO: Slide con flex-[0_0_auto] min-w-0 */
+                  /* Slide con padding izquierdo para mantener el espacio uniforme en la costura de loop */
                   <div
                     key={`row1-${product.id}-${idx}`}
-                    className="flex-[0_0_auto] min-w-0 w-44 sm:w-52"
+                    className="flex-[0_0_auto] min-w-0 pl-4 sm:pl-6 w-44 sm:w-52"
                   >
                     <MarqueeCard product={product} />
                   </div>
@@ -124,17 +124,17 @@ export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
             </div>
           </div>
 
-          {/* Fila 2 (Backward + Mask 3% + Estricto Viewport/Track/Slide) */}
+          {/* Fila 2 (Backward + Mask 3% + Método Oficial Embla: -ml-4 sm:-ml-6 & pl-4 sm:pl-6) */}
           <div className="relative [mask-image:linear-gradient(to_right,transparent,black_3%,black_97%,transparent)]">
-            {/* Paso 1: Viewport estrictamente con overflow-hidden */}
+            {/* Viewport */}
             <div ref={emblaRefRow2} className="overflow-hidden">
-              {/* Contenedor Track con flex y gap */}
-              <div className="flex gap-4 sm:gap-6">
+              {/* Track con margen negativo (sin gap) */}
+              <div className="flex -ml-4 sm:-ml-6">
                 {infiniteRow2.map((product, idx) => (
-                  /* CRÍTICO: Slide con flex-[0_0_auto] min-w-0 */
+                  /* Slide con padding izquierdo para mantener el espacio uniforme en la costura de loop */
                   <div
                     key={`row2-${product.id}-${idx}`}
-                    className="flex-[0_0_auto] min-w-0 w-44 sm:w-52"
+                    className="flex-[0_0_auto] min-w-0 pl-4 sm:pl-6 w-44 sm:w-52"
                   >
                     <MarqueeCard product={product} />
                   </div>
