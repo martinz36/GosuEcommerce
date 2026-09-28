@@ -28,7 +28,7 @@ export function MarqueeCard({ product }: MarqueeCardProps) {
   return (
     <Link
       href={`/products/${product.id}`}
-      className="group block w-44 sm:w-52 shrink-0 space-y-2.5 transition-transform duration-300 hover:scale-[1.02]"
+      className="group block w-full space-y-2.5 transition-transform duration-300 hover:scale-[1.02]"
     >
       {/* Paso 2: Contenedor Blanco Suave con Proporción Vertical aspect-[4/5] y Espacio para Respirar */}
       <div className="aspect-[4/5] w-full bg-white rounded-2xl p-4 shadow-lg border border-white/10 relative overflow-hidden flex items-center justify-center">

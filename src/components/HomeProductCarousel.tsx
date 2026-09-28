@@ -34,24 +34,33 @@ interface HomeProductCarouselProps {
 }
 
 export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
-  // Paso 2: Preparar los datos (Split en 2 filas)
+  // Paso 2: Preparar los datos y duplicar arrays (Loop Filler para 1080p y 4K)
   const row1Products = useMemo(() => {
     if (!products || products.length === 0) return [];
-    if (products.length <= 6) return [...products, ...products, ...products];
     const half = Math.ceil(products.length / 2);
     return products.slice(0, half);
   }, [products]);
 
   const row2Products = useMemo(() => {
     if (!products || products.length === 0) return [];
-    if (products.length <= 6) return [...products, ...products, ...products].reverse();
     const half = Math.ceil(products.length / 2);
     return products.slice(half);
   }, [products]);
 
-  // Paso 1: Fila Superior (Instancia Embla independiente: forward, playOnInit: true)
+  // Duplicación forzosa para loop infinito perfecto sin stuttering
+  const infiniteRow1 = useMemo(() => {
+    if (row1Products.length === 0) return [];
+    return [...row1Products, ...row1Products, ...row1Products, ...row1Products];
+  }, [row1Products]);
+
+  const infiniteRow2 = useMemo(() => {
+    if (row2Products.length === 0) return [];
+    return [...row2Products, ...row2Products, ...row2Products, ...row2Products];
+  }, [row2Products]);
+
+  // Paso 3: Parámetros del Hook con align: 'start'
   const [emblaRefRow1] = useEmblaCarousel(
-    { loop: true, dragFree: true },
+    { loop: true, dragFree: true, align: "start" },
     [
       AutoScroll({
         playOnInit: true,
@@ -63,9 +72,8 @@ export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
     ]
   );
 
-  // Paso 1: Fila Inferior (Instancia Embla independiente: backward, playOnInit: true)
   const [emblaRefRow2] = useEmblaCarousel(
-    { loop: true, dragFree: true },
+    { loop: true, dragFree: true, align: "start" },
     [
       AutoScroll({
         playOnInit: true,
@@ -81,7 +89,7 @@ export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
     <section className="bg-neutral-950 text-white py-14 px-4 sm:px-6 font-body border-b border-neutral-800/80 overflow-hidden">
       <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
         
-        {/* Paso 1: Limpieza de UI - Título alineado a la izquierda sin pestañas */}
+        {/* Cabecera limpia alineada a la izquierda */}
         <div className="border-b border-neutral-800 pb-5">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-accent-cyan uppercase tracking-widest">
@@ -94,20 +102,20 @@ export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
           </div>
         </div>
 
-        {/* Doble Instancia de Embla con MarqueeCard Densas y Separación Ajustada */}
+        {/* Doble Escaparate con CSS Estricto de Embla y Loop Filler */}
         <div className="space-y-4 sm:space-y-6">
           
-          {/* Fila 1 (Forward + MarqueeCard + Mask 3% + gap-3) */}
+          {/* Fila 1 (Forward + Mask 3% + Estricto Viewport/Track/Slide) */}
           <div className="relative [mask-image:linear-gradient(to_right,transparent,black_3%,black_97%,transparent)]">
-            <div
-              ref={emblaRefRow1}
-              className="overflow-hidden py-1 px-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-            >
-              <div className="flex items-stretch gap-3 sm:gap-4 -ml-3 sm:-ml-4">
-                {row1Products.map((product, idx) => (
+            {/* Paso 1: Viewport estrictamente con overflow-hidden */}
+            <div ref={emblaRefRow1} className="overflow-hidden">
+              {/* Contenedor Track con flex y gap */}
+              <div className="flex gap-4 sm:gap-6">
+                {infiniteRow1.map((product, idx) => (
+                  /* CRÍTICO: Slide con flex-[0_0_auto] min-w-0 */
                   <div
                     key={`row1-${product.id}-${idx}`}
-                    className="pl-3 sm:pl-4 min-w-0 flex-none w-44 sm:w-52"
+                    className="flex-[0_0_auto] min-w-0 w-44 sm:w-52"
                   >
                     <MarqueeCard product={product} />
                   </div>
@@ -116,17 +124,17 @@ export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
             </div>
           </div>
 
-          {/* Fila 2 (Backward + MarqueeCard + Mask 3% + gap-3) */}
+          {/* Fila 2 (Backward + Mask 3% + Estricto Viewport/Track/Slide) */}
           <div className="relative [mask-image:linear-gradient(to_right,transparent,black_3%,black_97%,transparent)]">
-            <div
-              ref={emblaRefRow2}
-              className="overflow-hidden py-1 px-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-            >
-              <div className="flex items-stretch gap-3 sm:gap-4 -ml-3 sm:-ml-4">
-                {row2Products.map((product, idx) => (
+            {/* Paso 1: Viewport estrictamente con overflow-hidden */}
+            <div ref={emblaRefRow2} className="overflow-hidden">
+              {/* Contenedor Track con flex y gap */}
+              <div className="flex gap-4 sm:gap-6">
+                {infiniteRow2.map((product, idx) => (
+                  /* CRÍTICO: Slide con flex-[0_0_auto] min-w-0 */
                   <div
                     key={`row2-${product.id}-${idx}`}
-                    className="pl-3 sm:pl-4 min-w-0 flex-none w-44 sm:w-52"
+                    className="flex-[0_0_auto] min-w-0 w-44 sm:w-52"
                   >
                     <MarqueeCard product={product} />
                   </div>
