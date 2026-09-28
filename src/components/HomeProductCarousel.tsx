@@ -49,34 +49,32 @@ export function HomeProductCarousel({ products }: HomeProductCarouselProps) {
     return products.slice(half);
   }, [products]);
 
-  // Paso 3: Fila Superior (Desplazamiento Hacia Adelante: 'forward')
-  const autoScrollRow1 = useMemo(() => {
-    return AutoScroll({
-      speed: 1.2,
-      direction: "forward",
-      stopOnInteraction: false,
-      stopOnMouseEnter: true,
-    });
-  }, []);
-
+  // Paso 1: Fila Superior (Instancia Embla independiente: forward, playOnInit: true)
   const [emblaRefRow1] = useEmblaCarousel(
     { loop: true, dragFree: true },
-    [autoScrollRow1]
+    [
+      AutoScroll({
+        playOnInit: true,
+        speed: 1.5,
+        stopOnInteraction: false,
+        stopOnMouseEnter: true,
+        direction: "forward",
+      }),
+    ]
   );
 
-  // Paso 3: Fila Inferior (Desplazamiento Hacia Atrás: 'backward')
-  const autoScrollRow2 = useMemo(() => {
-    return AutoScroll({
-      speed: 1.2,
-      direction: "backward",
-      stopOnInteraction: false,
-      stopOnMouseEnter: true,
-    });
-  }, []);
-
+  // Paso 1: Fila Inferior (Instancia Embla independiente: backward, playOnInit: true)
   const [emblaRefRow2] = useEmblaCarousel(
     { loop: true, dragFree: true },
-    [autoScrollRow2]
+    [
+      AutoScroll({
+        playOnInit: true,
+        speed: 1.5,
+        stopOnInteraction: false,
+        stopOnMouseEnter: true,
+        direction: "backward",
+      }),
+    ]
   );
 
   return (
