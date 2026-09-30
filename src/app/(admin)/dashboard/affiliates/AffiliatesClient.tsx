@@ -17,6 +17,7 @@ import {
   X,
   Users,
   DollarSign,
+  KeyRound,
 } from "lucide-react";
 import {
   createAffiliateAction,
@@ -449,10 +450,27 @@ export default function AffiliatesClient({ affiliateCodes }: { affiliateCodes: A
                                 className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg flex items-center gap-2 transition-colors"
                               >
                                 <ExternalLink className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                                <span>Ver Portal del Afiliado</span>
+                                <span>Ver Portal (Admin)</span>
                               </Link>
 
-                              {/* 2. Enviar Reporte por Correo con Resend */}
+                              {/* 2. Copiar Enlace Público del Portal del Creador */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (typeof window !== "undefined" && navigator.clipboard) {
+                                    const portalUrl = `${window.location.origin}/creadores/portal?token=${c.id}`;
+                                    navigator.clipboard.writeText(portalUrl);
+                                    setFeedback({ type: "success", msg: `¡Enlace del portal público copiado para ${c.code}!` });
+                                    setOpenMenuId(null);
+                                  }
+                                }}
+                                className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg flex items-center gap-2 transition-colors text-left"
+                              >
+                                <KeyRound className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                <span>Copiar Acceso Creador</span>
+                              </button>
+
+                              {/* 3. Enviar Reporte por Correo con Resend */}
                               <button
                                 type="button"
                                 onClick={() => handleSendReport(c.id)}

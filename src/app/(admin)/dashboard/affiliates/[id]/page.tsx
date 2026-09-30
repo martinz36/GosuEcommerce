@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { CopyAffiliateLink } from "@/components/CopyAffiliateLink";
+import { CopyCreatorPortalLink } from "@/components/CopyCreatorPortalLink";
 import {
   ArrowLeft,
   Award,
@@ -151,6 +152,9 @@ export default async function AdminAffiliateDetailPage({
 
       {/* Generador y Copiador de Enlace Directo (?ref=CODIGO) */}
       <CopyAffiliateLink code={codeRecord.code} variant="admin" />
+
+      {/* Generador y Copiador de Acceso Único al Portal del Creador */}
+      <CopyCreatorPortalLink token={codeRecord.id} code={codeRecord.code} variant="admin" />
 
       {/* Tarjetas de Métricas de Rendimiento */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
