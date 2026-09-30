@@ -26,6 +26,7 @@ import {
   SlidersHorizontal,
   CreditCard,
   Filter,
+  Plus,
 } from "lucide-react";
 import { updateOrderStatusAction, updateOrderTrackingAction } from "./actions";
 
@@ -385,6 +386,16 @@ export default function OrdersTableClient({ initialOrders }: { initialOrders: an
               <Download className="w-3.5 h-3.5 text-emerald-400" />
               <span>Exportar CSV</span>
             </button>
+
+            {/* Paso 1: Botón + Nueva Orden (Draft Orders) */}
+            <Link
+              href="/dashboard/orders/create"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition-colors shadow-sm"
+              title="Crear nueva orden manual (Draft Order)"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ Nueva Orden</span>
+            </Link>
           </div>
         </div>
 
