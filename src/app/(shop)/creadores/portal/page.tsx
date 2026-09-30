@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/prisma";
 import { CopyAffiliateLink } from "@/components/CopyAffiliateLink";
 import { CopyCreatorPortalLink } from "@/components/CopyCreatorPortalLink";
+import { AffiliateBankDetailsForm } from "@/components/AffiliateBankDetailsForm";
 import {
   Award,
   DollarSign,
@@ -234,11 +235,21 @@ export default async function PublicCreatorPortalPage({ searchParams }: PageProp
               $ {commUSD.toFixed(2)} USD
             </span>
           </div>
-          <span className="text-[11px] text-neutral-500 block pt-1 font-mono">
-            Saldo acumulado listo para liquidar.
+          <span className="text-[11px] text-neutral-400 block pt-1 font-mono">
+            Las liquidaciones se procesan automáticamente cada 30 días para saldos mayores a S/. 50.00 PEN (o $ 15.00 USD).
           </span>
         </div>
       </div>
+
+      {/* Formulario de Datos Bancarios BCP / Interbank */}
+      <AffiliateBankDetailsForm
+        discountCodeId={codeRecord.id}
+        userId={codeRecord.createdBy?.id}
+        initialBankName={codeRecord.createdBy?.bankName}
+        initialAccountNumber={codeRecord.createdBy?.accountNumber}
+        initialAccountName={codeRecord.createdBy?.accountName}
+        variant="dark"
+      />
 
       {/* Enlaces para Compartir & Acceso al Portal */}
       <div className="space-y-4">

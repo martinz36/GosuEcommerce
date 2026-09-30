@@ -409,3 +409,110 @@ export async function sendAffiliateReportEmail({
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * 7. Correo de Confirmación de Liquidación de Comisión (Payouts)
+ */
+export async function sendAffiliatePayoutEmail({
+  toEmail,
+  affiliateName,
+  code,
+  amount,
+  currency = "PEN",
+  payoutMethod,
+  bankName,
+  accountNumber,
+  storeCreditCode,
+}: {
+  toEmail: string;
+  affiliateName: string;
+  code: string;
+  amount: number;
+  currency?: string;
+  payoutMethod: "TRANSFER" | "STORE_CREDIT";
+  bankName?: string | null;
+  accountNumber?: string | null;
+  storeCreditCode?: string | null;
+}) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("RESEND_API_KEY no configurada. Omitiendo envío de email de payout.");
+    return { success: false, error: "API Key no configurada" };
+  }
+
+  const symbol = currency.toUpperCase() === "USD" ? "$" : "S/.";
+  const formattedAmount = `${symbol} ${amount.toFixed(2)} ${currency.toUpperCase()}`;
+
+  const isTransfer = payoutMethod === "TRANSFER";
+  const subject = isTransfer
+    ? `💰 ¡Liquidación Procesada! Transferencia Bancaria por ${formattedAmount} (GOSU® TCG)`
+    : `🎁 ¡Comisión Convertida! Tu Crédito en Tienda por ${formattedAmount} está Listo (GOSU® TCG)`;
+
+  const detailHTML = isTransfer
+    ? `
+      <p style="color: #A3A3A3; font-size: 14px; line-height: 1.6; margin: 0 0 16px 0;">
+        ¡Hola ${affiliateName}! Te informamos que hemos procesado la liquidación de tus comisiones del programa de creadores por tu código <strong style="color:#00F0FF; font-family:monospace;">${code}</strong>.
+      </p>
+      <div style="background-color:#141414; border:1px solid #10B981; border-radius:10px; padding:16px; margin-bottom:20px;">
+        <table style="width:100%; font-family:sans-serif; text-align:left; border-collapse:collapse;">
+          <tr>
+            <td style="color:#A3A3A3; padding:6px 0; font-size:13px;">Monto Liquidado:</td>
+            <td style="color:#10B981; font-weight:extrabold; font-family:monospace; padding:6px 0; font-size:18px; text-align:right;">${formattedAmount}</td>
+          </tr>
+          <tr>
+            <td style="color:#A3A3A3; padding:6px 0; font-size:13px;">Método de Pago:</td>
+            <td style="color:#FFFFFF; font-weight:bold; font-family:monospace; padding:6px 0; font-size:14px; text-align:right;">Transferencia Bancaria (${bankName || "BCP/Interbank"})</td>
+          </tr>
+          ${accountNumber ? `
+          <tr>
+            <td style="color:#A3A3A3; padding:6px 0; font-size:13px;">Cuenta / CCI:</td>
+            <td style="color:#FFFFFF; font-weight:bold; font-family:monospace; padding:6px 0; font-size:14px; text-align:right;">${accountNumber}</td>
+          </tr>
+          ` : ""}
+        </table>
+      </div>
+      <p style="color:#A3A3A3; font-size:13px; line-height:1.5; margin:0 0 12px 0;">
+        El depósito correspondiente ya ha sido emitido. Dependiendo del tipo de transferencia (interbancaria o directa BCP/Interbank), se verá reflejado en tu saldo en breve.
+      </p>
+    `
+    : `
+      <p style="color: #A3A3A3; font-size: 14px; line-height: 1.6; margin: 0 0 16px 0;">
+        ¡Hola ${affiliateName}! Conforme a tu solicitud, hemos convertido tus comisiones acumuladas del código <strong style="color:#00F0FF; font-family:monospace;">${code}</strong> en un <strong>Crédito Exclusivo para la Tienda</strong>.
+      </p>
+      <div style="background-color:#141414; border:1px solid #A855F7; border-radius:10px; padding:16px; margin-bottom:20px;">
+        <table style="width:100%; font-family:sans-serif; text-align:left; border-collapse:collapse;">
+          <tr>
+            <td style="color:#A3A3A3; padding:6px 0; font-size:13px;">Monto del Crédito:</td>
+            <td style="color:#A855F7; font-weight:extrabold; font-family:monospace; padding:6px 0; font-size:18px; text-align:right;">${formattedAmount}</td>
+          </tr>
+          <tr>
+            <td style="color:#A3A3A3; padding:6px 0; font-size:13px;">Código de Descuento:</td>
+            <td style="color:#00F0FF; font-weight:bold; font-family:monospace; padding:6px 0; font-size:16px; text-align:right;">${storeCreditCode}</td>
+          </tr>
+        </table>
+      </div>
+      <p style="color:#A3A3A3; font-size:13px; line-height:1.5; margin:0 0 12px 0;">
+        Ingresa este código durante el Checkout para descontar el total de tu compra en cualquier producto del catálogo de GOSU® TCG Gear.
+      </p>
+    `;
+
+  try {
+    const data = await resend.emails.send({
+      from: DEFAULT_FROM,
+      to: [toEmail],
+      subject,
+      react: NewsletterEmail({
+        subject,
+        previewText: `Hola ${affiliateName}, tu liquidación de comisión de ${formattedAmount} ha sido procesada.`,
+        badgeTitle: "💎 LIQUIDACIÓN CREADOR GOSU®",
+        contentHTML: detailHTML,
+        ctaText: "Ver Mi Portal de Afiliado",
+        ctaUrl: (process.env.NEXT_PUBLIC_APP_URL || "https://shop.gosuaccessories.com") + "/creadores/portal",
+      }),
+    });
+
+    return { success: true, data };
+  } catch (error: any) {
+    console.error("Error enviando email de payout con Resend:", error);
+    return { success: false, error: error.message };
+  }
+}

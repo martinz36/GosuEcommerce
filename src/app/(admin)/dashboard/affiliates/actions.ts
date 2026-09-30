@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { sendAffiliateReportEmail } from "@/lib/resend";
+import { sendAffiliateReportEmail, sendAffiliatePayoutEmail } from "@/lib/resend";
 
 export async function createAffiliateAction(formData: FormData): Promise<{ success: boolean; error?: string }> {
   try {
@@ -226,5 +226,191 @@ export async function sendAffiliateReportAction(discountCodeId: string): Promise
   } catch (err: any) {
     console.error("Error enviando reporte por correo al afiliado:", err);
     return { success: false, error: err.message || "Error al enviar el reporte." };
+  }
+}
+
+/**
+ * Guardar / Actualizar datos bancarios del afiliado (BCP o Interbank)
+ */
+export async function saveAffiliateBankDetailsAction(formData: FormData): Promise<{ success: boolean; error?: string }> {
+  try {
+    const codeId = formData.get("discountCodeId") as string;
+    const userId = formData.get("userId") as string;
+    const bankName = (formData.get("bankName") as string || "").trim();
+    const accountNumber = (formData.get("accountNumber") as string || "").trim();
+    const accountName = (formData.get("accountName") as string || "").trim();
+
+    if (!bankName || (bankName !== "BCP" && bankName !== "Interbank")) {
+      return { success: false, error: "El banco seleccionado debe ser BCP o Interbank." };
+    }
+
+    if (!accountNumber) {
+      return { success: false, error: "El número de cuenta / CCI es obligatorio." };
+    }
+
+    let targetUserId = userId;
+
+    if (!targetUserId && codeId) {
+      const codeRecord = await prisma.discountCode.findUnique({
+        where: { id: codeId },
+        select: { createdById: true },
+      });
+      if (codeRecord?.createdById) {
+        targetUserId = codeRecord.createdById;
+      }
+    }
+
+    if (!targetUserId) {
+      return { success: false, error: "No se encontró el usuario afiliado." };
+    }
+
+    await prisma.user.update({
+      where: { id: targetUserId },
+      data: {
+        bankName,
+        accountNumber,
+        accountName,
+      },
+    });
+
+    revalidatePath("/dashboard/affiliates");
+    if (codeId) revalidatePath(`/dashboard/affiliates/${codeId}`);
+    revalidatePath("/creadores/portal");
+    revalidatePath("/account/affiliate");
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("Error al guardar datos bancarios del afiliado:", err);
+    return { success: false, error: err.message || "Error al actualizar datos bancarios." };
+  }
+}
+
+/**
+ * Procesar Liquidación de Comisiones (Payout) - Transferencia Bancaria o Crédito en Tienda
+ */
+export async function processAffiliatePayoutAction({
+  discountCodeId,
+  payoutMethod,
+  currency = "PEN",
+  amount,
+  notes,
+}: {
+  discountCodeId: string;
+  payoutMethod: "TRANSFER" | "STORE_CREDIT";
+  currency?: string;
+  amount: number;
+  notes?: string;
+}): Promise<{ success: boolean; message?: string; error?: string; storeCreditCode?: string }> {
+  try {
+    if (!discountCodeId) {
+      return { success: false, error: "Código de afiliado no especificado." };
+    }
+
+    if (!amount || amount <= 0) {
+      return { success: false, error: "El monto a liquidar debe ser mayor a 0." };
+    }
+
+    const codeRecord = await prisma.discountCode.findUnique({
+      where: { id: discountCodeId },
+      include: { createdBy: true },
+    });
+
+    if (!codeRecord || !codeRecord.createdBy) {
+      return { success: false, error: "No se encontró el creador vinculado a este código de afiliado." };
+    }
+
+    const creator = codeRecord.createdBy;
+    const uppercaseCurrency = (currency || "PEN").toUpperCase();
+
+    let generatedStoreCreditCode: string | undefined = undefined;
+
+    if (payoutMethod === "STORE_CREDIT") {
+      const cleanEmailName = (creator.email.split("@")[0] || "GOSU").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      generatedStoreCreditCode = `CREDITO-${cleanEmailName}-${randomSuffix}`;
+
+      await prisma.discountCode.create({
+        data: {
+          code: generatedStoreCreditCode,
+          type: "FIXED_AMOUNT",
+          category: "PROMO",
+          value: amount,
+          usageLimit: 1,
+          isActive: true,
+        },
+      });
+    }
+
+    await prisma.payout.create({
+      data: {
+        affiliateId: creator.id,
+        amount: amount,
+        currency: uppercaseCurrency,
+        payoutMethod: payoutMethod,
+        bankName: creator.bankName || (payoutMethod === "TRANSFER" ? "BCP" : null),
+        accountNumber: creator.accountNumber || null,
+        accountName: creator.accountName || creator.name || creator.email,
+        storeCreditCode: generatedStoreCreditCode || null,
+        status: "COMPLETED",
+        notes: notes || (payoutMethod === "TRANSFER" ? "Liquidación manual por transferencia bancaria" : `Crédito en tienda generado: ${generatedStoreCreditCode}`),
+      },
+    });
+
+    const unpaidLogs = await prisma.commissionLog.findMany({
+      where: {
+        affiliateId: creator.id,
+        isPaid: false,
+        order: {
+          currency: uppercaseCurrency,
+        },
+      },
+    });
+
+    if (unpaidLogs.length > 0) {
+      await prisma.commissionLog.updateMany({
+        where: {
+          id: { in: unpaidLogs.map((l) => l.id) },
+        },
+        data: {
+          isPaid: true,
+          paidAt: new Date(),
+        },
+      });
+    }
+
+    await prisma.user.update({
+      where: { id: creator.id },
+      data: { pendingCommission: 0.00 },
+    }).catch(() => {});
+
+    await sendAffiliatePayoutEmail({
+      toEmail: creator.email,
+      affiliateName: creator.name || `${creator.firstName || ""} ${creator.lastName || ""}`.trim() || creator.email,
+      code: codeRecord.code,
+      amount,
+      currency: uppercaseCurrency,
+      payoutMethod,
+      bankName: creator.bankName,
+      accountNumber: creator.accountNumber,
+      storeCreditCode: generatedStoreCreditCode,
+    });
+
+    revalidatePath("/dashboard/affiliates");
+    revalidatePath(`/dashboard/affiliates/${discountCodeId}`);
+    revalidatePath("/creadores/portal");
+    revalidatePath("/account/affiliate");
+
+    const msg = payoutMethod === "TRANSFER"
+      ? `Liquidación de ${uppercaseCurrency === "USD" ? "$" : "S/."} ${amount.toFixed(2)} ${uppercaseCurrency} marcada como transferida exitosamente.`
+      : `Crédito en tienda de ${uppercaseCurrency === "USD" ? "$" : "S/."} ${amount.toFixed(2)} ${uppercaseCurrency} generado con el código ${generatedStoreCreditCode}.`;
+
+    return {
+      success: true,
+      message: msg,
+      storeCreditCode: generatedStoreCreditCode,
+    };
+  } catch (err: any) {
+    console.error("Error procesando liquidación de afiliado:", err);
+    return { success: false, error: err.message || "Error al procesar la liquidación." };
   }
 }

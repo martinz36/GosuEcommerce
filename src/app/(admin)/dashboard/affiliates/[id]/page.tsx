@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { CopyAffiliateLink } from "@/components/CopyAffiliateLink";
 import { CopyCreatorPortalLink } from "@/components/CopyCreatorPortalLink";
+import { AdminAffiliatePayoutButton } from "@/components/AdminAffiliatePayoutButton";
+import { AffiliateBankDetailsForm } from "@/components/AffiliateBankDetailsForm";
 import {
   ArrowLeft,
   Award,
@@ -143,8 +145,18 @@ export default async function AdminAffiliateDetailPage({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold border ${codeRecord.isActive ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-500 border-slate-200"}`}>
+        <div className="flex flex-wrap items-center gap-2">
+          <AdminAffiliatePayoutButton
+            discountCodeId={codeRecord.id}
+            creatorName={creator ? (creator.name || `${creator.firstName || ""} ${creator.lastName || ""}`.trim() || creator.email) : codeRecord.code}
+            creatorEmail={creator?.email}
+            commPEN={commPEN}
+            commUSD={commUSD}
+            bankName={creator?.bankName}
+            accountNumber={creator?.accountNumber}
+            accountName={creator?.accountName}
+          />
+          <span className={`px-3 py-2 rounded-xl text-xs font-mono font-bold border ${codeRecord.isActive ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-500 border-slate-200"}`}>
             {codeRecord.isActive ? "CUPÓN ACTIVO" : "INACTIVO"}
           </span>
         </div>
@@ -200,10 +212,20 @@ export default async function AdminAffiliateDetailPage({
             </span>
           </div>
           <span className="text-[11px] text-slate-400 block pt-1">
-            Saldo acumulado por liquidar al influencer.
+            Las liquidaciones se procesan automáticamente cada 30 días para saldos mayores a S/. 50.00 PEN (o $ 15.00 USD).
           </span>
         </div>
       </div>
+
+      {/* Formulario de Datos Bancarios BCP / Interbank */}
+      <AffiliateBankDetailsForm
+        discountCodeId={codeRecord.id}
+        userId={creator?.id}
+        initialBankName={creator?.bankName}
+        initialAccountNumber={creator?.accountNumber}
+        initialAccountName={creator?.accountName}
+        variant="light"
+      />
 
       {/* Tabla de Órdenes Generadas por el Código del Afiliado */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 space-y-4">

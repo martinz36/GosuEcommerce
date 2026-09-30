@@ -6,6 +6,7 @@ import { ArrowLeft, Award, DollarSign, Copy, CheckCircle2, ShoppingBag, Users, S
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/prisma";
 import { CopyAffiliateLink } from "@/components/CopyAffiliateLink";
+import { AffiliateBankDetailsForm } from "@/components/AffiliateBankDetailsForm";
 
 export const revalidate = 0;
 
@@ -162,8 +163,8 @@ export default async function CustomerAffiliatePage() {
                   </span>
                 )}
               </div>
-              <span className="text-xs text-neutral-400 block pt-1">
-                Ganancias netas acumuladas por tus ventas.
+              <span className="text-[11px] text-neutral-400 block pt-1 font-mono">
+                Las liquidaciones se procesan automáticamente cada 30 días para saldos mayores a S/. 50.00 PEN (o $ 15.00 USD).
               </span>
             </div>
 
@@ -185,6 +186,15 @@ export default async function CustomerAffiliatePage() {
               </span>
             </div>
           </div>
+
+          {/* Formulario de Datos Bancarios BCP / Interbank */}
+          <AffiliateBankDetailsForm
+            userId={userRecord?.id}
+            initialBankName={userRecord?.bankName}
+            initialAccountNumber={userRecord?.accountNumber}
+            initialAccountName={userRecord?.accountName}
+            variant="dark"
+          />
 
           {/* Caja con Código de Creador & Link Personalizado */}
           <div className="bg-surface rounded-2xl border border-neutral-800 p-6 space-y-4">

@@ -50,9 +50,13 @@ model User {
   createdDiscounts DiscountCode[]   @relation("CreatedByAffiliate")
   commissions      CommissionLog[] @relation("AffiliateCommissions")
 
-  // Métricas de Afiliado
+  // Métricas de Afiliado & Datos Bancarios
   totalSalesGenerated Decimal       @default(0.00) @db.Decimal(10, 2)
   pendingCommission   Decimal       @default(0.00) @db.Decimal(10, 2)
+  bankName            String?       // 'BCP' | 'Interbank'
+  accountNumber       String?       // Cuenta / CCI
+  accountName         String?       // Titular de la cuenta
+  payouts             Payout[]      @relation("AffiliatePayouts")
   acceptsMarketing      Boolean         @default(false)
   defaultShippingAddress String?
   tags                  String[]        @default([])
@@ -447,6 +451,26 @@ model CommissionLog {
   paidAt           DateTime?
 
   createdAt        DateTime @default(now())
+}
+
+// ------------------------------------------------------
+// HISTORIAL DE LIQUIDACIONES Y PAYOUTS DE AFILIADOS
+// ------------------------------------------------------
+model Payout {
+  id              String   @id @default(cuid())
+  affiliateId     String
+  affiliate       User     @relation("AffiliatePayouts", fields: [affiliateId], references: [id], onDelete: Cascade)
+  amount          Decimal  @db.Decimal(10, 2)
+  currency        String   @default("PEN") // PEN / USD
+  payoutMethod    String   // "TRANSFER" | "STORE_CREDIT"
+  bankName        String?  // BCP / Interbank
+  accountNumber   String?
+  accountName     String?
+  storeCreditCode String?  // Código de cupón si fue a Crédito de Tienda
+  status          String   @default("COMPLETED")
+  notes           String?
+
+  createdAt       DateTime @default(now())
 }
 
 // ------------------------------------------------------
