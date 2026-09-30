@@ -20,6 +20,7 @@ import {
   Menu,
   X,
   BookOpen,
+  Send,
 } from "lucide-react";
 
 export function AdminLayoutClient({ children }: { children: React.ReactNode }) {
@@ -28,6 +29,7 @@ export function AdminLayoutClient({ children }: { children: React.ReactNode }) {
   const navigationItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Productos", href: "/dashboard/products", icon: Package },
+    { name: "Novedades & Newsletter", href: "/dashboard/newsletter", icon: Send },
     { name: "Descuentos & Afiliados", href: "/dashboard/discounts", icon: Percent },
     { name: "Pedidos & Recibos", href: "/dashboard/orders", icon: ShoppingCart },
     { name: "Pasarela de Pago", href: "/dashboard/settings/payments", icon: CreditCard },
