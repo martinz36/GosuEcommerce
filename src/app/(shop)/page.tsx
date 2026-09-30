@@ -35,11 +35,16 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-black text-white font-body selection:bg-accent-cyan selection:text-black">
-      {/* Hero Banner Estilo Imagen 1 - Centrado con Tipografía Impactante */}
-      <section className="relative overflow-hidden border-b border-neutral-900 bg-neutral-950 py-16 sm:py-24 md:py-28 px-4 sm:px-6">
-        {/* Fondo Texturizado Oscuro */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(35,35,40,0.6)_0%,rgba(5,5,5,0.95)_100%)] pointer-events-none" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1a1a1a_1px,transparent_1px),linear-gradient(to_bottom,#1a1a1a_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-20 pointer-events-none" />
+      {/* Hero Banner Estilo Imagen 1 & 4 - Centrado con Tipografía Impactante y Textura GOSU */}
+      <section className="relative overflow-hidden border-b border-neutral-900 bg-black py-16 sm:py-24 md:py-28 px-4 sm:px-6">
+        {/* Textura de Fondo Oficial Imagen 4 (Halftone + Pliegue + Marca de Agua GOSU) */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-50 mix-blend-luminosity pointer-events-none"
+          style={{ backgroundImage: `url('/hero-bg-texture.png')` }}
+        />
+        {/* Gradient radial para suavizar Bordes y Viñeta */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.3)_0%,rgba(0,0,0,0.85)_100%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1a1a1a_1px,transparent_1px),linear-gradient(to_bottom,#1a1a1a_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-15 pointer-events-none" />
 
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
