@@ -63,6 +63,7 @@ const NAVIGATION_GROUPS: NavGroup[] = [
     icon: Package,
     items: [
       { name: "Productos", href: "/dashboard/products", icon: Package },
+      { name: "Categorías", href: "/dashboard/categories", icon: Layers },
     ],
   },
   {
