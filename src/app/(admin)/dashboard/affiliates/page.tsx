@@ -17,7 +17,11 @@ export default async function AdminAffiliatesPage() {
           ],
         },
         include: {
-          createdBy: true,
+          createdBy: {
+            include: {
+              payouts: true,
+            },
+          },
           orders: {
             where: {
               status: { in: ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"] },

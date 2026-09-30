@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
-import { ArrowLeft, Award, DollarSign, Copy, CheckCircle2, ShoppingBag, Users, Sparkles } from "lucide-react";
+import { ArrowLeft, Award, DollarSign, Copy, CheckCircle2, ShoppingBag, Users, Sparkles, CreditCard } from "lucide-react";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/prisma";
 import { CopyAffiliateLink } from "@/components/CopyAffiliateLink";
@@ -21,6 +21,7 @@ export default async function CustomerAffiliatePage() {
 
   let affiliateCodes: any[] = [];
   let commissions: any[] = [];
+  let payouts: any[] = [];
   let userRecord: any = null;
 
   try {
@@ -47,22 +48,27 @@ export default async function CustomerAffiliatePage() {
         },
         orderBy: { createdAt: "desc" },
       });
+
+      payouts = await prisma.payout.findMany({
+        where: { affiliateId: userId },
+        orderBy: { createdAt: "desc" },
+      });
     }
   } catch (err) {
     console.error("Error al cargar datos de afiliado en Neon DB:", err);
   }
 
-  let commPEN = 0;
-  let commUSD = 0;
+  let totalCommPEN = 0;
+  let totalCommUSD = 0;
 
   if (commissions.length > 0) {
     commissions.forEach((c) => {
       const amt = Number(c.commissionAmount || 0);
       const curr = (c.order?.currency || "PEN").toUpperCase();
       if (curr === "USD") {
-        commUSD += amt;
+        totalCommUSD += amt;
       } else {
-        commPEN += amt;
+        totalCommPEN += amt;
       }
     });
   } else {
@@ -76,13 +82,29 @@ export default async function CustomerAffiliatePage() {
         const curr = (o.currency || "PEN").toUpperCase();
         const comm = amt * (commRate / 100);
         if (curr === "USD") {
-          commUSD += comm;
+          totalCommUSD += comm;
         } else {
-          commPEN += comm;
+          totalCommPEN += comm;
         }
       });
     });
   }
+
+  let paidOutPEN = 0;
+  let paidOutUSD = 0;
+
+  payouts.forEach((p: any) => {
+    const amt = Number(p.amount || 0);
+    const curr = (p.currency || "PEN").toUpperCase();
+    if (curr === "USD") {
+      paidOutUSD += amt;
+    } else {
+      paidOutPEN += amt;
+    }
+  });
+
+  const commPEN = Math.max(0, totalCommPEN - paidOutPEN);
+  const commUSD = Math.max(0, totalCommUSD - paidOutUSD);
 
   const totalOrdersGenerated = affiliateCodes.reduce((sum, c) => {
     const validOrders = (c.orders || []).filter((o: any) =>
@@ -247,6 +269,50 @@ export default async function CustomerAffiliatePage() {
                         </span>
                         <span className="text-[10px] text-neutral-400">
                           {log.isPaid ? "Liquidado" : "Pendiente de pago"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Historial de Liquidaciones (Payouts) */}
+          <div className="bg-surface rounded-2xl border border-neutral-800 p-6 space-y-4">
+            <h3 className="text-sm font-extrabold uppercase text-white tracking-wider flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-emerald-400" />
+              <span>Historial de Liquidaciones & Payouts ({payouts.length})</span>
+            </h3>
+
+            {payouts.length === 0 ? (
+              <p className="text-xs text-neutral-400 italic">Aún no se han registrado liquidaciones de comisión.</p>
+            ) : (
+              <div className="divide-y divide-neutral-800 border border-neutral-800 rounded-xl overflow-hidden bg-black/40">
+                {payouts.map((p: any) => {
+                  const curr = (p.currency || "PEN").toUpperCase();
+                  const symbol = curr === "PEN" ? "S/." : "$";
+                  const isTransfer = p.payoutMethod === "TRANSFER";
+                  return (
+                    <div key={p.id} className="p-4 flex items-center justify-between text-xs font-mono">
+                      <div>
+                        <span className="text-white font-bold block">
+                          {isTransfer ? "Transferencia Bancaria" : "Crédito en Tienda"}
+                        </span>
+                        <span className="text-[11px] text-neutral-400 block">
+                          {isTransfer ? `${p.bankName || "BCP"} - ${p.accountNumber || "N/A"}` : `Código: ${p.storeCreditCode}`}
+                        </span>
+                        <span className="text-[10px] text-neutral-500">
+                          {new Date(p.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="font-extrabold text-emerald-400 text-sm block">
+                          {symbol} {Number(p.amount).toFixed(2)} {curr}
+                        </span>
+                        <span className="text-[10px] font-bold text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 inline-block mt-0.5">
+                          {p.status || "COMPLETADO"}
                         </span>
                       </div>
                     </div>

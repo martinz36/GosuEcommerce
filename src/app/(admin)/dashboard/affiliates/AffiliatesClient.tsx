@@ -302,8 +302,10 @@ export default function AffiliatesClient({ affiliateCodes }: { affiliateCodes: A
                   
                   let salesPEN = 0;
                   let salesUSD = 0;
-                  let commPEN = 0;
-                  let commUSD = 0;
+                  let totalCommPEN = 0;
+                  let totalCommUSD = 0;
+                  let paidOutPEN = 0;
+                  let paidOutUSD = 0;
 
                   paidOrders.forEach((o: any) => {
                     const amt = Number(o.totalAmount || 0);
@@ -311,12 +313,27 @@ export default function AffiliatesClient({ affiliateCodes }: { affiliateCodes: A
                     const comm = amt * (commRate / 100);
                     if (curr === "USD") {
                       salesUSD += amt;
-                      commUSD += comm;
+                      totalCommUSD += comm;
                     } else {
                       salesPEN += amt;
-                      commPEN += comm;
+                      totalCommPEN += comm;
                     }
                   });
+
+                  if (c.createdBy && c.createdBy.payouts && Array.isArray(c.createdBy.payouts)) {
+                    c.createdBy.payouts.forEach((p: any) => {
+                      const amt = Number(p.amount || 0);
+                      const curr = (p.currency || "PEN").toUpperCase();
+                      if (curr === "USD") {
+                        paidOutUSD += amt;
+                      } else {
+                        paidOutPEN += amt;
+                      }
+                    });
+                  }
+
+                  const commPEN = Math.max(0, totalCommPEN - paidOutPEN);
+                  const commUSD = Math.max(0, totalCommUSD - paidOutUSD);
 
                   return (
                     <tr key={c.id} className="hover:bg-slate-50">

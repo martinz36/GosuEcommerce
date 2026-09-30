@@ -73,10 +73,17 @@ export default async function AdminAffiliateDetailPage({
         });
       }
 
+      let payouts: any[] = [];
+
       if (codeRecord && codeRecord.createdBy) {
         creatorCommissions = await prisma.commissionLog.findMany({
           where: { affiliateId: codeRecord.createdBy.id },
           include: { order: true },
+          orderBy: { createdAt: "desc" },
+        });
+
+        payouts = await prisma.payout.findMany({
+          where: { affiliateId: codeRecord.createdBy.id },
           orderBy: { createdAt: "desc" },
         });
       }
@@ -97,8 +104,10 @@ export default async function AdminAffiliateDetailPage({
 
   let salesPEN = 0;
   let salesUSD = 0;
-  let commPEN = 0;
-  let commUSD = 0;
+  let totalCommPEN = 0;
+  let totalCommUSD = 0;
+  let paidOutPEN = 0;
+  let paidOutUSD = 0;
 
   orders.forEach((o: any) => {
     const amt = Number(o.totalAmount || 0);
@@ -106,12 +115,25 @@ export default async function AdminAffiliateDetailPage({
     const comm = amt * (commissionRate / 100);
     if (curr === "USD") {
       salesUSD += amt;
-      commUSD += comm;
+      totalCommUSD += comm;
     } else {
       salesPEN += amt;
-      commPEN += comm;
+      totalCommPEN += comm;
     }
   });
+
+  payouts.forEach((p: any) => {
+    const amt = Number(p.amount || 0);
+    const curr = (p.currency || "PEN").toUpperCase();
+    if (curr === "USD") {
+      paidOutUSD += amt;
+    } else {
+      paidOutPEN += amt;
+    }
+  });
+
+  const commPEN = Math.max(0, totalCommPEN - paidOutPEN);
+  const commUSD = Math.max(0, totalCommUSD - paidOutUSD);
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-16 font-sans">
@@ -277,6 +299,65 @@ export default async function AdminAffiliateDetailPage({
                       </td>
                       <td className="px-4 py-3.5 text-right font-mono font-extrabold text-emerald-600">
                         +{symbol} {comm.toFixed(2)} {orderCurr}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Tabla de Historial de Liquidaciones (Payouts) */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 space-y-4 font-sans">
+        <h3 className="text-sm font-bold text-slate-900 uppercase font-mono tracking-wider flex items-center gap-2">
+          <CreditCard className="w-4 h-4 text-emerald-600" />
+          <span>Historial de Liquidaciones & Payouts ({payouts.length})</span>
+        </h3>
+
+        {payouts.length === 0 ? (
+          <p className="text-xs text-slate-400 italic py-4">Aún no se han registrado liquidaciones de comisión para este creador.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs font-sans">
+              <thead className="bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase border-b border-slate-200 font-mono">
+                <tr>
+                  <th className="px-4 py-3">Fecha</th>
+                  <th className="px-4 py-3">Método de Payout</th>
+                  <th className="px-4 py-3">Banco / Código Crédito</th>
+                  <th className="px-4 py-3 text-right">Monto Liquidado</th>
+                  <th className="px-4 py-3 text-center">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700 font-mono">
+                {payouts.map((p: any) => {
+                  const curr = (p.currency || "PEN").toUpperCase();
+                  const symbol = curr === "PEN" ? "S/." : "$";
+                  const isTransfer = p.payoutMethod === "TRANSFER";
+
+                  return (
+                    <tr key={p.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3.5 text-slate-500">
+                        {new Date(p.createdAt).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3.5 font-bold">
+                        {isTransfer ? "Transferencia Bancaria" : "Crédito en Tienda"}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        {isTransfer ? (
+                          <span>{p.bankName || "BCP"} - {p.accountNumber || "N/A"}</span>
+                        ) : (
+                          <span className="text-purple-700 font-bold">{p.storeCreditCode}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3.5 text-right font-extrabold text-emerald-600 text-sm">
+                        {symbol} {Number(p.amount).toFixed(2)} {curr}
+                      </td>
+                      <td className="px-4 py-3.5 text-center">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          {p.status || "COMPLETADO"}
+                        </span>
                       </td>
                     </tr>
                   );

@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Users,
   ShieldCheck,
+  CreditCard,
 } from "lucide-react";
 
 export const revalidate = 0;
@@ -109,8 +110,9 @@ export default async function PublicCreatorPortalPage({ searchParams }: PageProp
     );
   }
 
-  // Cargar órdenes pagadas vinculadas al código del afiliado
+  // Cargar órdenes pagadas y liquidaciones (payouts) vinculadas al creador
   let paidOrders: any[] = [];
+  let payouts: any[] = [];
   try {
     paidOrders = await prisma.order.findMany({
       where: {
@@ -129,6 +131,11 @@ export default async function PublicCreatorPortalPage({ searchParams }: PageProp
         include: { order: true },
         orderBy: { createdAt: "desc" },
       });
+
+      payouts = await prisma.payout.findMany({
+        where: { affiliateId: codeRecord.createdById },
+        orderBy: { createdAt: "desc" },
+      });
     }
   } catch (err) {
     console.error("Error al obtener órdenes pagadas de afiliado:", err);
@@ -139,8 +146,10 @@ export default async function PublicCreatorPortalPage({ searchParams }: PageProp
 
   let salesPEN = 0;
   let salesUSD = 0;
-  let commPEN = 0;
-  let commUSD = 0;
+  let totalCommPEN = 0;
+  let totalCommUSD = 0;
+  let paidOutPEN = 0;
+  let paidOutUSD = 0;
 
   paidOrders.forEach((o: any) => {
     const amt = Number(o.totalAmount || 0);
@@ -148,12 +157,25 @@ export default async function PublicCreatorPortalPage({ searchParams }: PageProp
     const comm = amt * (commissionRate / 100);
     if (curr === "USD") {
       salesUSD += amt;
-      commUSD += comm;
+      totalCommUSD += comm;
     } else {
       salesPEN += amt;
-      commPEN += comm;
+      totalCommPEN += comm;
     }
   });
+
+  payouts.forEach((p: any) => {
+    const amt = Number(p.amount || 0);
+    const curr = (p.currency || "PEN").toUpperCase();
+    if (curr === "USD") {
+      paidOutUSD += amt;
+    } else {
+      paidOutPEN += amt;
+    }
+  });
+
+  const commPEN = Math.max(0, totalCommPEN - paidOutPEN);
+  const commUSD = Math.max(0, totalCommUSD - paidOutUSD);
 
   const creatorName = codeRecord.createdBy
     ? codeRecord.createdBy.name ||
@@ -305,6 +327,67 @@ export default async function PublicCreatorPortalPage({ searchParams }: PageProp
                       </td>
                       <td className="px-4 py-4 text-right font-mono font-extrabold text-emerald-400">
                         +{symbol} {comm.toFixed(2)} {orderCurr}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Tabla de Historial de Liquidaciones (Payouts) */}
+      <div className="bg-surface rounded-2xl border border-neutral-800 p-6 space-y-4 shadow-xl">
+        <h2 className="text-sm font-extrabold uppercase text-white tracking-wider font-mono flex items-center gap-2">
+          <CreditCard className="w-4 h-4 text-emerald-400" />
+          <span>Historial de Liquidaciones & Payouts ({payouts.length})</span>
+        </h2>
+
+        {payouts.length === 0 ? (
+          <p className="text-xs text-neutral-400 italic py-6 text-center">
+            Aún no se han registrado liquidaciones de comisión a tu favor.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs font-sans">
+              <thead className="bg-black/60 text-[11px] font-semibold text-neutral-400 uppercase border-b border-neutral-800 font-mono">
+                <tr>
+                  <th className="px-4 py-3.5">Fecha</th>
+                  <th className="px-4 py-3.5">Método de Payout</th>
+                  <th className="px-4 py-3.5">Banco / Código Crédito</th>
+                  <th className="px-4 py-3.5 text-right">Monto Liquidado</th>
+                  <th className="px-4 py-3.5 text-center">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-800 text-neutral-300 font-mono">
+                {payouts.map((p: any) => {
+                  const curr = (p.currency || "PEN").toUpperCase();
+                  const symbol = curr === "PEN" ? "S/." : "$";
+                  const isTransfer = p.payoutMethod === "TRANSFER";
+
+                  return (
+                    <tr key={p.id} className="hover:bg-neutral-800/40 transition-colors">
+                      <td className="px-4 py-4 text-neutral-400">
+                        {new Date(p.createdAt).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-4 font-bold text-white">
+                        {isTransfer ? "Transferencia Bancaria" : "Crédito en Tienda"}
+                      </td>
+                      <td className="px-4 py-4">
+                        {isTransfer ? (
+                          <span className="text-neutral-300">{p.bankName || "BCP"} - {p.accountNumber || "N/A"}</span>
+                        ) : (
+                          <span className="text-purple-400 font-bold">{p.storeCreditCode}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 text-right font-extrabold text-emerald-400 text-sm">
+                        {symbol} {Number(p.amount).toFixed(2)} {curr}
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                          {p.status || "COMPLETADO"}
+                        </span>
                       </td>
                     </tr>
                   );
