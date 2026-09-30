@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,800;0,900;1,900&family=Permanent+Marker&family=Space+Grotesk:wght@700;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -16,6 +18,15 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight;
   }
+}
+
+.font-hero-headline {
+  font-family: 'Montserrat', 'Space Grotesk', sans-serif;
+  font-weight: 900;
+}
+
+.font-brush-accent {
+  font-family: 'Permanent Marker', cursive;
 }
 
 /* Custom UI Utilities */
