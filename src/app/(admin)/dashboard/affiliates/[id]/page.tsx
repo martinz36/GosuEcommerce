@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Package,
+  ExternalLink,
 } from "lucide-react";
 
 export const revalidate = 0;
@@ -229,8 +230,15 @@ export default async function AdminAffiliateDetailPage({
 
                   return (
                     <tr key={o.id} className="hover:bg-slate-50">
-                      <td className="px-4 py-3.5 font-mono font-bold text-indigo-600">
-                        {o.orderNumber}
+                      <td className="px-4 py-3.5 font-mono font-bold">
+                        <Link
+                          href={`/dashboard/orders/${o.id}`}
+                          className="text-purple-600 hover:text-purple-800 hover:underline inline-flex items-center gap-1.5 transition-colors"
+                          title="Ver detalle completo y trazabilidad de la orden"
+                        >
+                          <span>{o.orderNumber}</span>
+                          <ExternalLink className="w-3.5 h-3.5 text-purple-400" />
+                        </Link>
                       </td>
                       <td className="px-4 py-3.5 font-mono text-slate-500">
                         {new Date(o.createdAt).toLocaleString()}
