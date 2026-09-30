@@ -63,7 +63,7 @@ export default function PromotionsClient({ promoCodes }: { promoCodes: PromoCode
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:bg-white cursor-pointer"
               >
                 <option value="PERCENTAGE">Porcentaje (%)</option>
-                <option value="FIXED_AMOUNT">Monto Fijo ($ USD)</option>
+                <option value="FIXED_AMOUNT">Monto Fijo (S/. PEN / $ USD)</option>
               </select>
             </div>
 
@@ -74,7 +74,7 @@ export default function PromotionsClient({ promoCodes }: { promoCodes: PromoCode
                 step="0.01"
                 name="value"
                 required
-                placeholder="Ej: 10 (% o $ USD)"
+                placeholder="Ej: 10 (% o valor fijo)"
                 className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:bg-white"
               />
             </div>
@@ -107,12 +107,12 @@ export default function PromotionsClient({ promoCodes }: { promoCodes: PromoCode
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Gasto Mínimo Requerido ($)</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Gasto Mínimo Requerido (S/. / $)</label>
                   <input
                     type="number"
                     step="0.01"
                     name="minPurchaseAmount"
-                    placeholder="Ej: 50.00 USD"
+                    placeholder="Ej: 50.00"
                     className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:bg-white"
                   />
                 </div>
@@ -170,10 +170,10 @@ export default function PromotionsClient({ promoCodes }: { promoCodes: PromoCode
                   <tr key={c.id} className="hover:bg-slate-50">
                     <td className="px-4 py-4 font-mono font-bold text-xs text-slate-900">{c.code}</td>
                     <td className="px-4 py-4 font-mono font-bold text-slate-900">
-                      {c.type === "PERCENTAGE" ? `${Number(c.value)}% OFF` : `$${Number(c.value)} OFF`}
+                      {c.type === "PERCENTAGE" ? `${Number(c.value)}% OFF` : `${Number(c.value)} OFF`}
                     </td>
                     <td className="px-4 py-4 text-xs font-mono text-slate-500">
-                      {c.minPurchaseAmount ? `Mín: $${Number(c.minPurchaseAmount)} USD` : "Sin mínimo"}
+                      {c.minPurchaseAmount ? `Mín: ${Number(c.minPurchaseAmount)}` : "Sin mínimo"}
                       {c.endDate && <span className="block text-[10px] text-slate-400">Exp: {new Date(c.endDate).toLocaleDateString()}</span>}
                     </td>
                     <td className="px-4 py-4 text-center font-mono font-bold">

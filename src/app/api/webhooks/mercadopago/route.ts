@@ -108,6 +108,30 @@ export async function POST(req: Request) {
             }
           }
 
+          // Registrar Comisión de Afiliado en Neon DB si aplica
+          if (order.discountCodeId) {
+            const codeRecord = await prisma.discountCode.findUnique({
+              where: { id: order.discountCodeId },
+            });
+            if (codeRecord?.createdById) {
+              const existingComm = await prisma.commissionLog.findFirst({
+                where: { orderId: order.id },
+              });
+              if (!existingComm) {
+                const commRate = Number(codeRecord.commissionRate || 10.0);
+                const commissionAmount = Number(order.totalAmount) * (commRate / 100);
+                await prisma.commissionLog.create({
+                  data: {
+                    orderId: order.id,
+                    affiliateId: codeRecord.createdById,
+                    commissionAmount,
+                    isPaid: false,
+                  },
+                }).catch((commErr) => console.error("Error al crear CommissionLog MP:", commErr));
+              }
+            }
+          }
+
           // Otorgar Puntos de Fidelidad y descontar puntos usados
           if (order.userId) {
             const usedPoints = parseInt(metadata.loyalty_points_used || "0", 10);

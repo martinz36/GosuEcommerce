@@ -325,22 +325,38 @@ export async function sendAffiliateReportEmail({
   affiliateName,
   code,
   commissionRate,
-  totalSales,
-  pendingCommission,
-  totalOrders,
+  totalSalesPEN = 0,
+  totalSalesUSD = 0,
+  pendingCommissionPEN = 0,
+  pendingCommissionUSD = 0,
+  totalSales = 0,
+  pendingCommission = 0,
+  totalOrders = 0,
 }: {
   toEmail: string;
   affiliateName: string;
   code: string;
   commissionRate: number;
-  totalSales: number;
-  pendingCommission: number;
+  totalSalesPEN?: number;
+  totalSalesUSD?: number;
+  pendingCommissionPEN?: number;
+  pendingCommissionUSD?: number;
+  totalSales?: number;
+  pendingCommission?: number;
   totalOrders: number;
 }) {
   if (!process.env.RESEND_API_KEY) {
     console.warn("RESEND_API_KEY no configurada. Omitiendo email de reporte de afiliado.");
     return { success: false, error: "API Key no configurada" };
   }
+
+  const penSalesText = totalSalesPEN > 0 ? `S/. ${totalSalesPEN.toFixed(2)} PEN` : "";
+  const usdSalesText = totalSalesUSD > 0 ? `$ ${totalSalesUSD.toFixed(2)} USD` : "";
+  const salesBreakdown = [penSalesText, usdSalesText].filter(Boolean).join(" + ") || `$${totalSales.toFixed(2)} USD`;
+
+  const penCommText = pendingCommissionPEN > 0 ? `S/. ${pendingCommissionPEN.toFixed(2)} PEN` : "";
+  const usdCommText = pendingCommissionUSD > 0 ? `$ ${pendingCommissionUSD.toFixed(2)} USD` : "";
+  const commBreakdown = [penCommText, usdCommText].filter(Boolean).join(" + ") || `$${pendingCommission.toFixed(2)} USD`;
 
   try {
     const data = await resend.emails.send({
@@ -372,11 +388,11 @@ export async function sendAffiliateReportEmail({
               </tr>
               <tr>
                 <td style="color:#A3A3A3; padding:6px 0; font-size:13px;">Total Ventas Generadas:</td>
-                <td style="color:#FFFFFF; font-weight:bold; font-family:monospace; padding:6px 0; font-size:14px; text-align:right;">$${totalSales.toFixed(2)} USD (${totalOrders} compras)</td>
+                <td style="color:#FFFFFF; font-weight:bold; font-family:monospace; padding:6px 0; font-size:14px; text-align:right;">${salesBreakdown} (${totalOrders} compras)</td>
               </tr>
               <tr style="border-top:1px solid #333;">
                 <td style="color:#FFFFFF; padding:10px 0 4px 0; font-size:14px; font-weight:bold;">Comisiones por Cobrar:</td>
-                <td style="color:#10B981; font-weight:extrabold; font-family:monospace; padding:10px 0 4px 0; font-size:18px; text-align:right;">$${pendingCommission.toFixed(2)} USD</td>
+                <td style="color:#10B981; font-weight:extrabold; font-family:monospace; padding:10px 0 4px 0; font-size:18px; text-align:right;">${commBreakdown}</td>
               </tr>
             </table>
           </div>

@@ -55,8 +55,19 @@ export async function POST(req: Request) {
         const orderNumber = `GOSU-${Math.floor(100000 + Math.random() * 900000)}`;
         const orderCurrency = (session.currency || metadata.currency || "PEN").toUpperCase();
 
+        let discountCodeDb: any = null;
+        if (metadata.discountCodeId) {
+          discountCodeDb = await prisma.discountCode.findUnique({
+            where: { id: metadata.discountCodeId },
+          });
+        } else if (metadata.discountCode) {
+          discountCodeDb = await prisma.discountCode.findUnique({
+            where: { code: metadata.discountCode.toUpperCase() },
+          });
+        }
+
         // Crear la orden en la base de datos
-        await prisma.order.create({
+        const createdOrder = await prisma.order.create({
           data: {
             orderNumber,
             userId: metadata.userId ? metadata.userId : null,
@@ -67,6 +78,7 @@ export async function POST(req: Request) {
             stripeCheckoutSessionId: sessionId,
             subtotal,
             totalAmount,
+            discountCodeId: discountCodeDb ? discountCodeDb.id : undefined,
             shippingAddressJson: session.shipping_details
               ? (session.shipping_details as any)
               : metadata.defaultAddressJson
@@ -82,6 +94,20 @@ export async function POST(req: Request) {
             },
           },
         });
+
+        // Registrar comisión para el afiliado si aplica
+        if (discountCodeDb && discountCodeDb.createdById) {
+          const commRate = Number(discountCodeDb.commissionRate || 10.0);
+          const commissionAmount = totalAmount * (commRate / 100);
+          await prisma.commissionLog.create({
+            data: {
+              orderId: createdOrder.id,
+              affiliateId: discountCodeDb.createdById,
+              commissionAmount,
+              isPaid: false,
+            },
+          }).catch((commErr) => console.error("Error registrando comisión en webhook de Stripe:", commErr));
+        }
 
         // Actualizar stock de los productos
         for (const item of parsedItems) {

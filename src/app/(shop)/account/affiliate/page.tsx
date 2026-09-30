@@ -46,7 +46,35 @@ export default async function CustomerAffiliatePage() {
     console.error("Error al cargar datos de afiliado en Neon DB:", err);
   }
 
-  const totalCommissionsEarned = commissions.reduce((sum, c) => sum + Number(c.commissionAmount), 0);
+  let commPEN = 0;
+  let commUSD = 0;
+
+  if (commissions.length > 0) {
+    commissions.forEach((c) => {
+      const amt = Number(c.commissionAmount || 0);
+      const curr = (c.order?.currency || "PEN").toUpperCase();
+      if (curr === "USD") {
+        commUSD += amt;
+      } else {
+        commPEN += amt;
+      }
+    });
+  } else {
+    affiliateCodes.forEach((code) => {
+      const commRate = Number(code.commissionRate || 10);
+      (code.orders || []).forEach((o: any) => {
+        const amt = Number(o.totalAmount || 0);
+        const curr = (o.currency || "PEN").toUpperCase();
+        const comm = amt * (commRate / 100);
+        if (curr === "USD") {
+          commUSD += comm;
+        } else {
+          commPEN += comm;
+        }
+      });
+    });
+  }
+
   const totalOrdersGenerated = affiliateCodes.reduce((sum, c) => sum + (c.orders ? c.orders.length : 0), 0);
 
   return (
@@ -109,10 +137,19 @@ export default async function CustomerAffiliatePage() {
               <span className="text-xs font-mono font-bold text-purple-400 uppercase tracking-widest block">
                 COMISIONES ACUMULADAS
               </span>
-              <span className="text-4xl font-black text-white font-mono block">
-                ${totalCommissionsEarned.toFixed(2)} USD
-              </span>
-              <span className="text-xs text-neutral-400 block">
+              <div className="space-y-0.5">
+                {(commPEN > 0 || commUSD === 0) && (
+                  <span className="text-3xl font-black text-white font-mono block">
+                    S/. {commPEN.toFixed(2)} PEN
+                  </span>
+                )}
+                {commUSD > 0 && (
+                  <span className="text-2xl font-bold text-accent-cyan font-mono block">
+                    $ {commUSD.toFixed(2)} USD
+                  </span>
+                )}
+              </div>
+              <span className="text-xs text-neutral-400 block pt-1">
                 Ganancias netas acumuladas por tus ventas.
               </span>
             </div>
@@ -163,27 +200,31 @@ export default async function CustomerAffiliatePage() {
               <p className="text-xs text-neutral-400 italic">Aún no se han registrado ventas con tu código de creador.</p>
             ) : (
               <div className="divide-y divide-neutral-800 border border-neutral-800 rounded-xl overflow-hidden bg-black/40">
-                {commissions.map((log) => (
-                  <div key={log.id} className="p-4 flex items-center justify-between text-xs">
-                    <div>
-                      <span className="font-mono text-accent-cyan font-bold block">
-                        Pedido {log.order?.orderNumber || "GOSU-ORDER"}
-                      </span>
-                      <span className="text-[11px] text-neutral-500 font-mono">
-                        {new Date(log.createdAt).toLocaleString()}
-                      </span>
-                    </div>
+                {commissions.map((log) => {
+                  const logCurr = (log.order?.currency || "PEN").toUpperCase();
+                  const symbol = logCurr === "PEN" ? "S/." : "$";
+                  return (
+                    <div key={log.id} className="p-4 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="font-mono text-accent-cyan font-bold block">
+                          Pedido {log.order?.orderNumber || "GOSU-ORDER"}
+                        </span>
+                        <span className="text-[11px] text-neutral-500 font-mono">
+                          {new Date(log.createdAt).toLocaleString()}
+                        </span>
+                      </div>
 
-                    <div className="text-right">
-                      <span className="font-mono text-emerald-400 font-extrabold text-sm block">
-                        +${Number(log.commissionAmount).toFixed(2)} USD
-                      </span>
-                      <span className="text-[10px] text-neutral-400">
-                        {log.isPaid ? "Liquidado" : "Pendiente de pago"}
-                      </span>
+                      <div className="text-right">
+                        <span className="font-mono text-emerald-400 font-extrabold text-sm block">
+                          +{symbol} {Number(log.commissionAmount).toFixed(2)} {logCurr}
+                        </span>
+                        <span className="text-[10px] text-neutral-400">
+                          {log.isPaid ? "Liquidado" : "Pendiente de pago"}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

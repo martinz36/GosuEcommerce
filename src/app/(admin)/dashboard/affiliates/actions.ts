@@ -89,15 +89,52 @@ export async function toggleAffiliateStatusAction(id: string): Promise<void> {
   }
 }
 
-export async function payAffiliateCommissionAction(userId: string): Promise<void> {
+export async function payAffiliateCommissionAction(userId: string, currency?: string): Promise<void> {
   try {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { pendingCommission: 0.0 },
-    });
+    if (currency) {
+      const uppercaseCurrency = currency.toUpperCase();
+      const unpaidLogs = await prisma.commissionLog.findMany({
+        where: {
+          affiliateId: userId,
+          isPaid: false,
+          order: {
+            currency: uppercaseCurrency,
+          },
+        },
+      });
+
+      if (unpaidLogs.length > 0) {
+        await prisma.commissionLog.updateMany({
+          where: {
+            id: { in: unpaidLogs.map((l) => l.id) },
+          },
+          data: {
+            isPaid: true,
+            paidAt: new Date(),
+          },
+        });
+      }
+    } else {
+      await prisma.commissionLog.updateMany({
+        where: {
+          affiliateId: userId,
+          isPaid: false,
+        },
+        data: {
+          isPaid: true,
+          paidAt: new Date(),
+        },
+      });
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: { pendingCommission: 0.0 },
+      }).catch(() => {});
+    }
 
     revalidatePath("/dashboard/affiliates");
     revalidatePath("/admin/affiliates");
+    revalidatePath("/account/affiliate");
     revalidatePath("/");
   } catch (error: any) {
     console.error("Error al marcar comisión como pagada:", error);
@@ -134,22 +171,37 @@ export async function sendAffiliateReportAction(discountCodeId: string): Promise
 
     const creator = code.createdBy;
     const totalOrders = code.orders ? code.orders.length : 0;
-    const totalSales = code.orders
-      ? code.orders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0)
-      : 0;
+
+    let salesPEN = 0;
+    let salesUSD = 0;
+    let commPEN = 0;
+    let commUSD = 0;
     const commissionRate = Number(code.commissionRate || 10.0);
-    const calculatedCommission = totalSales * (commissionRate / 100);
-    const pendingCommission = creator.pendingCommission !== undefined && creator.pendingCommission !== null
-      ? Number(creator.pendingCommission)
-      : calculatedCommission;
+
+    (code.orders || []).forEach((o) => {
+      const amt = Number(o.totalAmount || 0);
+      const curr = (o.currency || "PEN").toUpperCase();
+      const comm = amt * (commissionRate / 100);
+      if (curr === "USD") {
+        salesUSD += amt;
+        commUSD += comm;
+      } else {
+        salesPEN += amt;
+        commPEN += comm;
+      }
+    });
 
     const resendResult = await sendAffiliateReportEmail({
       toEmail: creator.email,
       affiliateName: creator.name || `${creator.firstName || ""} ${creator.lastName || ""}`.trim() || creator.email,
       code: code.code,
       commissionRate,
-      totalSales,
-      pendingCommission,
+      totalSalesPEN: salesPEN,
+      totalSalesUSD: salesUSD,
+      pendingCommissionPEN: commPEN,
+      pendingCommissionUSD: commUSD,
+      totalSales: salesPEN + salesUSD,
+      pendingCommission: commPEN + commUSD,
       totalOrders,
     });
 

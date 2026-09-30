@@ -80,16 +80,25 @@ export default async function AdminAffiliateDetailPage({
 
   const creator = codeRecord.createdBy;
   const orders = codeRecord.orders || [];
-  const totalSalesGenerated = orders.reduce(
-    (sum: number, o: any) => sum + Number(o.totalAmount || 0),
-    0
-  );
   const commissionRate = Number(codeRecord.commissionRate || 10.0);
-  const calculatedCommission = totalSalesGenerated * (commissionRate / 100);
-  const pendingCommission =
-    creator?.pendingCommission !== undefined && creator?.pendingCommission !== null
-      ? Number(creator.pendingCommission)
-      : calculatedCommission;
+
+  let salesPEN = 0;
+  let salesUSD = 0;
+  let commPEN = 0;
+  let commUSD = 0;
+
+  orders.forEach((o: any) => {
+    const amt = Number(o.totalAmount || 0);
+    const curr = (o.currency || "PEN").toUpperCase();
+    const comm = amt * (commissionRate / 100);
+    if (curr === "USD") {
+      salesUSD += amt;
+      commUSD += comm;
+    } else {
+      salesPEN += amt;
+      commPEN += comm;
+    }
+  });
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-16 font-sans">
@@ -136,10 +145,15 @@ export default async function AdminAffiliateDetailPage({
           <span className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider block">
             VENTAS TOTALES GENERADAS
           </span>
-          <span className="text-2xl font-extrabold text-slate-900 font-mono block">
-            ${totalSalesGenerated.toFixed(2)} USD
-          </span>
-          <span className="text-[11px] text-slate-400 font-mono block">
+          <div className="space-y-0.5">
+            <span className="text-xl font-extrabold text-slate-900 font-mono block">
+              S/. {salesPEN.toFixed(2)} PEN
+            </span>
+            <span className="text-sm font-semibold text-indigo-600 font-mono block">
+              $ {salesUSD.toFixed(2)} USD
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-400 font-mono block pt-1">
             En {orders.length} {orders.length === 1 ? "pedido" : "pedidos"} registrados.
           </span>
         </div>
@@ -160,10 +174,15 @@ export default async function AdminAffiliateDetailPage({
           <span className="text-xs font-mono font-bold text-emerald-600 uppercase tracking-wider block">
             COMISIÓN PENDIENTE POR PAGAR
           </span>
-          <span className="text-2xl font-extrabold text-emerald-600 font-mono block">
-            ${pendingCommission.toFixed(2)} USD
-          </span>
-          <span className="text-[11px] text-slate-400 block">
+          <div className="space-y-0.5">
+            <span className="text-xl font-extrabold text-emerald-600 font-mono block">
+              S/. {commPEN.toFixed(2)} PEN
+            </span>
+            <span className="text-sm font-semibold text-indigo-600 font-mono block">
+              $ {commUSD.toFixed(2)} USD
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-400 block pt-1">
             Saldo acumulado por liquidar al influencer.
           </span>
         </div>
@@ -186,13 +205,16 @@ export default async function AdminAffiliateDetailPage({
                   <th className="px-4 py-3">Nº Orden</th>
                   <th className="px-4 py-3">Fecha</th>
                   <th className="px-4 py-3">Comprador</th>
-                  <th className="px-4 py-3 text-right">Monto Total ($)</th>
+                  <th className="px-4 py-3 text-right">Monto Total</th>
                   <th className="px-4 py-3 text-right">Comisión Generada ({commissionRate}%)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {orders.map((o: any) => {
                   const comm = Number(o.totalAmount || 0) * (commissionRate / 100);
+                  const orderCurr = (o.currency || "PEN").toUpperCase();
+                  const symbol = orderCurr === "PEN" ? "S/." : "$";
+
                   return (
                     <tr key={o.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3.5 font-mono font-bold text-indigo-600">
@@ -205,10 +227,10 @@ export default async function AdminAffiliateDetailPage({
                         {o.user ? o.user.email : o.guestEmail || "Invitado"}
                       </td>
                       <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-900">
-                        ${Number(o.totalAmount).toFixed(2)} USD
+                        {symbol} {Number(o.totalAmount).toFixed(2)} {orderCurr}
                       </td>
                       <td className="px-4 py-3.5 text-right font-mono font-extrabold text-emerald-600">
-                        +${comm.toFixed(2)} USD
+                        +{symbol} {comm.toFixed(2)} {orderCurr}
                       </td>
                     </tr>
                   );

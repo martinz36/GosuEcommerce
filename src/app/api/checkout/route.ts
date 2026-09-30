@@ -93,6 +93,25 @@ export async function POST(req: Request) {
 
     const finalShippingAddress = shippingAddress || userDefaultAddress || null;
 
+    let dbDiscountCodeId: string | null = null;
+    if (discountCode && process.env.DATABASE_URL) {
+      try {
+        const foundCode = await prisma.discountCode.findFirst({
+          where: {
+            OR: [
+              { id: discountCode.id || "" },
+              { code: (discountCode.code || "").toUpperCase() },
+            ],
+          },
+        });
+        if (foundCode) {
+          dbDiscountCodeId = foundCode.id;
+        }
+      } catch (err) {
+        console.error("Error buscando discountCode en DB:", err);
+      }
+    }
+
     // ==========================================
     // PASARELA 1: MERCADO PAGO
     // ==========================================
@@ -153,6 +172,7 @@ export async function POST(req: Request) {
               paymentGateway: "mercadopago",
               subtotal: subtotalCalc,
               discountAmount: totalDiscount,
+              discountCodeId: dbDiscountCodeId || undefined,
               totalAmount: finalTotal,
               shippingAddressJson: finalShippingAddress ? (finalShippingAddress as any) : undefined,
               items: {
@@ -192,6 +212,7 @@ export async function POST(req: Request) {
           userId: currentUserId || "",
           userEmail: session?.user?.email || guestEmail || "",
           discountCode: discountCode?.code || "",
+          discountCodeId: dbDiscountCodeId || "",
           loyaltyPointsUsed: String(loyaltyPointsUsed || 0),
           isPickup: isPickup ? "true" : "false",
           pickupAddress: pickupAddress || "",
@@ -300,6 +321,7 @@ export async function POST(req: Request) {
         userId: currentUserId || "",
         userEmail: session?.user?.email || guestEmail || "",
         discountCode: discountCode?.code || "",
+        discountCodeId: dbDiscountCodeId || "",
         loyaltyPointsUsed: String(loyaltyPointsUsed || 0),
         isPickup: isPickup ? "true" : "false",
         pickupAddress: pickupAddress || "",

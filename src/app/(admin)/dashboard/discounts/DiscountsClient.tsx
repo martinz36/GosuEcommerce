@@ -96,7 +96,7 @@ export default function DiscountsClient({
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:bg-white cursor-pointer"
               >
                 <option value="PERCENTAGE">Porcentaje (%)</option>
-                <option value="FIXED_AMOUNT">Monto Fijo ($)</option>
+                <option value="FIXED_AMOUNT">Monto Fijo (S/. PEN / $ USD)</option>
               </select>
             </div>
 
@@ -107,7 +107,7 @@ export default function DiscountsClient({
                 step="0.01"
                 name="value"
                 required
-                placeholder="Ej: 10 (% o $ USD)"
+                placeholder="Ej: 10 (% o valor fijo)"
                 className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:bg-white"
               />
             </div>
@@ -180,12 +180,12 @@ export default function DiscountsClient({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Gasto Mínimo Requerido ($)</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Gasto Mínimo Requerido (S/. / $)</label>
                   <input
                     type="number"
                     step="0.01"
                     name="minPurchaseAmount"
-                    placeholder="Ej: 50.00 USD"
+                    placeholder="Ej: 50.00"
                     className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:bg-white"
                   />
                 </div>
@@ -240,8 +240,8 @@ export default function DiscountsClient({
                   <th className="px-4 py-3.5">Descuento Comprador</th>
                   <th className="px-4 py-3.5">% Comisión</th>
                   <th className="px-4 py-3.5 text-center">Usos</th>
-                  <th className="px-4 py-3.5 text-right">Ventas Generadas ($)</th>
-                  <th className="px-4 py-3.5 text-right">Comisión Acumulada ($)</th>
+                  <th className="px-4 py-3.5 text-right">Ventas Generadas</th>
+                  <th className="px-4 py-3.5 text-right">Comisión Acumulada</th>
                   <th className="px-4 py-3.5 text-center">Estado (Switch)</th>
                   <th className="px-4 py-3.5 text-right">Acciones</th>
                 </tr>
@@ -249,14 +249,27 @@ export default function DiscountsClient({
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {affiliateCodes.map((c) => {
                   const uses = c.usageCount || (c.orders ? c.orders.length : 0);
-                  const totalSalesGenerated = c.orders
-                    ? c.orders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0)
-                    : 0;
-                  const commissionRate = Number(c.commissionRate || 10);
-                  const calculatedCommission = totalSalesGenerated * (commissionRate / 100);
-                  const pendingCommission = c.createdBy?.pendingCommission !== undefined && c.createdBy?.pendingCommission !== null
-                    ? Number(c.createdBy.pendingCommission)
-                    : calculatedCommission;
+                  const commRate = Number(c.commissionRate || 10);
+                  
+                  let salesPEN = 0;
+                  let salesUSD = 0;
+                  let commPEN = 0;
+                  let commUSD = 0;
+
+                  if (c.orders && Array.isArray(c.orders)) {
+                    c.orders.forEach((o: any) => {
+                      const amt = Number(o.totalAmount || 0);
+                      const curr = (o.currency || "PEN").toUpperCase();
+                      const comm = amt * (commRate / 100);
+                      if (curr === "USD") {
+                        salesUSD += amt;
+                        commUSD += comm;
+                      } else {
+                        salesPEN += amt;
+                        commPEN += comm;
+                      }
+                    });
+                  }
 
                   return (
                     <tr key={c.id} className="hover:bg-slate-50">
@@ -281,12 +294,12 @@ export default function DiscountsClient({
 
                       {/* Descuento Comprador */}
                       <td className="px-4 py-4 font-mono font-bold text-slate-900">
-                        {c.type === "PERCENTAGE" ? `${Number(c.value)}% OFF` : `$${Number(c.value)} OFF`}
+                        {c.type === "PERCENTAGE" ? `${Number(c.value)}% OFF` : `${Number(c.value)} OFF`}
                       </td>
 
                       {/* % Comisión */}
                       <td className="px-4 py-4 font-mono font-bold text-purple-700">
-                        {commissionRate}%
+                        {commRate}%
                       </td>
 
                       {/* Usos */}
@@ -294,28 +307,56 @@ export default function DiscountsClient({
                         {uses}
                       </td>
 
-                      {/* Ventas Generadas ($) */}
-                      <td className="px-4 py-4 text-right font-mono font-bold text-slate-900">
-                        ${totalSalesGenerated.toFixed(2)} USD
+                      {/* Ventas Generadas (Dual-Currency PEN / USD) */}
+                      <td className="px-4 py-4 text-right font-mono">
+                        <div className="space-y-0.5">
+                          <span className="block text-slate-900 font-extrabold text-xs">
+                            S/. {salesPEN.toFixed(2)} PEN
+                          </span>
+                          <span className="block text-indigo-600 font-semibold text-[11px]">
+                            $ {salesUSD.toFixed(2)} USD
+                          </span>
+                        </div>
                       </td>
 
-                      {/* Comisión Acumulada ($) + Botón Pagar */}
+                      {/* Comisión Acumulada (Dual-Currency PEN / USD) + Botón Pagar */}
                       <td className="px-4 py-4 text-right font-mono">
-                        <span className="font-extrabold text-emerald-600 block">
-                          ${pendingCommission.toFixed(2)} USD
-                        </span>
-                        {pendingCommission > 0 && c.createdBy && (
-                          <form action={payAffiliateCommissionAction.bind(null, c.createdBy.id)}>
-                            <button
-                              type="submit"
-                              className="mt-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[10px] font-bold transition-colors inline-flex items-center gap-1"
-                              title="Marcar comisión acumulada como pagada"
-                            >
-                              <CreditCard className="w-3 h-3" />
-                              <span>Marcar Pagado</span>
-                            </button>
-                          </form>
-                        )}
+                        <div className="space-y-1.5 inline-block text-right">
+                          <div>
+                            <span className="font-extrabold text-emerald-600 block text-xs">
+                              S/. {commPEN.toFixed(2)} PEN
+                            </span>
+                            {commPEN > 0 && c.createdBy && (
+                              <form action={payAffiliateCommissionAction.bind(null, c.createdBy.id)}>
+                                <button
+                                  type="submit"
+                                  className="mt-0.5 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[10px] font-bold transition-colors inline-flex items-center gap-1"
+                                  title="Marcar comisión PEN como pagada"
+                                >
+                                  <CreditCard className="w-3 h-3" />
+                                  <span>Pagar PEN</span>
+                                </button>
+                              </form>
+                            )}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-indigo-600 block text-[11px]">
+                              $ {commUSD.toFixed(2)} USD
+                            </span>
+                            {commUSD > 0 && c.createdBy && (
+                              <form action={payAffiliateCommissionAction.bind(null, c.createdBy.id)}>
+                                <button
+                                  type="submit"
+                                  className="mt-0.5 px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-[10px] font-bold transition-colors inline-flex items-center gap-1"
+                                  title="Marcar comisión USD como pagada"
+                                >
+                                  <CreditCard className="w-3 h-3" />
+                                  <span>Pagar USD</span>
+                                </button>
+                              </form>
+                            )}
+                          </div>
+                        </div>
                       </td>
 
                       {/* Paso 4: Switch Toggle Activo / Inactivo (Soft Delete) */}
@@ -397,10 +438,10 @@ export default function DiscountsClient({
                 <tr key={c.id} className="hover:bg-slate-50">
                   <td className="px-4 py-4 font-mono font-bold text-xs text-slate-900">{c.code}</td>
                   <td className="px-4 py-4 font-mono font-bold text-slate-900">
-                    {c.type === "PERCENTAGE" ? `${Number(c.value)}% OFF` : `$${Number(c.value)} OFF`}
+                    {c.type === "PERCENTAGE" ? `${Number(c.value)}% OFF` : `${Number(c.value)} OFF`}
                   </td>
                   <td className="px-4 py-4 text-xs font-mono text-slate-500">
-                    {c.minPurchaseAmount ? `Mín: $${Number(c.minPurchaseAmount)} USD` : "Sin mínimo"}
+                    {c.minPurchaseAmount ? `Mín: ${Number(c.minPurchaseAmount)}` : "Sin mínimo"}
                     {c.endDate && <span className="block text-[10px] text-slate-400">Exp: {new Date(c.endDate).toLocaleDateString()}</span>}
                   </td>
                   <td className="px-4 py-4 text-center font-mono font-bold">

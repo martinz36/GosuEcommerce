@@ -285,8 +285,8 @@ export default function AffiliatesClient({ affiliateCodes }: { affiliateCodes: A
                   <th className="px-4 py-3.5">Descuento Comprador</th>
                   <th className="px-4 py-3.5">% Comisión</th>
                   <th className="px-4 py-3.5 text-center">Usos</th>
-                  <th className="px-4 py-3.5 text-right">Ventas Generadas ($)</th>
-                  <th className="px-4 py-3.5 text-right">Comisión Acumulada ($)</th>
+                  <th className="px-4 py-3.5 text-right">Ventas Generadas</th>
+                  <th className="px-4 py-3.5 text-right">Comisión Acumulada</th>
                   <th className="px-4 py-3.5 text-center">Estado (Switch)</th>
                   <th className="px-4 py-3.5 text-right">Acciones</th>
                 </tr>
@@ -294,15 +294,27 @@ export default function AffiliatesClient({ affiliateCodes }: { affiliateCodes: A
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {affiliateCodes.map((c) => {
                   const uses = c.usageCount || (c.orders ? c.orders.length : 0);
-                  const totalSalesGenerated = c.orders
-                    ? c.orders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0)
-                    : 0;
                   const commRate = Number(c.commissionRate || 10);
-                  const calculatedCommission = totalSalesGenerated * (commRate / 100);
-                  const pendingCommission =
-                    c.createdBy?.pendingCommission !== undefined && c.createdBy?.pendingCommission !== null
-                      ? Number(c.createdBy.pendingCommission)
-                      : calculatedCommission;
+                  
+                  let salesPEN = 0;
+                  let salesUSD = 0;
+                  let commPEN = 0;
+                  let commUSD = 0;
+
+                  if (c.orders && Array.isArray(c.orders)) {
+                    c.orders.forEach((o: any) => {
+                      const amt = Number(o.totalAmount || 0);
+                      const curr = (o.currency || "PEN").toUpperCase();
+                      const comm = amt * (commRate / 100);
+                      if (curr === "USD") {
+                        salesUSD += amt;
+                        commUSD += comm;
+                      } else {
+                        salesPEN += amt;
+                        commPEN += comm;
+                      }
+                    });
+                  }
 
                   return (
                     <tr key={c.id} className="hover:bg-slate-50">
@@ -329,7 +341,7 @@ export default function AffiliatesClient({ affiliateCodes }: { affiliateCodes: A
 
                       {/* Descuento Comprador */}
                       <td className="px-4 py-4 font-mono font-bold text-slate-900">
-                        {c.type === "PERCENTAGE" ? `${Number(c.value)}% OFF` : `$${Number(c.value)} OFF`}
+                        {c.type === "PERCENTAGE" ? `${Number(c.value)}% OFF` : `${Number(c.value)} OFF`}
                       </td>
 
                       {/* % Comisión */}
@@ -342,28 +354,56 @@ export default function AffiliatesClient({ affiliateCodes }: { affiliateCodes: A
                         {uses}
                       </td>
 
-                      {/* Ventas Generadas ($) */}
-                      <td className="px-4 py-4 text-right font-mono font-bold text-slate-900">
-                        ${totalSalesGenerated.toFixed(2)} USD
+                      {/* Ventas Generadas (Dual-Currency PEN / USD) */}
+                      <td className="px-4 py-4 text-right font-mono">
+                        <div className="space-y-0.5">
+                          <span className="block text-slate-900 font-extrabold text-xs">
+                            S/. {salesPEN.toFixed(2)} PEN
+                          </span>
+                          <span className="block text-indigo-600 font-semibold text-[11px]">
+                            $ {salesUSD.toFixed(2)} USD
+                          </span>
+                        </div>
                       </td>
 
-                      {/* Comisión Acumulada ($) + Botón Pagar */}
+                      {/* Comisión Acumulada (Dual-Currency PEN / USD) + Botones Pagar */}
                       <td className="px-4 py-4 text-right font-mono">
-                        <span className="font-extrabold text-emerald-600 block">
-                          ${pendingCommission.toFixed(2)} USD
-                        </span>
-                        {pendingCommission > 0 && c.createdBy && (
-                          <form action={payAffiliateCommissionAction.bind(null, c.createdBy.id)}>
-                            <button
-                              type="submit"
-                              className="mt-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[10px] font-bold transition-colors inline-flex items-center gap-1"
-                              title="Marcar comisión acumulada como pagada"
-                            >
-                              <CreditCard className="w-3 h-3" />
-                              <span>Marcar Pagado</span>
-                            </button>
-                          </form>
-                        )}
+                        <div className="space-y-1.5 inline-block text-right">
+                          <div>
+                            <span className="font-extrabold text-emerald-600 block text-xs">
+                              S/. {commPEN.toFixed(2)} PEN
+                            </span>
+                            {commPEN > 0 && c.createdBy && (
+                              <form action={payAffiliateCommissionAction.bind(null, c.createdBy.id, "PEN")}>
+                                <button
+                                  type="submit"
+                                  className="mt-0.5 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[10px] font-bold transition-colors inline-flex items-center gap-1"
+                                  title="Marcar comisión PEN como pagada"
+                                >
+                                  <CreditCard className="w-3 h-3" />
+                                  <span>Pagar PEN</span>
+                                </button>
+                              </form>
+                            )}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-indigo-600 block text-[11px]">
+                              $ {commUSD.toFixed(2)} USD
+                            </span>
+                            {commUSD > 0 && c.createdBy && (
+                              <form action={payAffiliateCommissionAction.bind(null, c.createdBy.id, "USD")}>
+                                <button
+                                  type="submit"
+                                  className="mt-0.5 px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-[10px] font-bold transition-colors inline-flex items-center gap-1"
+                                  title="Marcar comisión USD como pagada"
+                                >
+                                  <CreditCard className="w-3 h-3" />
+                                  <span>Pagar USD</span>
+                                </button>
+                              </form>
+                            )}
+                          </div>
+                        </div>
                       </td>
 
                       {/* Switch Toggle Activo / Inactivo */}
