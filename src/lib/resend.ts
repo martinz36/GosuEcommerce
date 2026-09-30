@@ -316,3 +316,80 @@ export async function sendAbandonedCartEmail({
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * 7. Correo de Reporte de Estado de Cuenta a Creadores/Afiliados TCG
+ */
+export async function sendAffiliateReportEmail({
+  toEmail,
+  affiliateName,
+  code,
+  commissionRate,
+  totalSales,
+  pendingCommission,
+  totalOrders,
+}: {
+  toEmail: string;
+  affiliateName: string;
+  code: string;
+  commissionRate: number;
+  totalSales: number;
+  pendingCommission: number;
+  totalOrders: number;
+}) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("RESEND_API_KEY no configurada. Omitiendo email de reporte de afiliado.");
+    return { success: false, error: "API Key no configurada" };
+  }
+
+  try {
+    const data = await resend.emails.send({
+      from: DEFAULT_FROM,
+      to: [toEmail],
+      subject: `📊 Estado de Cuenta y Comisiones - Afiliado ${code} (GOSU® TCG)`,
+      react: NewsletterEmail({
+        subject: `📊 Estado de Cuenta y Comisiones - Afiliado ${code} (GOSU® TCG)`,
+        previewText: `Hola ${affiliateName}, este es tu resumen de ventas y comisiones acumuladas.`,
+        badgeTitle: "🏆 REPORTE OFICIAL CREADOR GOSU®",
+        contentHTML: `
+          <h2 style="color: #FFFFFF; font-size: 20px; text-transform: uppercase; margin: 0 0 12px 0;">¡Hola ${affiliateName}!</h2>
+          <p style="color: #A3A3A3; font-size: 14px; line-height: 1.6; margin: 0 0 16px 0;">
+            Te compartimos tu estado de cuenta actualizado a la fecha para tu código de creador <strong style="color:#00F0FF; font-family:monospace;">${code}</strong>.
+          </p>
+          <div style="background-color:#141414; border:1px solid #262626; border-radius:10px; padding:16px; margin-bottom:20px;">
+            <table style="width:100%; font-family:sans-serif; text-align:left; border-collapse:collapse;">
+              <tr>
+                <td style="color:#A3A3A3; padding:6px 0; font-size:13px;">Código Promocional:</td>
+                <td style="color:#FFFFFF; font-weight:bold; font-family:monospace; padding:6px 0; font-size:14px; text-align:right;">${code}</td>
+              </tr>
+              <tr>
+                <td style="color:#A3A3A3; padding:6px 0; font-size:13px;">Descuento para seguidores:</td>
+                <td style="color:#10B981; font-weight:bold; font-family:monospace; padding:6px 0; font-size:14px; text-align:right;">10% OFF</td>
+              </tr>
+              <tr>
+                <td style="color:#A3A3A3; padding:6px 0; font-size:13px;">Tasa de Comisión:</td>
+                <td style="color:#A855F7; font-weight:bold; font-family:monospace; padding:6px 0; font-size:14px; text-align:right;">${commissionRate}%</td>
+              </tr>
+              <tr>
+                <td style="color:#A3A3A3; padding:6px 0; font-size:13px;">Total Ventas Generadas:</td>
+                <td style="color:#FFFFFF; font-weight:bold; font-family:monospace; padding:6px 0; font-size:14px; text-align:right;">$${totalSales.toFixed(2)} USD (${totalOrders} compras)</td>
+              </tr>
+              <tr style="border-top:1px solid #333;">
+                <td style="color:#FFFFFF; padding:10px 0 4px 0; font-size:14px; font-weight:bold;">Comisiones por Cobrar:</td>
+                <td style="color:#10B981; font-weight:extrabold; font-family:monospace; padding:10px 0 4px 0; font-size:18px; text-align:right;">$${pendingCommission.toFixed(2)} USD</td>
+              </tr>
+            </table>
+          </div>
+          <p style="color:#737373; font-size:12px; margin:0;">Si tienes preguntas sobre tus comisiones o pagos, contáctanos a afiliados@gosutcg.pe.</p>
+        `,
+        ctaText: "Ingresar a Mi Portal de Afiliado",
+        ctaUrl: (process.env.NEXT_PUBLIC_APP_URL || "https://gosuecommerce.vercel.app") + "/account/affiliate",
+      }),
+    });
+
+    return { success: true, data };
+  } catch (error: any) {
+    console.error("Error al enviar reporte por correo a afiliado:", error);
+    return { success: false, error: error.message };
+  }
+}

@@ -24,6 +24,7 @@ import {
   Send,
   ChevronDown,
   ChevronRight,
+  Tag,
 } from "lucide-react";
 
 interface SubMenuItem {
@@ -78,8 +79,9 @@ const NAVIGATION_GROUPS: NavGroup[] = [
     title: "🚀 Marketing",
     icon: Send,
     items: [
+      { name: "Cupones y Promociones", href: "/dashboard/promotions", icon: Tag },
+      { name: "Programa de Afiliados", href: "/dashboard/affiliates", icon: Award },
       { name: "Novedades & Newsletter", href: "/dashboard/newsletter", icon: Send },
-      { name: "Descuentos & Afiliados", href: "/dashboard/discounts", icon: Percent },
       { name: "Plantillas de Correo", href: "/dashboard/settings/email-templates", icon: Mail },
     ],
   },

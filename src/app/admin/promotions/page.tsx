@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function DiscountsRedirect() {
+export default function AdminPromotionsRedirect() {
   redirect("/dashboard/promotions");
 }
