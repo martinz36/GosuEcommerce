@@ -127,3 +127,72 @@ export async function deleteCategoryAction(id: string): Promise<{ success: boole
     return { success: false, error: error?.message || "Error al eliminar la categoría." };
   }
 }
+
+export async function assignProductsToCategoryAction(
+  categoryId: string,
+  productIdsToAssign: string[]
+): Promise<{ success: boolean; error?: string; count?: number }> {
+  try {
+    const targetCategory = await prisma.category.findUnique({
+      where: { id: categoryId },
+    });
+
+    if (!targetCategory) {
+      return { success: false, error: "La categoría seleccionada no existe." };
+    }
+
+    // 1. Obtener productos actualmente en esta categoría
+    const currentProducts = await prisma.product.findMany({
+      where: { categoryId },
+      select: { id: true },
+    });
+    const currentIds = currentProducts.map((p) => p.id);
+
+    // Productos desmarcados (estaban en esta categoría pero ya no)
+    const idsToRemove = currentIds.filter((id) => !productIdsToAssign.includes(id));
+
+    // Si hay productos a desmarcar, reasignar a categoría por defecto "Sin Categoría"
+    if (idsToRemove.length > 0) {
+      let defaultCat = await prisma.category.findFirst({
+        where: { name: { equals: "Sin Categoría", mode: "insensitive" } },
+      });
+
+      if (!defaultCat) {
+        defaultCat = await prisma.category.create({
+          data: {
+            name: "Sin Categoría",
+            slug: "sin-categoria",
+            description: "Categoría por defecto para productos desasignados",
+          },
+        });
+      }
+
+      await prisma.product.updateMany({
+        where: { id: { in: idsToRemove } },
+        data: { categoryId: defaultCat.id },
+      });
+    }
+
+    // 2. Asignar productos seleccionados a la categoría destino
+    if (productIdsToAssign.length > 0) {
+      await prisma.product.updateMany({
+        where: { id: { in: productIdsToAssign } },
+        data: { categoryId: targetCategory.id },
+      });
+    }
+
+    revalidatePath("/dashboard/categories");
+    revalidatePath("/dashboard/products");
+    revalidatePath("/dashboard/products/new");
+    revalidatePath("/catalog");
+    revalidatePath("/");
+
+    return {
+      success: true,
+      count: productIdsToAssign.length,
+    };
+  } catch (error: any) {
+    console.error("Error al asignar productos a la categoría:", error);
+    return { success: false, error: error?.message || "Error al asignar productos a la categoría." };
+  }
+}
