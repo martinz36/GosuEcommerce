@@ -20,16 +20,16 @@ export function LanguageSwitcher({ variant = "clean" }: LanguageSwitcherProps) {
 
   if (variant === "clean") {
     return (
-      <div className="relative inline-flex items-center text-[11px] font-mono text-neutral-400 hover:text-white transition-colors cursor-pointer group">
+      <div className="relative inline-flex items-center text-[11px] font-mono text-white/80 hover:text-white transition-colors cursor-pointer group">
         <select
           value={language || "es"}
           onChange={(e) => handleLanguageChange(e.target.value)}
-          className="bg-transparent text-neutral-300 font-bold hover:text-white cursor-pointer focus:outline-none text-[11px] uppercase appearance-none pr-3 py-0.5"
+          className="bg-transparent text-white font-bold hover:text-white cursor-pointer focus:outline-none text-[11px] uppercase appearance-none pr-3 py-0.5"
         >
           <option value="es" className="bg-neutral-900 text-white">ES</option>
           <option value="en" className="bg-neutral-900 text-white">EN</option>
         </select>
-        <ChevronDown className="w-3 h-3 text-neutral-500 group-hover:text-white pointer-events-none absolute right-0 top-1/2 -translate-y-1/2" />
+        <ChevronDown className="w-3 h-3 text-white/70 group-hover:text-white pointer-events-none absolute right-0 top-1/2 -translate-y-1/2" />
       </div>
     );
   }
