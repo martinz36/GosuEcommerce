@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Package,
@@ -21,32 +22,131 @@ import {
   X,
   BookOpen,
   Send,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 
+interface SubMenuItem {
+  name: string;
+  href: string;
+  icon: React.ElementType;
+}
+
+interface NavGroup {
+  id: string;
+  title: string;
+  icon: React.ElementType;
+  href?: string;
+  items?: SubMenuItem[];
+}
+
+const NAVIGATION_GROUPS: NavGroup[] = [
+  {
+    id: "dashboard",
+    title: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    id: "ventas",
+    title: "🛍️ Ventas",
+    icon: ShoppingCart,
+    items: [
+      { name: "Pedidos & Recibos", href: "/dashboard/orders", icon: ShoppingCart },
+      { name: "Carritos Abandonados", href: "/dashboard/abandoned-carts", icon: ShoppingBag },
+    ],
+  },
+  {
+    id: "catalogo",
+    title: "📦 Catálogo",
+    icon: Package,
+    items: [
+      { name: "Productos", href: "/dashboard/products", icon: Package },
+    ],
+  },
+  {
+    id: "clientes",
+    title: "👥 Clientes",
+    icon: Users,
+    items: [
+      { name: "Directorio de Clientes", href: "/dashboard/customers", icon: Users },
+      { name: "GOSU® Loyalty", href: "/dashboard/settings/loyalty", icon: Award },
+    ],
+  },
+  {
+    id: "marketing",
+    title: "🚀 Marketing",
+    icon: Send,
+    items: [
+      { name: "Novedades & Newsletter", href: "/dashboard/newsletter", icon: Send },
+      { name: "Descuentos & Afiliados", href: "/dashboard/discounts", icon: Percent },
+      { name: "Plantillas de Correo", href: "/dashboard/settings/email-templates", icon: Mail },
+    ],
+  },
+  {
+    id: "configuracion",
+    title: "⚙️ Configuración",
+    icon: CreditCard,
+    items: [
+      { name: "Pasarela de Pago", href: "/dashboard/settings/payments", icon: CreditCard },
+      { name: "Configurar Envíos", href: "/dashboard/settings/shipping", icon: Truck },
+      { name: "Regiones Multi-Moneda", href: "/dashboard/settings/regions", icon: Globe },
+    ],
+  },
+  {
+    id: "soporte",
+    title: "⚖️ Soporte & Legal",
+    icon: BookOpen,
+    items: [
+      { name: "Libro de Reclamaciones", href: "/dashboard/claims", icon: BookOpen },
+    ],
+  },
+];
+
 export function AdminLayoutClient({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  const navigationItems = [
-    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Productos", href: "/dashboard/products", icon: Package },
-    { name: "Novedades & Newsletter", href: "/dashboard/newsletter", icon: Send },
-    { name: "Descuentos & Afiliados", href: "/dashboard/discounts", icon: Percent },
-    { name: "Pedidos & Recibos", href: "/dashboard/orders", icon: ShoppingCart },
-    { name: "Pasarela de Pago", href: "/dashboard/settings/payments", icon: CreditCard },
-    { name: "Directorio de Clientes", href: "/dashboard/customers", icon: Users },
-    { name: "Libro de Reclamaciones", href: "/dashboard/claims", icon: BookOpen },
-    { name: "GOSU® Loyalty", href: "/dashboard/settings/loyalty", icon: Award },
-    { name: "Carritos Abandonados", href: "/dashboard/abandoned-carts", icon: ShoppingBag },
-    { name: "Plantillas de Correo", href: "/dashboard/settings/email-templates", icon: Mail },
-    { name: "Configurar Envíos", href: "/dashboard/settings/shipping", icon: Truck },
-    { name: "Regiones Multi-Moneda", href: "/dashboard/settings/regions", icon: Globe },
-  ];
+  // Helper para verificar si un sub-ítem coincide con la ruta actual
+  const isItemActive = (href: string) => {
+    if (href === "/dashboard") {
+      return pathname === "/dashboard";
+    }
+    return pathname === href || pathname.startsWith(href + "/");
+  };
+
+  // Helper para verificar si algún sub-ítem del grupo está activo
+  const isGroupActive = (group: NavGroup) => {
+    if (group.href) {
+      return isItemActive(group.href);
+    }
+    return group.items?.some((sub) => isItemActive(sub.href)) || false;
+  };
+
+  // Estado del acordeón desplegable por categoría
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
+  // Auto-expandir grupo al cargar o cambiar de ruta
+  useEffect(() => {
+    NAVIGATION_GROUPS.forEach((group) => {
+      if (group.items && isGroupActive(group)) {
+        setOpenGroups((prev) => ({ ...prev, [group.id]: true }));
+      }
+    });
+  }, [pathname]);
+
+  const toggleGroup = (groupId: string) => {
+    setOpenGroups((prev) => ({
+      ...prev,
+      [groupId]: !prev[groupId],
+    }));
+  };
 
   const SidebarContent = (
     <div className="flex flex-col justify-between h-full font-body">
-      <div>
+      <div className="overflow-y-auto flex-1">
         {/* Header Sidebar */}
-        <div className="h-16 px-6 border-b border-slate-200 flex items-center justify-between">
+        <div className="h-16 px-6 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white z-10">
           <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -54,7 +154,7 @@ export function AdminLayoutClient({ children }: { children: React.ReactNode }) {
               alt="GOSU® Admin"
               className="h-6 w-auto object-contain"
             />
-            <span className="font-mono text-[9px] bg-accent-cyan text-black font-extrabold px-1.5 py-0.5 rounded uppercase">
+            <span className="font-mono text-[9px] bg-cyan-400 text-black font-extrabold px-1.5 py-0.5 rounded uppercase">
               ADMIN
             </span>
           </div>
@@ -68,33 +168,102 @@ export function AdminLayoutClient({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
-        {/* Menú de Navegación Principal */}
-        <nav className="p-4 space-y-1">
-          <div className="px-3 py-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-            Gestión de Tienda
+        {/* Menú de Navegación Principal (Jerárquico Acordeón) */}
+        <nav className="p-3 space-y-1">
+          <div className="px-3 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+            Navegación Admin
           </div>
-          {navigationItems.map((item) => {
-            const Icon = item.icon;
+
+          {NAVIGATION_GROUPS.map((group) => {
+            const GroupIcon = group.icon;
+            const hasSubMenu = Boolean(group.items && group.items.length > 0);
+            const groupActive = isGroupActive(group);
+            const isOpen = openGroups[group.id] || false;
+
+            // Opción 1: Enlace directo sin submenú (ej. Dashboard)
+            if (!hasSubMenu && group.href) {
+              const active = isItemActive(group.href);
+              return (
+                <Link
+                  key={group.id}
+                  href={group.href}
+                  onClick={() => setIsMobileSidebarOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                    active
+                      ? "bg-slate-900 text-white shadow-md"
+                      : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                  }`}
+                >
+                  <GroupIcon className={`w-4 h-4 ${active ? "text-cyan-400" : "text-slate-500"}`} />
+                  <span>{group.title}</span>
+                </Link>
+              );
+            }
+
+            // Opción 2: Categoría con Submenú desplegable (Acordeón)
             return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => setIsMobileSidebarOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
-              >
-                <Icon className="w-4 h-4 text-slate-500" />
-                <span>{item.name}</span>
-              </Link>
+              <div key={group.id} className="space-y-1">
+                {/* Botón Encabezado de Categoría */}
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.id)}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                    groupActive
+                      ? "bg-indigo-50 text-indigo-900 font-extrabold"
+                      : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <GroupIcon className={`w-4 h-4 ${groupActive ? "text-indigo-600" : "text-slate-500"}`} />
+                    <span>{group.title}</span>
+                  </div>
+                  {isOpen ? (
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-150" />
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-150" />
+                  )}
+                </button>
+
+                {/* Submenú Desplegable (Hijos Anidados) */}
+                {isOpen && group.items && (
+                  <div className="pl-4 space-y-1 border-l-2 border-indigo-100 ml-3.5 my-1">
+                    {group.items.map((sub) => {
+                      const SubIcon = sub.icon;
+                      const subActive = isItemActive(sub.href);
+                      return (
+                        <Link
+                          key={sub.href}
+                          href={sub.href}
+                          onClick={() => setIsMobileSidebarOpen(false)}
+                          className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                            subActive
+                              ? "bg-slate-900 text-white font-bold shadow-sm"
+                              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <SubIcon className={`w-3.5 h-3.5 ${subActive ? "text-cyan-400" : "text-slate-400"}`} />
+                            <span>{sub.name}</span>
+                          </div>
+                          {subActive && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </nav>
       </div>
 
       {/* Footer Sidebar - Ir a la tienda pública */}
-      <div className="p-4 border-t border-slate-200">
+      <div className="p-4 border-t border-slate-200 bg-white">
         <Link
           href="/"
-          className="flex items-center justify-between w-full px-3 py-2.5 rounded-md text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+          className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
         >
           <div className="flex items-center gap-2">
             <Store className="w-4 h-4 text-slate-500" />
