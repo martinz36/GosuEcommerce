@@ -322,6 +322,54 @@ export async function processAffiliatePayoutAction({
     const creator = codeRecord.createdBy;
     const uppercaseCurrency = (currency || "PEN").toUpperCase();
 
+    // 1. Validar saldo pendiente real antes de autorizar cualquier liquidación
+    const paidOrders = await prisma.order.findMany({
+      where: {
+        discountCodeId: codeRecord.id,
+        status: { in: ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"] },
+      },
+      select: { totalAmount: true, currency: true },
+    });
+
+    const previousPayouts = await prisma.payout.findMany({
+      where: { affiliateId: creator.id },
+      select: { amount: true, currency: true },
+    });
+
+    const commissionRate = Number(codeRecord.commissionRate || 10.0);
+    let totalCommCurrency = 0;
+    let paidOutCurrency = 0;
+
+    paidOrders.forEach((o: any) => {
+      const curr = (o.currency || "PEN").toUpperCase();
+      if (curr === uppercaseCurrency) {
+        totalCommCurrency += Number(o.totalAmount || 0) * (commissionRate / 100);
+      }
+    });
+
+    previousPayouts.forEach((p: any) => {
+      const curr = (p.currency || "PEN").toUpperCase();
+      if (curr === uppercaseCurrency) {
+        paidOutCurrency += Number(p.amount || 0);
+      }
+    });
+
+    const actualPendingBalance = Math.max(0, totalCommCurrency - paidOutCurrency);
+
+    if (actualPendingBalance <= 0) {
+      return {
+        success: false,
+        error: `El creador no tiene saldo pendiente por liquidar en ${uppercaseCurrency} (Saldo disponible: ${uppercaseCurrency === "USD" ? "$" : "S/."} 0.00).`,
+      };
+    }
+
+    if (amount > actualPendingBalance + 0.01) {
+      return {
+        success: false,
+        error: `El monto a liquidar (${amount.toFixed(2)} ${uppercaseCurrency}) excede el saldo pendiente disponible (${actualPendingBalance.toFixed(2)} ${uppercaseCurrency}).`,
+      };
+    }
+
     let generatedStoreCreditCode: string | undefined = undefined;
 
     if (payoutMethod === "STORE_CREDIT") {

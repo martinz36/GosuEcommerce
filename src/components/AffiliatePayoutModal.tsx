@@ -201,6 +201,14 @@ export function AffiliatePayoutModal({
           )}
         </div>
 
+        {/* Warning if currentAmount is 0 */}
+        {currentAmount <= 0 && !feedback && (
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs font-mono font-medium flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>El creador no posee saldo pendiente por liquidar en {selectedCurrency}. Los botones de pago están deshabilitados.</span>
+          </div>
+        )}
+
         {/* Acciones de Liquidación */}
         <div className="space-y-3 pt-2">
           <label className="block text-xs font-bold text-slate-700 uppercase font-mono">
