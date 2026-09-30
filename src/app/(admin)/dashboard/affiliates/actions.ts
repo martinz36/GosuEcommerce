@@ -161,7 +161,11 @@ export async function sendAffiliateReportAction(discountCodeId: string): Promise
       where: { id: discountCodeId },
       include: {
         createdBy: true,
-        orders: true,
+        orders: {
+          where: {
+            status: { in: ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"] },
+          },
+        },
       },
     });
 
@@ -170,7 +174,10 @@ export async function sendAffiliateReportAction(discountCodeId: string): Promise
     }
 
     const creator = code.createdBy;
-    const totalOrders = code.orders ? code.orders.length : 0;
+    const paidOrders = (code.orders || []).filter((o: any) =>
+      ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"].includes(o.status)
+    );
+    const totalOrders = paidOrders.length;
 
     let salesPEN = 0;
     let salesUSD = 0;
@@ -178,7 +185,7 @@ export async function sendAffiliateReportAction(discountCodeId: string): Promise
     let commUSD = 0;
     const commissionRate = Number(code.commissionRate || 10.0);
 
-    (code.orders || []).forEach((o) => {
+    paidOrders.forEach((o: any) => {
       const amt = Number(o.totalAmount || 0);
       const curr = (o.currency || "PEN").toUpperCase();
       const comm = amt * (commissionRate / 100);

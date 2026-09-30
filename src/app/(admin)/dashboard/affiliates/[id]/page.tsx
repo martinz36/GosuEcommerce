@@ -33,6 +33,9 @@ export default async function AdminAffiliateDetailPage({
         include: {
           createdBy: true,
           orders: {
+            where: {
+              status: { in: ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"] },
+            },
             include: {
               user: true,
               items: {
@@ -51,6 +54,9 @@ export default async function AdminAffiliateDetailPage({
           include: {
             createdBy: true,
             orders: {
+              where: {
+                status: { in: ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"] },
+              },
               include: {
                 user: true,
                 items: {
@@ -80,7 +86,9 @@ export default async function AdminAffiliateDetailPage({
   }
 
   const creator = codeRecord.createdBy;
-  const orders = codeRecord.orders || [];
+  const orders = (codeRecord.orders || []).filter((o: any) =>
+    ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"].includes(o.status)
+  );
   const commissionRate = Number(codeRecord.commissionRate || 10.0);
 
   let salesPEN = 0;

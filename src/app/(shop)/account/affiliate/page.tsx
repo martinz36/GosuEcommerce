@@ -31,7 +31,11 @@ export default async function CustomerAffiliatePage() {
       affiliateCodes = await prisma.discountCode.findMany({
         where: { createdById: userId },
         include: {
-          orders: true,
+          orders: {
+            where: {
+              status: { in: ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"] },
+            },
+          },
         },
       });
 
@@ -63,7 +67,10 @@ export default async function CustomerAffiliatePage() {
   } else {
     affiliateCodes.forEach((code) => {
       const commRate = Number(code.commissionRate || 10);
-      (code.orders || []).forEach((o: any) => {
+      const validOrders = (code.orders || []).filter((o: any) =>
+        ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"].includes(o.status)
+      );
+      validOrders.forEach((o: any) => {
         const amt = Number(o.totalAmount || 0);
         const curr = (o.currency || "PEN").toUpperCase();
         const comm = amt * (commRate / 100);
@@ -76,7 +83,12 @@ export default async function CustomerAffiliatePage() {
     });
   }
 
-  const totalOrdersGenerated = affiliateCodes.reduce((sum, c) => sum + (c.orders ? c.orders.length : 0), 0);
+  const totalOrdersGenerated = affiliateCodes.reduce((sum, c) => {
+    const validOrders = (c.orders || []).filter((o: any) =>
+      ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"].includes(o.status)
+    );
+    return sum + validOrders.length;
+  }, 0);
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-12 space-y-8 font-body">

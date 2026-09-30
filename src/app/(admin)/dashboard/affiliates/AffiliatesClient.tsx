@@ -293,7 +293,10 @@ export default function AffiliatesClient({ affiliateCodes }: { affiliateCodes: A
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {affiliateCodes.map((c) => {
-                  const uses = c.usageCount || (c.orders ? c.orders.length : 0);
+                  const paidOrders = (c.orders && Array.isArray(c.orders))
+                    ? c.orders.filter((o: any) => ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"].includes(o.status))
+                    : [];
+                  const uses = paidOrders.length || c.usageCount || 0;
                   const commRate = Number(c.commissionRate || 10);
                   
                   let salesPEN = 0;
@@ -301,20 +304,18 @@ export default function AffiliatesClient({ affiliateCodes }: { affiliateCodes: A
                   let commPEN = 0;
                   let commUSD = 0;
 
-                  if (c.orders && Array.isArray(c.orders)) {
-                    c.orders.forEach((o: any) => {
-                      const amt = Number(o.totalAmount || 0);
-                      const curr = (o.currency || "PEN").toUpperCase();
-                      const comm = amt * (commRate / 100);
-                      if (curr === "USD") {
-                        salesUSD += amt;
-                        commUSD += comm;
-                      } else {
-                        salesPEN += amt;
-                        commPEN += comm;
-                      }
-                    });
-                  }
+                  paidOrders.forEach((o: any) => {
+                    const amt = Number(o.totalAmount || 0);
+                    const curr = (o.currency || "PEN").toUpperCase();
+                    const comm = amt * (commRate / 100);
+                    if (curr === "USD") {
+                      salesUSD += amt;
+                      commUSD += comm;
+                    } else {
+                      salesPEN += amt;
+                      commPEN += comm;
+                    }
+                  });
 
                   return (
                     <tr key={c.id} className="hover:bg-slate-50">
