@@ -4,6 +4,7 @@ import OrderConfirmationEmail from "../../emails/OrderConfirmationEmail";
 import ResetPasswordEmail from "../../emails/ResetPasswordEmail";
 import NewsletterEmail from "../../emails/NewsletterEmail";
 import AbandonedCartEmail from "../../emails/AbandonedCartEmail";
+import { generateReceiptPdfBuffer } from "./pdfGenerator";
 
 // Inicializar cliente de Resend (Usar API KEY de env)
 export const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy_key_for_build");
@@ -16,11 +17,15 @@ const DEFAULT_FROM = process.env.SENDER_EMAIL || "GOSU® TCG Gear <onboarding@re
  */
 export async function sendWelcomeEmail({
   toEmail,
+  customerName,
   userName,
+  userEmail,
   loyaltyPoints = 50,
 }: {
   toEmail: string;
+  customerName?: string | null;
   userName?: string | null;
+  userEmail?: string;
   loyaltyPoints?: number;
 }) {
   if (!process.env.RESEND_API_KEY) {
@@ -28,12 +33,21 @@ export async function sendWelcomeEmail({
     return { success: false, error: "API Key no configurada" };
   }
 
+  const name = customerName || userName || undefined;
+  const email = userEmail || toEmail;
+
   try {
     const data = await resend.emails.send({
       from: DEFAULT_FROM,
       to: [toEmail],
       subject: "✨ ¡Bienvenido a GOSU® TCG! Tus 50 Puntos están listos",
-      react: WelcomeEmail({ toEmail, userName, loyaltyPoints }),
+      react: WelcomeEmail({
+        customerName: name,
+        userName: name,
+        userEmail: email,
+        toEmail,
+        loyaltyPoints,
+      }),
     });
 
     return { success: true, data };
@@ -44,44 +58,110 @@ export async function sendWelcomeEmail({
 }
 
 /**
- * 2. Correo de Confirmación de Pedido (Stripe / Mercado Pago)
+ * 2. Correo de Confirmación de Pedido (con Recibo PDF Adjunto)
  */
 export async function sendOrderConfirmationEmail({
   toEmail,
+  customerName,
+  userName,
+  orderId,
   orderNumber,
+  total,
   totalAmount,
-  currency,
+  currency = "S/.",
+  orderItems,
   items,
   shippingAddress,
   loyaltyPointsEarned = 0,
+  attachPdf = true,
 }: {
   toEmail: string;
-  orderNumber: string;
-  totalAmount: number;
-  currency: string;
-  items: Array<{ title: string; quantity: number; unitPrice: number }>;
+  customerName?: string;
+  userName?: string;
+  orderId?: string;
+  orderNumber?: string;
+  total?: number;
+  totalAmount?: number;
+  currency?: string;
+  orderItems?: Array<{
+    title?: string;
+    name?: string;
+    image?: string;
+    imageUrl?: string;
+    quantity: number;
+    unitPrice?: number;
+    price?: number;
+  }>;
+  items?: Array<any>;
   shippingAddress?: any;
   loyaltyPointsEarned?: number;
+  attachPdf?: boolean;
 }) {
   if (!process.env.RESEND_API_KEY) {
     console.warn("RESEND_API_KEY no configurada. Omitiendo envío de confirmación de pedido.");
     return { success: false, error: "API Key no configurada" };
   }
 
+  const name = customerName || userName || "Cliente GOSU®";
+  const displayOrderId = orderId || orderNumber || "GOSU-10001";
+  const displayTotal = total !== undefined ? total : totalAmount !== undefined ? totalAmount : 0;
+  const itemList = orderItems || items || [];
+
+  // Mapeo normalizado de ítems
+  const normalizedItems = itemList.map((i) => ({
+    title: i.title || i.name || "Producto GOSU",
+    quantity: i.quantity || 1,
+    unitPrice: i.unitPrice !== undefined ? i.unitPrice : i.price || 0,
+    image: i.image || i.imageUrl,
+  }));
+
+  // Generar buffer del Recibo PDF en tiempo de ejecución
+  let pdfBuffer: Buffer | null = null;
+  if (attachPdf) {
+    try {
+      pdfBuffer = generateReceiptPdfBuffer({
+        orderId: displayOrderId,
+        customerName: name,
+        customerEmail: toEmail,
+        items: normalizedItems,
+        totalAmount: displayTotal,
+        currency,
+        shippingAddress,
+      });
+    } catch (pdfErr) {
+      console.error("Error generando PDF para adjunto en email de confirmación:", pdfErr);
+    }
+  }
+
   try {
-    const data = await resend.emails.send({
+    const emailPayload: any = {
       from: DEFAULT_FROM,
       to: [toEmail],
-      subject: `📦 Confirmación de Pedido ${orderNumber} - GOSU® TCG`,
+      subject: `📦 Confirmación de Pedido ${displayOrderId} - GOSU® TCG`,
       react: OrderConfirmationEmail({
-        orderNumber,
-        totalAmount,
+        customerName: name,
+        orderId: displayOrderId,
+        orderNumber: displayOrderId,
+        total: displayTotal,
+        totalAmount: displayTotal,
         currency,
-        items,
+        orderItems: normalizedItems,
+        items: normalizedItems,
         shippingAddress,
         loyaltyPointsEarned,
       }),
-    });
+    };
+
+    if (pdfBuffer) {
+      emailPayload.attachments = [
+        {
+          filename: `Recibo_GOSU_${displayOrderId}.pdf`,
+          content: pdfBuffer,
+        },
+      ];
+    }
+
+    const data = await resend.emails.send(emailPayload);
 
     return { success: true, data };
   } catch (error: any) {

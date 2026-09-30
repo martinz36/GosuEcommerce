@@ -151,17 +151,22 @@ export async function GET(req: Request) {
         }
       }
 
-      // Enviar Correo Transaccional de Confirmación con Resend
+      // Enviar Correo Transaccional de Confirmación con Resend (datos dinámicos + PDF)
+      const buyerName = checkoutSession.customer_details?.name || (targetEmail ? targetEmail.split("@")[0] : "Cliente GOSU®");
       if (targetEmail) {
         sendOrderConfirmationEmail({
           toEmail: targetEmail,
+          customerName: buyerName,
+          orderId: orderNumber,
           orderNumber,
+          total: totalAmount,
           totalAmount,
           currency: (checkoutSession.currency || "PEN").toUpperCase(),
-          items: parsedItems.map((item: any) => ({
+          orderItems: parsedItems.map((item: any) => ({
             title: item.title,
             quantity: item.quantity,
             unitPrice: item.price,
+            image: item.image || item.imageUrl,
           })),
           shippingAddress: checkoutSession.shipping_details?.address || undefined,
           loyaltyPointsEarned: Math.floor(totalAmount),

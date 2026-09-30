@@ -166,18 +166,23 @@ export async function POST(req: Request) {
 
         console.log(`✅ Orden ${orderNumber} creada exitosamente para la sesión ${sessionId}`);
 
-        // Enviar Correo Transaccional de Confirmación de Pedido con Resend
+        // Enviar Correo Transaccional de Confirmación de Pedido con Resend (con datos dinámicos y PDF)
         const buyerEmail = session.customer_details?.email || metadata.userEmail;
+        const buyerName = session.customer_details?.name || metadata.userName || (buyerEmail ? buyerEmail.split("@")[0] : "Cliente GOSU®");
         if (buyerEmail) {
           sendOrderConfirmationEmail({
             toEmail: buyerEmail,
+            customerName: buyerName,
+            orderId: orderNumber,
             orderNumber,
+            total: totalAmount,
             totalAmount,
             currency: orderCurrency,
-            items: parsedItems.map((item: any) => ({
+            orderItems: parsedItems.map((item: any) => ({
               title: item.title,
               quantity: item.quantity,
               unitPrice: item.price,
+              image: item.image || item.imageUrl,
             })),
             shippingAddress: session.shipping_details?.address || undefined,
             loyaltyPointsEarned: Math.floor(totalAmount),

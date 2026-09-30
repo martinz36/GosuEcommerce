@@ -54,7 +54,9 @@ export async function registerUserAction(formData: FormData) {
     // Enviar correo de bienvenida transaccional vía Resend
     sendWelcomeEmail({
       toEmail: newUser.email,
+      customerName: newUser.name,
       userName: newUser.name,
+      userEmail: newUser.email,
     }).catch((err) => console.error("Error enviando bienvenida en registro:", err));
 
     return { success: true, message: "¡Cuenta creada exitosamente! Ahora puedes iniciar sesión." };

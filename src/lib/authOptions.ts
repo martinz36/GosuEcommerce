@@ -31,7 +31,9 @@ export const authOptions: NextAuthOptions = {
         if (user.email) {
           sendWelcomeEmail({
             toEmail: user.email,
+            customerName: user.name,
             userName: user.name,
+            userEmail: user.email,
           }).catch((err) => console.error("Error enviando bienvenida en createUser:", err));
         }
       } catch (err) {

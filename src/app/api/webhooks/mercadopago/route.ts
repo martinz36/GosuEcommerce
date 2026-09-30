@@ -84,7 +84,16 @@ export async function POST(req: Request) {
               status: "PAID",
               stripePaymentIntentId: mpPaymentId,
             },
-            include: { items: true },
+            include: {
+              items: {
+                include: {
+                  product: {
+                    include: { images: true },
+                  },
+                },
+              },
+              user: true,
+            },
           });
 
           // Descontar el stock de los productos
@@ -114,19 +123,26 @@ export async function POST(req: Request) {
             await awardLoyaltyPoints(order.userId, "PURCHASE", Number(order.totalAmount));
           }
 
-          // Enviar correo de confirmación de pedido con Resend
+          // Enviar correo de confirmación de pedido con Resend (datos dinámicos + PDF)
           const targetEmail = order.guestEmail || payment.payer?.email || metadata.user_email;
+          const customerName = order.user?.name || (order.user?.firstName ? `${order.user.firstName} ${order.user.lastName || ""}`.trim() : null) || payment.payer?.first_name || (targetEmail ? targetEmail.split("@")[0] : "Cliente GOSU®");
+
           if (targetEmail) {
             sendOrderConfirmationEmail({
               toEmail: targetEmail,
+              customerName,
+              orderId: order.orderNumber,
               orderNumber: order.orderNumber,
+              total: Number(order.totalAmount),
               totalAmount: Number(order.totalAmount),
               currency: order.currency,
-              items: order.items.map((i: any) => ({
-                title: i.title || "Producto GOSU",
+              orderItems: order.items.map((i: any) => ({
+                title: i.product?.title || i.title || "Producto GOSU",
                 quantity: i.quantity,
                 unitPrice: Number(i.unitPrice),
+                image: i.product?.images?.[0]?.url,
               })),
+              shippingAddress: order.shippingAddressJson || undefined,
               loyaltyPointsEarned: Math.floor(Number(order.totalAmount)),
             }).catch((emailErr) => console.error("Error enviando email en webhook Mercado Pago:", emailErr));
           }

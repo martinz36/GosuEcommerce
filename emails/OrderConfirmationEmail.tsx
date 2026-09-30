@@ -12,17 +12,26 @@ import {
   Button,
 } from "@react-email/components";
 
-interface OrderItem {
-  title: string;
+export interface OrderItemProp {
+  title?: string;
+  name?: string;
+  image?: string;
+  imageUrl?: string;
   quantity: number;
-  unitPrice: number;
+  unitPrice?: number;
+  price?: number;
 }
 
-interface OrderConfirmationEmailProps {
+export interface OrderConfirmationEmailProps {
+  customerName?: string;
+  userName?: string;
+  orderId?: string;
   orderNumber?: string;
+  total?: number;
   totalAmount?: number;
   currency?: string;
-  items?: OrderItem[];
+  orderItems?: OrderItemProp[];
+  items?: OrderItemProp[];
   shippingAddress?: any;
   loyaltyPointsEarned?: number;
 }
@@ -30,23 +39,33 @@ interface OrderConfirmationEmailProps {
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://gosuecommerce.vercel.app";
 
 export const OrderConfirmationEmail = ({
-  orderNumber = "GOSU-10001",
-  totalAmount = 0,
+  customerName,
+  userName,
+  orderId,
+  orderNumber,
+  total,
+  totalAmount,
   currency = "S/.",
-  items = [],
+  orderItems,
+  items,
   shippingAddress,
   loyaltyPointsEarned = 0,
 }: OrderConfirmationEmailProps) => {
+  const name = customerName || userName || "Cliente GOSU®";
+  const displayOrderNumber = orderId || orderNumber || "GOSU-10001";
+  const displayTotal = total !== undefined ? total : totalAmount !== undefined ? totalAmount : 0;
+  const itemList = orderItems || items || [];
+
   const addressString = shippingAddress
     ? typeof shippingAddress === "string"
       ? shippingAddress
-      : `${shippingAddress.street || ""}, ${shippingAddress.city || ""}, ${shippingAddress.state || ""}`
+      : `${shippingAddress.street || shippingAddress.line1 || ""}, ${shippingAddress.city || ""}, ${shippingAddress.state || ""}`
     : "Recojo en Tienda / Envío registrado";
 
   return (
     <Html lang="es">
       <Head />
-      <Preview>📦 Confirmación de Pedido {orderNumber} - GOSU® TCG</Preview>
+      <Preview>📦 Confirmación de Pedido {displayOrderNumber} - GOSU® TCG</Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Header */}
@@ -67,10 +86,14 @@ export const OrderConfirmationEmail = ({
             </div>
 
             <Heading style={heading}>
-              ¡Gracias por tu compra!
+              ¡Hola, {name}!
             </Heading>
+            <Text style={subheading}>
+              ¡Gracias por tu compra en GOSU® TCG Gear! Tu pedido ya está siendo preparado para su envío.
+            </Text>
+
             <Text style={orderSub}>
-              Pedido Nº: <span style={orderHighlight}>{orderNumber}</span>
+              Pedido Nº: <span style={orderHighlight}>{displayOrderNumber}</span>
             </Text>
 
             {/* Tabla de Productos */}
@@ -78,21 +101,45 @@ export const OrderConfirmationEmail = ({
               <table width="100%" cellPadding="0" cellSpacing="0" style={{ borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
-                    <th align="left" style={thLeft}>PRODUCTO</th>
+                    <th align="left" style={thLeft} colSpan={2}>PRODUCTO</th>
+                    <th align="center" style={thCenter}>CANT.</th>
                     <th align="right" style={thRight}>TOTAL</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((item, index) => (
-                    <tr key={index}>
-                      <td style={tdLeft}>
-                        {item.title} x <strong>{item.quantity}</strong>
-                      </td>
-                      <td align="right" style={tdRight}>
-                        {currency} {(item.unitPrice * item.quantity).toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
+                  {itemList.map((item, index) => {
+                    const itemTitle = item.title || item.name || "Producto GOSU";
+                    const itemPrice = item.unitPrice !== undefined ? item.unitPrice : item.price || 0;
+                    const itemImage = item.image || item.imageUrl || `${baseUrl}/gosu-logo-white.png`;
+
+                    return (
+                      <tr key={index}>
+                        <td style={tdImg}>
+                          {itemImage ? (
+                            <Img
+                              src={itemImage}
+                              width="40"
+                              height="40"
+                              alt={itemTitle}
+                              style={productImg}
+                            />
+                          ) : (
+                            <div style={placeholderBox} />
+                          )}
+                        </td>
+                        <td style={tdLeft}>
+                          <Text style={itemTitleText}>{itemTitle}</Text>
+                          <Text style={itemSubtext}>{currency} {itemPrice.toFixed(2)} c/u</Text>
+                        </td>
+                        <td align="center" style={tdCenter}>
+                          <span style={qtyBadge}>x{item.quantity}</span>
+                        </td>
+                        <td align="right" style={tdRight}>
+                          {currency} {(itemPrice * item.quantity).toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </Section>
@@ -102,7 +149,7 @@ export const OrderConfirmationEmail = ({
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Text style={totalLabel}>Total Pagado:</Text>
                 <Text style={totalValue}>
-                  {currency} {totalAmount.toFixed(2)}
+                  {currency} {displayTotal.toFixed(2)}
                 </Text>
               </div>
               {loyaltyPointsEarned > 0 && (
@@ -129,7 +176,8 @@ export const OrderConfirmationEmail = ({
           {/* Footer */}
           <Section style={footer}>
             <Text style={footerText}>
-              &copy; {new Date().getFullYear()} GOSU® TCG Gear. Todos los derechos reservados.
+              &copy; {new Date().getFullYear()} GOSU® TCG Gear. Todos los derechos reservados.<br />
+              Adjuntamos tu recibo oficial en PDF (`Recibo_GOSU_${displayOrderNumber}.pdf`).
             </Text>
           </Section>
         </Container>
@@ -192,8 +240,15 @@ const heading = {
   fontSize: "22px",
   fontWeight: "bold" as const,
   lineHeight: "1.3",
-  margin: "0 0 8px 0",
+  margin: "0 0 6px 0",
   textTransform: "uppercase" as const,
+};
+
+const subheading = {
+  color: "#A3A3A3",
+  fontSize: "13px",
+  lineHeight: "1.5",
+  margin: "0 0 16px 0",
 };
 
 const orderSub = {
@@ -221,6 +276,15 @@ const thLeft = {
   textTransform: "uppercase" as const,
 };
 
+const thCenter = {
+  borderBottom: "1px solid #333333",
+  color: "#737373",
+  fontSize: "10px",
+  fontFamily: "monospace",
+  paddingBottom: "8px",
+  textTransform: "uppercase" as const,
+};
+
 const thRight = {
   borderBottom: "1px solid #333333",
   color: "#737373",
@@ -230,11 +294,57 @@ const thRight = {
   textTransform: "uppercase" as const,
 };
 
+const tdImg = {
+  borderBottom: "1px solid #1F1F1F",
+  padding: "12px 10px 12px 0",
+  width: "48px",
+};
+
+const productImg = {
+  borderRadius: "6px",
+  objectFit: "cover" as const,
+  border: "1px solid #262626",
+};
+
+const placeholderBox = {
+  width: "40px",
+  height: "40px",
+  borderRadius: "6px",
+  backgroundColor: "#141414",
+  border: "1px solid #262626",
+};
+
 const tdLeft = {
   borderBottom: "1px solid #1F1F1F",
   color: "#E5E5E5",
   fontSize: "13px",
   padding: "12px 0",
+};
+
+const itemTitleText = {
+  color: "#FFFFFF",
+  fontSize: "13px",
+  fontWeight: "bold" as const,
+  margin: "0",
+};
+
+const itemSubtext = {
+  color: "#737373",
+  fontSize: "11px",
+  fontFamily: "monospace",
+  margin: "2px 0 0 0",
+};
+
+const tdCenter = {
+  borderBottom: "1px solid #1F1F1F",
+  padding: "12px 0",
+};
+
+const qtyBadge = {
+  color: "#A3A3A3",
+  fontSize: "12px",
+  fontFamily: "monospace",
+  fontWeight: "bold" as const,
 };
 
 const tdRight = {

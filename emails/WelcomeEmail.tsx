@@ -12,8 +12,10 @@ import {
   Button,
 } from "@react-email/components";
 
-interface WelcomeEmailProps {
+export interface WelcomeEmailProps {
+  customerName?: string | null;
   userName?: string | null;
+  userEmail?: string;
   toEmail?: string;
   loyaltyPoints?: number;
 }
@@ -21,16 +23,19 @@ interface WelcomeEmailProps {
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://gosuecommerce.vercel.app";
 
 export const WelcomeEmail = ({
+  customerName,
   userName,
+  userEmail,
   toEmail = "cliente@gosu.com",
   loyaltyPoints = 50,
 }: WelcomeEmailProps) => {
-  const name = userName || toEmail.split("@")[0];
+  const emailDisplay = userEmail || toEmail;
+  const name = customerName || userName || emailDisplay.split("@")[0];
 
   return (
     <Html lang="es">
       <Head />
-      <Preview>✨ ¡Bienvenido a GOSU® TCG! Tus 50 Puntos de regalo están listos</Preview>
+      <Preview>{`✨ ¡Bienvenido a GOSU® TCG! Tus ${loyaltyPoints} Puntos de regalo están listos`}</Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Header con Logo */}
@@ -55,7 +60,7 @@ export const WelcomeEmail = ({
             </Heading>
 
             <Text style={paragraph}>
-              Gracias por unirte a <strong>GOSU® TCG Gear</strong>. Tu cuenta ha sido activada exitosamente y hemos sumado tus primeros <strong>{loyaltyPoints} Puntos de Fidelidad (GOSU® Loyalty)</strong> para que los disfrutes en tus compras de accesorios premium TCG.
+              Gracias por unirte a <strong>GOSU® TCG Gear</strong>. Tu cuenta vinculada a <strong style={{ color: "#00F0FF" }}>{emailDisplay}</strong> ha sido activada exitosamente y hemos acreditado tus primeros <strong>{loyaltyPoints} Puntos de Fidelidad (GOSU® Loyalty)</strong>.
             </Text>
 
             {/* Card Saldo Loyalty */}
@@ -77,7 +82,7 @@ export const WelcomeEmail = ({
           <Section style={footer}>
             <Text style={footerText}>
               &copy; {new Date().getFullYear()} GOSU® TCG Gear. Todos los derechos reservados.<br />
-              Soporte: soporte@gosu.com
+              Cuenta: {emailDisplay} | Soporte: soporte@gosu.com
             </Text>
           </Section>
         </Container>
