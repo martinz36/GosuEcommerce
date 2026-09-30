@@ -12,13 +12,13 @@ import {
   Button,
 } from "@react-email/components";
 
-interface CartItem {
+export interface CartItem {
   title: string;
   quantity: number;
   price: number;
 }
 
-interface AbandonedCartEmailProps {
+export interface AbandonedCartEmailProps {
   toEmail?: string;
   items?: CartItem[];
   subtotal?: number;
@@ -26,11 +26,19 @@ interface AbandonedCartEmailProps {
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://gosuecommerce.vercel.app";
 
+const defaultSampleItems: CartItem[] = [
+  { title: "GOSU® Deckbox PU Leather (Matte Black)", quantity: 1, price: 60.0 },
+  { title: "GOSU® Armor Sleeves - Japanese Size (60ct)", quantity: 2, price: 30.0 },
+];
+
 export const AbandonedCartEmail = ({
   toEmail = "cliente@gosu.com",
-  items = [],
-  subtotal = 0,
-}: AbandonedCartEmailProps) => {
+  items,
+  subtotal,
+}: AbandonedCartEmailProps = {}) => {
+  const itemList = items && items.length > 0 ? items : defaultSampleItems;
+  const calculatedSubtotal = subtotal !== undefined ? subtotal : itemList.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
   return (
     <Html lang="es">
       <Head />
@@ -64,12 +72,18 @@ export const AbandonedCartEmail = ({
 
             {/* Lista de productos */}
             <Section style={itemsContainer}>
-              {items.map((item, index) => (
+              {itemList.map((item, index) => (
                 <div key={index} style={itemCard}>
                   <Text style={itemTitle}>{item.title} (x{item.quantity})</Text>
                   <Text style={itemPrice}>S/. {(item.price * item.quantity).toFixed(2)} PEN</Text>
                 </div>
               ))}
+            </Section>
+
+            {/* Subtotal Box */}
+            <Section style={subtotalCard}>
+              <Text style={subtotalLabel}>Subtotal reservado:</Text>
+              <Text style={subtotalValue}>S/. {calculatedSubtotal.toFixed(2)} PEN</Text>
             </Section>
 
             {/* Botón Reanudar Compra */}
@@ -83,7 +97,8 @@ export const AbandonedCartEmail = ({
           {/* Footer */}
           <Section style={footer}>
             <Text style={footerText}>
-              &copy; {new Date().getFullYear()} GOSU® TCG Gear. Todos los derechos reservados.
+              &copy; {new Date().getFullYear()} GOSU® TCG Gear. Todos los derechos reservados.<br />
+              Cuenta: {toEmail}
             </Text>
           </Section>
         </Container>
@@ -158,7 +173,7 @@ const paragraph = {
 };
 
 const itemsContainer = {
-  marginBottom: "24px",
+  marginBottom: "16px",
 };
 
 const itemCard = {
@@ -181,6 +196,33 @@ const itemPrice = {
   fontFamily: "monospace",
   fontWeight: "bold" as const,
   margin: "0",
+};
+
+const subtotalCard = {
+  backgroundColor: "#141414",
+  border: "1px solid #262626",
+  borderRadius: "10px",
+  padding: "12px 16px",
+  marginBottom: "24px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+};
+
+const subtotalLabel = {
+  color: "#A3A3A3",
+  fontSize: "12px",
+  fontFamily: "monospace",
+  margin: "0",
+};
+
+const subtotalValue = {
+  color: "#00F0FF",
+  fontSize: "14px",
+  fontFamily: "monospace",
+  fontWeight: "bold" as const,
+  margin: "0",
+  textAlign: "right" as const,
 };
 
 const ctaContainer = {

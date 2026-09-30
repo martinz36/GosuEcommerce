@@ -1,8 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { Mail, Send, CheckCircle2, AlertCircle, Loader2, Sparkles, Layout, Palette, FileText, Eye } from "lucide-react";
+import { Mail, Send, CheckCircle2, AlertCircle, Loader2, Layout, Eye, Sparkles } from "lucide-react";
 import { sendTestEmailAction } from "./actions";
+
+// Importar componentes oficiales de React Email
+import WelcomeEmail from "../../../../../../emails/WelcomeEmail";
+import OrderConfirmationEmail from "../../../../../../emails/OrderConfirmationEmail";
+import AbandonedCartEmail from "../../../../../../emails/AbandonedCartEmail";
+import NewsletterEmail from "../../../../../../emails/NewsletterEmail";
 
 type TemplateType = "WELCOME" | "ORDER_CONFIRMATION" | "ABANDONED_CART" | "NEWSLETTER";
 
@@ -30,7 +36,7 @@ const TEMPLATES: TemplateConfig[] = [
     id: "ORDER_CONFIRMATION",
     title: "Confirmación de Pedido",
     badge: "Transaccional",
-    defaultSubject: "📦 Confirmación de Pedido GOSU-10001 - GOSU® TCG",
+    defaultSubject: "📦 Confirmación de Pedido GOSU-9999 - GOSU® TCG",
     defaultBanner: "¡Gracias por tu compra!",
     defaultNote: "Hemos recibido tu pago correctamente y estamos preparando tus productos para el despacho.",
     accentColor: "#FF007A",
@@ -54,6 +60,44 @@ const TEMPLATES: TemplateConfig[] = [
     accentColor: "#10B981",
   },
 ];
+
+// Mock Data de Prueba Constante para la Vista Previa en Vivo y Envíos de Prueba
+const MOCK_USER = {
+  customerName: "Martín (Jugador GOSU®)",
+  userName: "Martín",
+  userEmail: "martin@gosu.com",
+  toEmail: "martin@gosu.com",
+  loyaltyPoints: 50,
+};
+
+const MOCK_ORDER = {
+  orderId: "GOSU-9999",
+  orderNumber: "GOSU-9999",
+  customerName: "Martín (Jugador GOSU®)",
+  total: 120.0,
+  totalAmount: 120.0,
+  currency: "S/.",
+  loyaltyPointsEarned: 120,
+  shippingAddress: "Av. Javier Prado Este 456, Depto 302, San Isidro, Lima",
+  orderItems: [
+    {
+      title: "GOSU® Deckbox PU Leather (Matte Black)",
+      name: "GOSU® Deckbox PU Leather (Matte Black)",
+      quantity: 1,
+      unitPrice: 60.0,
+      price: 60.0,
+      image: "https://gosuecommerce.vercel.app/gosu-logo-white.png",
+    },
+    {
+      title: "GOSU® Armor Sleeves - Japanese Size (60ct)",
+      name: "GOSU® Armor Sleeves - Japanese Size (60ct)",
+      quantity: 2,
+      unitPrice: 30.0,
+      price: 30.0,
+      image: "https://gosuecommerce.vercel.app/gosu-logo-white.png",
+    },
+  ],
+};
 
 export function EmailTemplatesClient() {
   const [activeTab, setActiveTab] = useState<TemplateType>("WELCOME");
@@ -128,7 +172,7 @@ export function EmailTemplatesClient() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-body">
       {/* Selector de Pestañas de Plantillas */}
       <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-4">
         {TEMPLATES.map((tmpl) => {
@@ -156,7 +200,7 @@ export function EmailTemplatesClient() {
         })}
       </div>
 
-      {/* Grid Principal: Formulario de Configuración + Vista Previa en Vivo */}
+      {/* Grid Principal: Formulario de Configuración + Vista Previa en Vivo con React Email */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Panel de Configuración de la Plantilla (Columna Izquierda 5/12) */}
         <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
@@ -287,74 +331,64 @@ export function EmailTemplatesClient() {
           </div>
         </div>
 
-        {/* Panel de Vista Previa HTML en Vivo (Columna Derecha 7/12) */}
+        {/* Panel de Vista Previa HTML en Vivo con React Email (Columna Derecha 7/12) */}
         <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <span className="text-xs font-bold text-slate-800 uppercase tracking-wider font-mono flex items-center gap-2">
               <Eye className="w-4 h-4 text-slate-500" />
-              Vista Previa en Vivo (Live Render)
+              Vista Previa en Vivo (Live Render React Email)
             </span>
-            <span className="text-[11px] font-mono text-slate-400">Diseño Responsivo Dark Theme</span>
+            <span className="text-[11px] font-mono text-slate-400 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+              Mock Data Inyectada
+            </span>
           </div>
 
-          {/* Renderizador de Plantilla HTML */}
-          <div className="bg-[#050505] p-6 rounded-xl border border-slate-800 shadow-inner overflow-hidden font-sans text-white">
-            <div className="max-w-md mx-auto bg-[#0D0D0D] border border-neutral-800 rounded-2xl overflow-hidden shadow-2xl">
-              {/* Header en Vivo con Logo Oficial Blanco */}
-              <div className="p-6 bg-[#141414] border-b border-neutral-800 text-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/gosu-logo-white.png"
-                  alt="GOSU® TCG GEAR"
-                  className="h-9 w-auto mx-auto object-contain"
-                />
-              </div>
+          {/* Marco de Previsualización React Email */}
+          <div className="bg-[#050505] p-2 sm:p-4 rounded-2xl border border-slate-800 shadow-2xl overflow-y-auto max-h-[750px]">
+            {activeTab === "WELCOME" && (
+              <WelcomeEmail
+                customerName={MOCK_USER.customerName}
+                userName={MOCK_USER.userName}
+                userEmail={MOCK_USER.userEmail}
+                loyaltyPoints={MOCK_USER.loyaltyPoints}
+              />
+            )}
 
-              {/* Body en Vivo */}
-              <div className="p-6 space-y-4">
-                <div
-                  className="inline-block px-3 py-1 rounded-full text-[11px] font-mono font-bold"
-                  style={{
-                    backgroundColor: `${currentConfig.accentColor}20`,
-                    borderColor: currentConfig.accentColor,
-                    borderWidth: "1px",
-                    color: currentConfig.accentColor,
-                  }}
-                >
-                  {currentTemplate.badge}
-                </div>
+            {activeTab === "ORDER_CONFIRMATION" && (
+              <OrderConfirmationEmail
+                customerName={MOCK_ORDER.customerName}
+                orderId={MOCK_ORDER.orderId}
+                orderNumber={MOCK_ORDER.orderNumber}
+                total={MOCK_ORDER.total}
+                currency={MOCK_ORDER.currency}
+                orderItems={MOCK_ORDER.orderItems}
+                shippingAddress={MOCK_ORDER.shippingAddress}
+                loyaltyPointsEarned={MOCK_ORDER.loyaltyPointsEarned}
+              />
+            )}
 
-                <h3 className="text-xl font-extrabold text-white uppercase tracking-tight">
-                  {currentConfig.bannerTitle}
-                </h3>
+            {activeTab === "ABANDONED_CART" && (
+              <AbandonedCartEmail
+                toEmail={MOCK_USER.userEmail}
+                items={MOCK_ORDER.orderItems.map((i) => ({
+                  title: i.title,
+                  quantity: i.quantity,
+                  price: i.unitPrice,
+                }))}
+                subtotal={MOCK_ORDER.total}
+              />
+            )}
 
-                <p className="text-xs text-neutral-400 leading-relaxed">
-                  {currentConfig.customNote}
-                </p>
-
-                {/* Caja Informativa Demostrativa */}
-                <div className="p-4 bg-[#141414] border border-neutral-800 rounded-xl space-y-1 text-xs">
-                  <span className="text-neutral-400 block font-mono text-[11px]">Asunto configurado:</span>
-                  <span className="text-white font-mono font-semibold block">{currentConfig.subject}</span>
-                </div>
-
-                {/* Botón de Acción Simulada */}
-                <div className="pt-2 text-center">
-                  <button
-                    type="button"
-                    style={{ backgroundColor: currentConfig.accentColor }}
-                    className="px-6 py-3 rounded-full text-black font-extrabold font-mono text-xs uppercase shadow-lg transition-transform hover:scale-105"
-                  >
-                    Ver en GOSU® TCG &rarr;
-                  </button>
-                </div>
-              </div>
-
-              {/* Footer en Vivo */}
-              <div className="p-4 bg-[#050505] border-t border-neutral-900 text-center text-[10px] text-neutral-600 font-mono">
-                &copy; {new Date().getFullYear()} GOSU® TCG Gear. Todos los derechos reservados.
-              </div>
-            </div>
+            {activeTab === "NEWSLETTER" && (
+              <NewsletterEmail
+                subject={currentConfig.subject}
+                previewText="Descuentos y preventas exclusivas para miembros GOSU®"
+                badgeTitle={currentConfig.bannerTitle || "⚡ CLUB GOSU® NEWSLETTER"}
+                contentHTML={`<h2 style="color:#FFFFFF; font-size:20px; font-weight:bold; margin:0 0 12px 0;">${currentConfig.bannerTitle}</h2>\n<p style="color:#A3A3A3; font-size:14px; line-height:1.6; margin:0 0 16px 0;">${currentConfig.customNote}</p>\n<div style="background-color:#141414; border:1px solid #262626; padding:16px; border-radius:10px; margin-bottom:20px;">\n  <strong style="color:${currentConfig.accentColor}; font-family:monospace;">🔥 BENEFICIO EXCLUSIVO:</strong>\n  <p style="color:#D4D4D4; font-size:13px; margin:4px 0 0 0;">Canjea tus Puntos Loyalty acumulados por descuentos en accesorios TCG.</p>\n</div>`}
+                ctaText="Explorar Catálogo TCG"
+                ctaUrl="https://gosuecommerce.vercel.app/products"
+              />
+            )}
           </div>
         </div>
       </div>
