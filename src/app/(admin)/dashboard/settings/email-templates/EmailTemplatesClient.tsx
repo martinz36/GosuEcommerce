@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Mail, Send, CheckCircle2, AlertCircle, Loader2, Layout, Eye, Sparkles } from "lucide-react";
+import { render } from "@react-email/components";
 import { sendTestEmailAction } from "./actions";
 
 // Importar componentes oficiales de React Email
@@ -132,6 +133,80 @@ export function EmailTemplatesClient() {
       accentColor: TEMPLATES[3].accentColor,
     },
   });
+
+  const [previewHtml, setPreviewHtml] = useState<string>("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function updatePreview() {
+      try {
+        let element: React.ReactElement | null = null;
+
+        if (activeTab === "WELCOME") {
+          element = (
+            <WelcomeEmail
+              customerName={MOCK_USER.customerName}
+              userName={MOCK_USER.userName}
+              userEmail={MOCK_USER.userEmail}
+              loyaltyPoints={MOCK_USER.loyaltyPoints}
+            />
+          );
+        } else if (activeTab === "ORDER_CONFIRMATION") {
+          element = (
+            <OrderConfirmationEmail
+              customerName={MOCK_ORDER.customerName}
+              orderId={MOCK_ORDER.orderId}
+              orderNumber={MOCK_ORDER.orderNumber}
+              total={MOCK_ORDER.total}
+              currency={MOCK_ORDER.currency}
+              orderItems={MOCK_ORDER.orderItems}
+              shippingAddress={MOCK_ORDER.shippingAddress}
+              loyaltyPointsEarned={MOCK_ORDER.loyaltyPointsEarned}
+            />
+          );
+        } else if (activeTab === "ABANDONED_CART") {
+          element = (
+            <AbandonedCartEmail
+              toEmail={MOCK_USER.userEmail}
+              items={MOCK_ORDER.orderItems.map((i) => ({
+                title: i.title,
+                quantity: i.quantity,
+                price: i.unitPrice,
+              }))}
+              subtotal={MOCK_ORDER.total}
+            />
+          );
+        } else if (activeTab === "NEWSLETTER") {
+          element = (
+            <NewsletterEmail
+              subject={configs.NEWSLETTER.subject}
+              previewText="Descuentos y preventas exclusivas para miembros GOSU®"
+              badgeTitle={configs.NEWSLETTER.bannerTitle || "⚡ CLUB GOSU® NEWSLETTER"}
+              contentHTML={`<h2 style="color:#FFFFFF; font-size:20px; font-weight:bold; margin:0 0 12px 0;">${configs.NEWSLETTER.bannerTitle}</h2>\n<p style="color:#A3A3A3; font-size:14px; line-height:1.6; margin:0 0 16px 0;">${configs.NEWSLETTER.customNote}</p>\n<div style="background-color:#141414; border:1px solid #262626; padding:16px; border-radius:10px; margin-bottom:20px;">\n  <strong style="color:${configs.NEWSLETTER.accentColor}; font-family:monospace;">🔥 BENEFICIO EXCLUSIVO:</strong>\n  <p style="color:#D4D4D4; font-size:13px; margin:4px 0 0 0;">Canjea tus Puntos Loyalty acumulados por descuentos en accesorios TCG.</p>\n</div>`}
+              ctaText="Explorar Catálogo TCG"
+              ctaUrl="https://gosuecommerce.vercel.app/products"
+            />
+          );
+        }
+
+        if (element) {
+          const htmlString = await render(element);
+          if (isMounted) {
+            setPreviewHtml(htmlString);
+          }
+        }
+      } catch (err) {
+        console.error("Error generating email preview HTML:", err);
+      }
+    }
+
+    updatePreview();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTab, configs]);
 
   const currentTemplate = TEMPLATES.find((t) => t.id === activeTab)!;
   const currentConfig = configs[activeTab];
@@ -343,51 +418,19 @@ export function EmailTemplatesClient() {
             </span>
           </div>
 
-          {/* Marco de Previsualización React Email */}
-          <div className="bg-[#050505] p-2 sm:p-4 rounded-2xl border border-slate-800 shadow-2xl overflow-y-auto max-h-[750px]">
-            {activeTab === "WELCOME" && (
-              <WelcomeEmail
-                customerName={MOCK_USER.customerName}
-                userName={MOCK_USER.userName}
-                userEmail={MOCK_USER.userEmail}
-                loyaltyPoints={MOCK_USER.loyaltyPoints}
+          {/* Marco de Previsualización Encapsulado en Iframe (Aislamiento de CSS y Grilla) */}
+          <div className="w-full h-[600px] overflow-hidden rounded-xl border border-gray-800 bg-[#050505] shadow-2xl">
+            {previewHtml ? (
+              <iframe
+                srcDoc={previewHtml}
+                title="Vista Previa de Correo"
+                className="w-full h-full border-0"
               />
-            )}
-
-            {activeTab === "ORDER_CONFIRMATION" && (
-              <OrderConfirmationEmail
-                customerName={MOCK_ORDER.customerName}
-                orderId={MOCK_ORDER.orderId}
-                orderNumber={MOCK_ORDER.orderNumber}
-                total={MOCK_ORDER.total}
-                currency={MOCK_ORDER.currency}
-                orderItems={MOCK_ORDER.orderItems}
-                shippingAddress={MOCK_ORDER.shippingAddress}
-                loyaltyPointsEarned={MOCK_ORDER.loyaltyPointsEarned}
-              />
-            )}
-
-            {activeTab === "ABANDONED_CART" && (
-              <AbandonedCartEmail
-                toEmail={MOCK_USER.userEmail}
-                items={MOCK_ORDER.orderItems.map((i) => ({
-                  title: i.title,
-                  quantity: i.quantity,
-                  price: i.unitPrice,
-                }))}
-                subtotal={MOCK_ORDER.total}
-              />
-            )}
-
-            {activeTab === "NEWSLETTER" && (
-              <NewsletterEmail
-                subject={currentConfig.subject}
-                previewText="Descuentos y preventas exclusivas para miembros GOSU®"
-                badgeTitle={currentConfig.bannerTitle || "⚡ CLUB GOSU® NEWSLETTER"}
-                contentHTML={`<h2 style="color:#FFFFFF; font-size:20px; font-weight:bold; margin:0 0 12px 0;">${currentConfig.bannerTitle}</h2>\n<p style="color:#A3A3A3; font-size:14px; line-height:1.6; margin:0 0 16px 0;">${currentConfig.customNote}</p>\n<div style="background-color:#141414; border:1px solid #262626; padding:16px; border-radius:10px; margin-bottom:20px;">\n  <strong style="color:${currentConfig.accentColor}; font-family:monospace;">🔥 BENEFICIO EXCLUSIVO:</strong>\n  <p style="color:#D4D4D4; font-size:13px; margin:4px 0 0 0;">Canjea tus Puntos Loyalty acumulados por descuentos en accesorios TCG.</p>\n</div>`}
-                ctaText="Explorar Catálogo TCG"
-                ctaUrl="https://gosuecommerce.vercel.app/products"
-              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-slate-500 font-mono text-xs gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                <span>Generando vista previa HTML...</span>
+              </div>
             )}
           </div>
         </div>
