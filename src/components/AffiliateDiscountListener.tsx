@@ -46,6 +46,7 @@ export function AffiliateDiscountListener() {
                 type: data.type,
                 value: val,
                 discountAmount: calcDiscount,
+                maxDiscountAmount: data.maxDiscountAmount ? Number(data.maxDiscountAmount) : null,
               });
             }
 

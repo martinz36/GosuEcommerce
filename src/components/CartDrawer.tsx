@@ -186,6 +186,7 @@ export function CartDrawer() {
         type: result.discount.type,
         value: result.discount.value,
         discountAmount: result.discount.discountAmount,
+        maxDiscountAmount: result.discount.maxDiscountAmount,
       });
       setCouponSuccess(`¡Código "${result.discount.code}" aplicado correctamente!`);
       setCouponInput("");

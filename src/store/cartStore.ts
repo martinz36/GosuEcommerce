@@ -16,6 +16,7 @@ export interface AppliedDiscount {
   type: "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING";
   value: number;
   discountAmount: number;
+  maxDiscountAmount?: number | null;
 }
 
 interface CartState {
@@ -137,8 +138,23 @@ export const useCartStore = create<CartState>()(
       getDiscountAmount: () => {
         const subtotal = get().getSubtotal();
         const discount = get().discount;
-        if (!discount) return 0;
-        return discount.discountAmount;
+        if (!discount || subtotal <= 0) return 0;
+
+        if (discount.type === "PERCENTAGE") {
+          let calc = (subtotal * Number(discount.value || 0)) / 100;
+          if (discount.maxDiscountAmount && discount.maxDiscountAmount > 0) {
+            calc = Math.min(calc, discount.maxDiscountAmount);
+          }
+          return Number(calc.toFixed(2));
+        }
+        if (discount.type === "FIXED_AMOUNT") {
+          return Math.min(Number(discount.value || 0), subtotal);
+        }
+        if (discount.type === "FREE_SHIPPING") {
+          return 0;
+        }
+
+        return Number((discount.discountAmount || 0).toFixed(2));
       },
 
       // NUEVA REGLA ESTRICTA DE CASHBACK DE NEGOCIO: 40 PUNTOS = S/. 1.00 PEN DE DESCUENTO (2.5%)

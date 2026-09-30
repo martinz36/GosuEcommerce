@@ -124,6 +124,7 @@ export async function validateCouponAction(code: string, subtotal: number) {
         type: discountCode.type as "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING",
         value: value,
         discountAmount: finalDiscount,
+        maxDiscountAmount: discountCode.maxDiscountAmount ? Number(discountCode.maxDiscountAmount) : null,
         newTotal: Number(newTotal.toFixed(2)),
       },
     };

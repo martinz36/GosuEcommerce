@@ -53,6 +53,7 @@ export async function GET(req: Request) {
       code: discountCode.code,
       type: discountCode.type,
       value: Number(discountCode.value),
+      maxDiscountAmount: discountCode.maxDiscountAmount ? Number(discountCode.maxDiscountAmount) : null,
       creatorName,
     });
   } catch (error: any) {
