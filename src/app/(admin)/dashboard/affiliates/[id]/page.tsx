@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { CopyAffiliateLink } from "@/components/CopyAffiliateLink";
 import {
   ArrowLeft,
   Award,
@@ -138,6 +139,9 @@ export default async function AdminAffiliateDetailPage({
           </span>
         </div>
       </div>
+
+      {/* Generador y Copiador de Enlace Directo (?ref=CODIGO) */}
+      <CopyAffiliateLink code={codeRecord.code} variant="admin" />
 
       {/* Tarjetas de Métricas de Rendimiento */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">

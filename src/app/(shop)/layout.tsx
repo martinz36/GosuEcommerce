@@ -6,6 +6,7 @@ import { StoreProvider } from "@/providers/StoreProvider";
 import { CartDrawer } from "@/components/CartDrawer";
 import { Navbar } from "@/components/Navbar";
 import { MainFooter } from "@/components/MainFooter";
+import { AffiliateDiscountListener } from "@/components/AffiliateDiscountListener";
 
 export default async function ShopLayout({
   children,
@@ -61,6 +62,9 @@ export default async function ShopLayout({
   return (
     <StoreProvider settings={storeSettings}>
       <div className="min-h-screen bg-black text-white font-body selection:bg-accent-cyan selection:text-black flex flex-col justify-between">
+        {/* Auto-Aplicación de Descuento de Enlace de Afiliado (?ref=...) */}
+        <AffiliateDiscountListener />
+
         {/* Drawer del Carrito Global */}
         <CartDrawer />
 

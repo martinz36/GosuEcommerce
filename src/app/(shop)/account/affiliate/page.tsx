@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth/next";
 import { ArrowLeft, Award, DollarSign, Copy, CheckCircle2, ShoppingBag, Users, Sparkles } from "lucide-react";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/prisma";
+import { CopyAffiliateLink } from "@/components/CopyAffiliateLink";
 
 export const revalidate = 0;
 
@@ -175,18 +176,22 @@ export default async function CustomerAffiliatePage() {
 
           {/* Caja con Código de Creador & Link Personalizado */}
           <div className="bg-surface rounded-2xl border border-neutral-800 p-6 space-y-4">
-            <h3 className="text-sm font-extrabold uppercase text-white tracking-wider">Tu Código de Creador</h3>
+            <h3 className="text-sm font-extrabold uppercase text-white tracking-wider">Tu Código de Creador & Enlace Directo</h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-4">
               {affiliateCodes.map((c) => (
-                <div key={c.id} className="p-4 bg-black rounded-xl border border-purple-500/30 space-y-2">
-                  <span className="text-[11px] font-mono text-neutral-400 block">CÓDIGO DE CUPÓN:</span>
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl font-black text-purple-400 font-mono">{c.code}</span>
-                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                      10% OFF para tus seguidores
-                    </span>
+                <div key={c.id} className="space-y-3">
+                  <div className="p-4 bg-black rounded-xl border border-purple-500/30 space-y-2">
+                    <span className="text-[11px] font-mono text-neutral-400 block">CÓDIGO DE CUPÓN:</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xl font-black text-purple-400 font-mono">{c.code}</span>
+                      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                        10% OFF para tus seguidores
+                      </span>
+                    </div>
                   </div>
+
+                  <CopyAffiliateLink code={c.code} variant="shop" />
                 </div>
               ))}
             </div>

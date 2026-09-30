@@ -23,6 +23,17 @@ export async function middleware(request: NextRequest) {
 
   const response = NextResponse.next();
 
+  // 0. Captura de Enlaces de Referidos / Afiliados (?ref=CODIGO)
+  const refCodeParam = request.nextUrl.searchParams.get("ref");
+  if (refCodeParam) {
+    const cleanRefCode = refCodeParam.trim().toUpperCase();
+    response.cookies.set("gosu_affiliate_code", cleanRefCode, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 días
+      sameSite: "lax",
+    });
+  }
+
   // 1. Detectar país mediante Vercel Geolocation headers o request.geo
   const geoCountry =
     request.headers.get("x-vercel-ip-country") ||
