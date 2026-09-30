@@ -29,6 +29,7 @@ export default async function AdminAffiliateDetailPage({
   const { id } = params;
   let codeRecord: any = null;
   let creatorCommissions: any[] = [];
+  let payouts: any[] = [];
 
   try {
     if (process.env.DATABASE_URL) {
@@ -72,8 +73,6 @@ export default async function AdminAffiliateDetailPage({
           },
         });
       }
-
-      let payouts: any[] = [];
 
       if (codeRecord && codeRecord.createdBy) {
         creatorCommissions = await prisma.commissionLog.findMany({
