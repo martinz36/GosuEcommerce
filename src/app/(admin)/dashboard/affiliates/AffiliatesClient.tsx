@@ -45,6 +45,7 @@ interface AffiliateCode {
     lastName?: string | null;
     pendingCommission?: number | null;
     totalSalesGenerated?: number | null;
+    payouts?: any[] | null;
   } | null;
   orders?: any[];
 }
