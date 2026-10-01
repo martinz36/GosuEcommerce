@@ -15,38 +15,14 @@ import {
   AlertCircle,
   Loader2,
   Image as ImageIcon,
-  Truck,
   Sparkles,
   Award,
-  Store,
-  MapPin,
-  Clock,
   ShieldAlert,
 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { useStoreSettings } from "@/providers/StoreProvider";
 import { validateCouponAction, getCartUpsellSuggestionsAction } from "@/app/(shop)/actions";
 import { CheckoutAuthModal } from "@/components/CheckoutAuthModal";
-
-const PERU_DEPARTMENTS = [
-  "Lima",
-  "Arequipa",
-  "Cusco",
-  "La Libertad",
-  "Piura",
-  "Lambayeque",
-  "Junín",
-  "Ancash",
-  "Ica",
-  "Puno",
-  "Tacna",
-  "Cajamarca",
-  "Ayacucho",
-  "Huánuco",
-  "Loreto",
-  "San Martín",
-  "Ucayali",
-];
 
 export function CartDrawer() {
   const sessionResult = useSession();
@@ -78,15 +54,11 @@ export function CartDrawer() {
     exchangeRate,
     countryCode,
     isRegionActive,
-    shippingMethods,
     t,
   } = useStoreSettings();
 
   const isPEN = currency === "PEN";
 
-  // Tipo de entrega: "DELIVERY" (Domicilio) o "PICKUP" (Recojo en Tienda)
-  const [deliveryType, setDeliveryType] = useState<"DELIVERY" | "PICKUP">("DELIVERY");
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("Lima");
   const [upsellSuggestions, setUpsellSuggestions] = useState<any[]>([]);
 
   useEffect(() => {
@@ -101,41 +73,6 @@ export function CartDrawer() {
       setUpsellSuggestions([]);
     }
   }, [items]);
-
-  // Métodos especiales disponibles
-  const pickupMethod = shippingMethods.find((m) => m.isPickup);
-  const hasPickup = !!pickupMethod;
-
-  // Filtrar tarifa de envío a domicilio según sub-zona seleccionada
-  let activeShippingCost = standardShippingCost;
-  let activeFreeThreshold = freeShippingThreshold;
-
-  if (deliveryType === "PICKUP") {
-    activeShippingCost = 0;
-  } else if (shippingMethods.length > 0) {
-    const matchingMethod = shippingMethods.find((m) => {
-      if (m.isPickup) return false;
-      if (!m.targetZones) return true; // Aplica a todo el país
-      let zones: string[] = [];
-      if (Array.isArray(m.targetZones)) zones = m.targetZones;
-      else if (typeof m.targetZones === "string") {
-        try {
-          zones = JSON.parse(m.targetZones);
-        } catch {
-          zones = [];
-        }
-      }
-      if (zones.length === 0) return true;
-      return zones.includes(selectedDepartment);
-    });
-
-    if (matchingMethod) {
-      activeShippingCost = matchingMethod.cost;
-      if (matchingMethod.freeShippingThreshold) {
-        activeFreeThreshold = matchingMethod.freeShippingThreshold;
-      }
-    }
-  }
 
   // Estados locales para validación de cupones
   const [couponInput, setCouponInput] = useState("");
@@ -157,16 +94,14 @@ export function CartDrawer() {
 
   const displayLoyaltyDiscount = getLoyaltyDiscountAmount(exchangeRate, isPEN);
 
-  // Envío Gratis
-  const isFreeShipping = deliveryType === "PICKUP" || displaySubtotal >= activeFreeThreshold;
-  const displayShippingCost =
-    displaySubtotal > 0 ? (deliveryType === "PICKUP" || isFreeShipping ? 0 : activeShippingCost) : 0;
-  const remainingForFreeShipping = Math.max(0, activeFreeThreshold - displaySubtotal);
-  const shippingProgress = Math.min(100, (displaySubtotal / activeFreeThreshold) * 100);
+  // Barra de Envío Gratis
+  const isFreeShipping = displaySubtotal >= freeShippingThreshold;
+  const remainingForFreeShipping = Math.max(0, freeShippingThreshold - displaySubtotal);
+  const shippingProgress = Math.min(100, (displaySubtotal / freeShippingThreshold) * 100);
 
   const displayFinalTotal = Math.max(
     0,
-    displaySubtotal - displayDiscount - displayLoyaltyDiscount + displayShippingCost
+    displaySubtotal - displayDiscount - displayLoyaltyDiscount
   );
   const totalItems = getTotalItems();
 
@@ -290,11 +225,7 @@ export function CartDrawer() {
               {isRegionActive && (
                 <div className="space-y-1.5 pt-2 border-t border-neutral-800/80">
                   <div className="flex items-center justify-between text-xs font-mono">
-                    {deliveryType === "PICKUP" ? (
-                      <span className="text-amber-400 font-bold flex items-center gap-1.5">
-                        <Store className="w-3.5 h-3.5" /> Recojo en Tienda Seleccionado (Gratis)
-                      </span>
-                    ) : isFreeShipping ? (
+                    {isFreeShipping ? (
                       <span className="text-accent-green font-bold flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5" /> ¡Envío Gratis Conseguido para {countryCode}!
                       </span>
@@ -309,7 +240,7 @@ export function CartDrawer() {
                       </span>
                     )}
                     <span className="text-neutral-500 font-bold">
-                      {deliveryType === "PICKUP" ? "100%" : `${Math.round(shippingProgress)}%`}
+                      {`${Math.round(shippingProgress)}%`}
                     </span>
                   </div>
 
@@ -317,13 +248,11 @@ export function CartDrawer() {
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{
-                        width: deliveryType === "PICKUP" ? "100%" : `${shippingProgress}%`,
+                        width: `${shippingProgress}%`,
                       }}
                       transition={{ duration: 0.5, ease: "easeOut" }}
                       className={`h-full ${
-                        deliveryType === "PICKUP"
-                          ? "bg-amber-400"
-                          : isFreeShipping
+                        isFreeShipping
                           ? "bg-accent-green"
                           : "bg-gradient-to-r from-accent-cyan to-accent-pink"
                       }`}
@@ -469,79 +398,6 @@ export function CartDrawer() {
             {/* Pie del Carrito */}
             {items.length > 0 && (
               <div className="p-6 border-t border-neutral-800 bg-surface space-y-4">
-                {/* Selector de Método de Entrega: Domicilio vs Recojo en Tienda */}
-                {isRegionActive && (
-                  <div className="space-y-2">
-                    <span className="text-xs font-bold text-neutral-300 block uppercase tracking-wider">
-                      Método de Entrega
-                    </span>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setDeliveryType("DELIVERY")}
-                        className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center gap-1 ${
-                          deliveryType === "DELIVERY"
-                            ? "bg-accent-cyan/10 border-accent-cyan text-accent-cyan"
-                            : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white"
-                        }`}
-                      >
-                        <Truck className="w-4 h-4" />
-                        <span>Envío a Domicilio</span>
-                      </button>
-
-                      {hasPickup && (
-                        <button
-                          type="button"
-                          onClick={() => setDeliveryType("PICKUP")}
-                          className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center gap-1 ${
-                            deliveryType === "PICKUP"
-                              ? "bg-amber-400/10 border-amber-400 text-amber-400"
-                              : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white"
-                          }`}
-                        >
-                          <Store className="w-4 h-4" />
-                          <span>Recojo en Tienda (Gratis)</span>
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Sub-zona (Departamento) para Envío a Domicilio */}
-                    {deliveryType === "DELIVERY" && countryCode === "PE" && (
-                      <div className="pt-2">
-                        <label className="text-[11px] font-semibold text-neutral-400 block mb-1">
-                          Departamento de Entrega:
-                        </label>
-                        <select
-                          value={selectedDepartment}
-                          onChange={(e) => setSelectedDepartment(e.target.value)}
-                          className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-accent-cyan"
-                        >
-                          {PERU_DEPARTMENTS.map((dept) => (
-                            <option key={dept} value={dept}>
-                              {dept}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    {/* Detalle de Recojo en Tienda */}
-                    {deliveryType === "PICKUP" && pickupMethod && (
-                      <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1.5 text-xs text-amber-200">
-                        <div className="flex items-center gap-1.5 font-bold text-amber-400">
-                          <MapPin className="w-3.5 h-3.5 shrink-0" />
-                          <span>{pickupMethod.pickupAddress || "Av. Larco 123, Miraflores"}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[11px] text-amber-300/80">
-                          <Clock className="w-3.5 h-3.5 shrink-0" />
-                          <span>{pickupMethod.pickupSchedule || "Lunes a Sábado: 11:00 AM - 7:30 PM"}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
                 {/* Caja de Canje GOSU Loyalty */}
                 <div className="p-3 bg-gradient-to-r from-accent-pink/10 to-purple-900/10 border border-accent-pink/30 rounded-xl flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
@@ -636,24 +492,13 @@ export function CartDrawer() {
                     </span>
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    <span className="flex items-center gap-1">
-                      {deliveryType === "PICKUP" ? (
-                        <Store className="w-3.5 h-3.5 text-amber-400" />
+                  <div className="flex justify-between text-neutral-400">
+                    <span>Envío</span>
+                    <span className="text-[11px] text-neutral-400 font-mono">
+                      {isFreeShipping ? (
+                        <strong className="text-accent-green font-bold">GRATIS</strong>
                       ) : (
-                        <Truck className="w-3.5 h-3.5 text-neutral-400" />
-                      )}
-                      <span>
-                        {deliveryType === "PICKUP"
-                          ? "Recojo en Tienda"
-                          : `Envío (${selectedDepartment || countryCode})`}
-                      </span>
-                    </span>
-                    <span className="font-mono text-white">
-                      {deliveryType === "PICKUP" || isFreeShipping ? (
-                        <strong className="text-accent-green">GRATIS</strong>
-                      ) : (
-                        `${currencySymbol}${displayShippingCost.toFixed(2)}`
+                        "Calculado en checkout"
                       )}
                     </span>
                   </div>
