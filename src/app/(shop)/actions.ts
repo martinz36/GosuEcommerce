@@ -175,14 +175,18 @@ export async function getCartUpsellSuggestionsAction(currentProductIds: string[]
       orderBy: { isFeatured: "desc" },
     });
 
-    const suggestions = rawSuggestions.map((p) => ({
-      id: p.id,
-      title: p.title,
-      priceUSD: Number(p.priceUSD || p.basePrice),
-      pricePEN: Number(p.pricePEN || (Number(p.basePrice) * 3.75).toFixed(2)),
-      imageUrl: p.images?.[0]?.url || null,
-      categoryName: p.category?.name || "Accesorios TCG",
-    }));
+    const suggestions = rawSuggestions.map((p) => {
+      const priceUSD = Number(p.priceUSD) > 0 ? Number(p.priceUSD) : Number(p.basePrice || 0);
+      const pricePEN = Number(p.pricePEN) > 0 ? Number(p.pricePEN) : Number((priceUSD * 3.75).toFixed(2));
+      return {
+        id: p.id,
+        title: p.title,
+        priceUSD,
+        pricePEN,
+        imageUrl: p.images?.[0]?.url || null,
+        categoryName: p.category?.name || "Accesorios TCG",
+      };
+    });
 
     return { success: true, suggestions };
   } catch (error) {
