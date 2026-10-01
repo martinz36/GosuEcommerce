@@ -31,17 +31,34 @@ export default async function ShopLayout({
 
   try {
     if (process.env.DATABASE_URL) {
-      const defaultRegion = await prisma.regionConfig.findFirst({
-        where: { isDefault: true, isActive: true },
-        include: { shippingMethods: { where: { isActive: true } } },
-      });
+      const defaultRegion =
+        (await prisma.regionConfig.findFirst({
+          where: { isDefault: true, isActive: true },
+          include: { shippingMethods: { where: { isActive: true } } },
+        })) ||
+        (await prisma.regionConfig.findFirst({
+          where: { isActive: true },
+          include: { shippingMethods: { where: { isActive: true } } },
+        }));
+
       if (defaultRegion) {
+        const standardMethods = defaultRegion.shippingMethods.filter((m) => !m.isPickup);
+        const threshold = standardMethods.find((m) => m.freeShippingThreshold)?.freeShippingThreshold;
+        const regionFreeShippingThreshold = threshold
+          ? Number(threshold)
+          : defaultRegion.currency === "PEN"
+          ? 150.0
+          : 50.0;
+        const firstCost = standardMethods[0]?.cost ? Number(standardMethods[0].cost) : 15.0;
+
         storeSettings = {
           ...storeSettings,
           countryCode: defaultRegion.countryCode,
           currency: defaultRegion.currency,
           currencySymbol: defaultRegion.currencySymbol,
-          exchangeRate: Number(defaultRegion.exchangeRate),
+          exchangeRate: Number(defaultRegion.exchangeRate || 3.75),
+          freeShippingThreshold: regionFreeShippingThreshold,
+          standardShippingCost: firstCost,
           shippingMethods: defaultRegion.shippingMethods.map((m) => ({
             id: m.id,
             name: m.name,
