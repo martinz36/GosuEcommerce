@@ -92,15 +92,19 @@ export async function searchProductsAction(query: string) {
       take: 10,
     });
 
-    return products.map((p) => ({
-      id: p.id,
-      title: p.title,
-      sku: p.sku,
-      stock: p.stock,
-      pricePEN: Number(p.pricePEN || p.basePrice || 0),
-      priceUSD: Number(p.priceUSD || 0),
-      imageUrl: p.images[0]?.url || null,
-    }));
+    return products.map((p) => {
+      const priceUSD = Number(p.priceUSD || p.basePrice || 0);
+      const pricePEN = Number(p.pricePEN || (priceUSD > 0 ? (priceUSD * 3.75).toFixed(2) : 0));
+      return {
+        id: p.id,
+        title: p.title,
+        sku: p.sku,
+        stock: p.stock,
+        pricePEN,
+        priceUSD,
+        imageUrl: p.images[0]?.url || null,
+      };
+    });
   } catch (err) {
     console.error("Error buscando productos:", err);
     return [];

@@ -131,6 +131,7 @@ function RegisterFormContent() {
             <label className="block text-xs font-semibold text-neutral-300 mb-1.5">Nombre</label>
             <input
               type="text"
+              name="firstName"
               required
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
@@ -142,6 +143,7 @@ function RegisterFormContent() {
             <label className="block text-xs font-semibold text-neutral-300 mb-1.5">Apellido</label>
             <input
               type="text"
+              name="lastName"
               required
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
@@ -159,6 +161,7 @@ function RegisterFormContent() {
             <Mail className="w-4 h-4 text-neutral-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="email"
+              name="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -176,6 +179,7 @@ function RegisterFormContent() {
             <Lock className="w-4 h-4 text-neutral-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="password"
+              name="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}

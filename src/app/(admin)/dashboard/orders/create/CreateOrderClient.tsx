@@ -418,6 +418,7 @@ export default function CreateOrderClient() {
               <div className="relative">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
+                  id="admin-product-search-input"
                   type="text"
                   placeholder="Buscar por nombre de producto o SKU..."
                   value={productQuery}
@@ -776,6 +777,7 @@ export default function CreateOrderClient() {
                 <div className="relative">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
+                    id="admin-customer-search-input"
                     type="text"
                     placeholder="Buscar cliente por email o nombre..."
                     value={customerQuery}
@@ -963,6 +965,7 @@ export default function CreateOrderClient() {
 
           {/* Botón Final Submit de la Orden */}
           <button
+            id="admin-submit-order-btn"
             type="submit"
             disabled={isSubmitting || selectedItems.length === 0}
             className="w-full py-4 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-mono font-extrabold text-sm transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"

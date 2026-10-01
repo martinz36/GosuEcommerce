@@ -30,14 +30,22 @@ import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { PERU_DEPARTMENTS } from "@/data/peruUbigeo";
 import { convertGuestOrderToUserAction } from "@/actions/userActions";
+import { syncCartSessionAction } from "@/app/(shop)/actions";
 
 export default function CheckoutPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
 
-  const { items, discount, loyaltyPointsUsed, getSubtotal, getDiscountAmount } = useCartStore();
-  const { currency, countryCode } = useStoreSettings();
+  const {
+    items,
+    discount,
+    loyaltyPointsUsed,
+    getSubtotal,
+    getDiscountAmount,
+    getLoyaltyDiscountAmount,
+  } = useCartStore();
+  const { currency, countryCode, exchangeRate } = useStoreSettings();
 
   // Pasarela activa desde la BD (stripe vs mercadopago)
   const [activeGateway, setActiveGateway] = useState<string>("stripe");
@@ -106,18 +114,48 @@ export default function CheckoutPage() {
     setIsMounted(true);
   }, []);
 
-  // Redirigir a inicio únicamente si el cliente ya hidrató y el carrito realmente está vacío
+  // Redirigir a inicio únicamente si el cliente ya hidrató y el carrito realmente está vacío (incluyendo almacenamiento local)
   useEffect(() => {
-    if (isMounted && items.length === 0) {
+    if (!isMounted) return;
+    
+    let hasStoredItems = false;
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("gosu-cart-storage");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (parsed?.state?.items && parsed.state.items.length > 0) {
+            hasStoredItems = true;
+          }
+        } catch {}
+      }
+    }
+
+    if (!hasStoredItems && items.length === 0) {
       router.replace("/");
     }
   }, [isMounted, items.length, router]);
 
+  const isPEN = countryCode === "PE" || currency.toLowerCase() === "pen";
   const subtotal = getSubtotal();
   const discountVal = getDiscountAmount();
-  const total = Math.max(0, subtotal - discountVal);
+  const loyaltyDiscountVal = getLoyaltyDiscountAmount(exchangeRate || 3.75, isPEN);
+  const total = Math.max(0, subtotal - discountVal - loyaltyDiscountVal);
   const currencySymbol = (countryCode === "PE" || currency.toLowerCase() === "pen") ? "S/." : "$";
   const currencyText = (countryCode === "PE" || currency.toLowerCase() === "pen") ? "PEN" : "USD";
+
+  // Sincronizar CartSession en Neon DB con el email tan pronto se llega a checkout
+  useEffect(() => {
+    if (typeof window !== "undefined" && items.length > 0) {
+      let sessionId = localStorage.getItem("gosu_session_id");
+      if (!sessionId) {
+        sessionId = `sess_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
+        localStorage.setItem("gosu_session_id", sessionId);
+      }
+      const targetEmail = email || session?.user?.email || initialGuestEmail || null;
+      syncCartSessionAction(sessionId, items, subtotal, targetEmail).catch(() => {});
+    }
+  }, [email, session, initialGuestEmail, items, subtotal]);
 
   // Manejo de Departamentos y Distritos en Cascada (UBIGEO Perú)
   const currentPeruDept = PERU_DEPARTMENTS.find((d) => d.name === state) || PERU_DEPARTMENTS[0];
@@ -629,6 +667,15 @@ export default function CheckoutPage() {
                       <Tag className="w-3.5 h-3.5" /> Cupón ({discount?.code})
                     </span>
                     <span>-{currencySymbol} {discountVal.toFixed(2)}</span>
+                  </div>
+                )}
+
+                {loyaltyDiscountVal > 0 && (
+                  <div className="flex justify-between text-purple-400 font-bold">
+                    <span className="flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5" /> Puntos GOSU® ({loyaltyPointsUsed} pts)
+                    </span>
+                    <span>-{currencySymbol} {loyaltyDiscountVal.toFixed(2)}</span>
                   </div>
                 )}
 

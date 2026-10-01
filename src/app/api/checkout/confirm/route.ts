@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { sendOrderConfirmationEmail } from "@/lib/resend";
+import { awardLoyaltyPoints } from "@/lib/loyalty";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,20 @@ export async function GET(req: Request) {
       const targetUserId = currentUserId || metadata.userId || null;
       const targetEmail = currentUserEmail || checkoutSession.customer_details?.email || metadata.userEmail || null;
 
+      // Buscar código de descuento en Neon DB
+      let discountCodeDb: any = null;
+      if (metadata.discountCodeId) {
+        discountCodeDb = await prisma.discountCode.findUnique({
+          where: { id: metadata.discountCodeId },
+        });
+      } else if (metadata.discountCode) {
+        discountCodeDb = await prisma.discountCode.findUnique({
+          where: { code: metadata.discountCode.toUpperCase() },
+        });
+      }
+
+      const discountAmount = Math.max(0, subtotal - totalAmount);
+
       // Crear la orden en la BD
       order = await prisma.order.create({
         data: {
@@ -61,9 +76,12 @@ export async function GET(req: Request) {
           userId: targetUserId,
           guestEmail: targetEmail,
           status: "PAID",
+          currency: (checkoutSession.currency || metadata.currency || "PEN").toUpperCase(),
           stripePaymentIntentId: paymentIntentId,
           stripeCheckoutSessionId: sessionId,
           subtotal,
+          discountAmount,
+          discountCodeId: discountCodeDb ? discountCodeDb.id : undefined,
           totalAmount,
           shippingAddressJson: checkoutSession.shipping_details ? (checkoutSession.shipping_details as any) : undefined,
           items: {
@@ -77,6 +95,26 @@ export async function GET(req: Request) {
         },
       });
 
+      // Incrementar contador de uso del cupón de descuento en Neon DB
+      if (discountCodeDb) {
+        await prisma.discountCode
+          .update({
+            where: { id: discountCodeDb.id },
+            data: { usageCount: { increment: 1 } },
+          })
+          .catch((err) => console.error("Error incrementando usageCount del cupón:", err));
+      }
+
+      // Marcar sesión de carrito como convertida
+      if (metadata.sessionId || metadata.cartSessionId) {
+        await prisma.cartSession
+          .updateMany({
+            where: { sessionId: metadata.sessionId || metadata.cartSessionId },
+            data: { isConverted: true },
+          })
+          .catch(() => {});
+      }
+
       // Descontar stock
       for (const item of parsedItems) {
         if (item.productId) {
@@ -89,21 +127,26 @@ export async function GET(req: Request) {
         }
       }
 
-      // Actualizar puntos de fidelidad si hay usuario
+      // Actualizar puntos de fidelidad si hay usuario: descontar los canjeados y otorgar por compra
       if (targetUserId) {
         const usedPoints = parseInt(metadata.loyaltyPointsUsed || "0", 10);
-        const earnedPoints = Math.floor(totalAmount);
-
-        await prisma.user
-          .update({
-            where: { id: targetUserId },
-            data: {
-              loyaltyPoints: {
-                increment: earnedPoints - usedPoints,
+        if (usedPoints > 0) {
+          await prisma.user
+            .update({
+              where: { id: targetUserId },
+              data: {
+                loyaltyPoints: {
+                  decrement: usedPoints,
+                },
               },
-            },
-          })
-          .catch(() => {});
+            })
+            .catch((err) => console.error("Error decrementing used loyalty points:", err));
+        }
+
+        // Otorgar puntos ganados por la compra
+        await awardLoyaltyPoints(targetUserId, "PURCHASE", totalAmount).catch((err) =>
+          console.error("Error awarding purchase points in confirm route:", err)
+        );
 
         // Sincronizar dirección sin duplicar en Neon DB
         try {

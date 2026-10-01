@@ -109,6 +109,16 @@ export async function POST(req: Request) {
           }).catch((commErr) => console.error("Error registrando comisión en webhook de Stripe:", commErr));
         }
 
+        // Incrementar contador de uso del cupón en Neon DB
+        if (discountCodeDb) {
+          await prisma.discountCode
+            .update({
+              where: { id: discountCodeDb.id },
+              data: { usageCount: { increment: 1 } },
+            })
+            .catch((err) => console.error("Error incrementando usageCount en stripe webhook:", err));
+        }
+
         // Actualizar stock de los productos
         for (const item of parsedItems) {
           if (item.productId) {

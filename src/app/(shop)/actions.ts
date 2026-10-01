@@ -1,6 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/authOptions";
 import { sendNewsletterWelcomeEmail } from "@/lib/resend";
 
 /**
@@ -15,19 +17,36 @@ export async function syncCartSessionAction(
   try {
     if (!sessionId || !process.env.DATABASE_URL) return { success: false };
 
+    let effectiveEmail = userEmail ? userEmail.trim().toLowerCase() : null;
+    let effectiveUserId: string | null = null;
+
+    if (!effectiveEmail) {
+      try {
+        const session = await getServerSession(authOptions);
+        if (session?.user) {
+          effectiveEmail = session.user.email?.trim().toLowerCase() || null;
+          effectiveUserId = (session.user as any)?.id || null;
+        }
+      } catch (sessErr) {
+        // Fallback silencioso si no se puede leer la sesión
+      }
+    }
+
     await prisma.cartSession.upsert({
       where: { sessionId: sessionId },
       update: {
         itemsJson: items,
         subtotal: subtotal,
-        userEmail: userEmail || undefined,
+        ...(effectiveEmail ? { userEmail: effectiveEmail } : {}),
+        ...(effectiveUserId ? { userId: effectiveUserId } : {}),
         lastActiveAt: new Date(),
       },
       create: {
         sessionId: sessionId,
         itemsJson: items,
         subtotal: subtotal,
-        userEmail: userEmail || undefined,
+        userEmail: effectiveEmail || undefined,
+        userId: effectiveUserId || undefined,
         isConverted: false,
       },
     });

@@ -594,6 +594,8 @@ export default function OrdersTableClient({ initialOrders }: { initialOrders: an
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <div className="relative inline-block">
                           <select
+                            id={`order-status-select-${order.id}`}
+                            data-testid="order-status-select"
                             value={order.status}
                             disabled={updatingStatusId === order.id}
                             onChange={(e) => handleStatusChange(order.id, e.target.value)}

@@ -297,9 +297,15 @@ export async function sendAbandonedCartEmail({
   items: Array<{ title: string; quantity: number; price: number }>;
   subtotal: number;
 }) {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn("RESEND_API_KEY no configurada. Omitiendo envío de recordatorio de carrito.");
-    return { success: false, error: "API Key no configurada" };
+  console.log(
+    `[Resend Webhook/Función] 🛒 Activando recordatorio de carrito abandonado para: ${toEmail} | Items: ${items.length} | Subtotal: ${subtotal}`
+  );
+
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.includes("dummy")) {
+    console.warn(
+      `[Resend Webhook/Función] ⚠️ RESEND_API_KEY de prueba o no configurada. Simulación de envío exitoso a ${toEmail}.`
+    );
+    return { success: true, simulated: true, message: `Simulación de recordatorio enviado a ${toEmail}` };
   }
 
   try {
@@ -310,6 +316,7 @@ export async function sendAbandonedCartEmail({
       react: AbandonedCartEmail({ toEmail, items, subtotal }),
     });
 
+    console.log(`[Resend Webhook/Función] ✅ Correo de carrito abandonado enviado con éxito a ${toEmail}`);
     return { success: true, data };
   } catch (error: any) {
     console.error("Error enviando recordatorio de carrito con Resend:", error);

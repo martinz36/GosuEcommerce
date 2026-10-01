@@ -120,16 +120,25 @@ export async function POST(req: Request) {
       const mpClient = new MercadoPagoConfig({ accessToken: mpAccessToken });
       const preference = new Preference(mpClient);
 
-      // Calcular descuento unitario si existe cupón
-      let totalDiscount = 0;
+      // Calcular descuento unitario si existe cupón y puntos de fidelidad
+      let couponDiscount = 0;
       if (discountCode) {
         if (discountCode.type === "PERCENTAGE") {
           const subtotal = items.reduce((sum: number, i: any) => sum + Number(i.price) * Number(i.quantity), 0);
-          totalDiscount = (subtotal * Number(discountCode.value)) / 100;
+          couponDiscount = (subtotal * Number(discountCode.value)) / 100;
         } else if (discountCode.type === "FIXED_AMOUNT") {
-          totalDiscount = Number(discountCode.value);
+          couponDiscount = Number(discountCode.value);
         }
       }
+
+      let loyaltyDiscount = 0;
+      if (loyaltyPointsUsed && Number(loyaltyPointsUsed) > 0) {
+        const points = Number(loyaltyPointsUsed);
+        const discountPEN = points / 40;
+        loyaltyDiscount = formattedCurrency === "pen" ? discountPEN : discountPEN / 3.75;
+      }
+
+      const totalDiscount = Number((couponDiscount + loyaltyDiscount).toFixed(2));
 
       // Preparar ítems para la Preferencia de Pago de Mercado Pago
       const mpItems: any[] = items.map((item: any) => {
@@ -146,8 +155,8 @@ export async function POST(req: Request) {
 
       if (totalDiscount > 0) {
         mpItems.push({
-          id: "discount-coupon",
-          title: `Descuento: ${discountCode.code}`,
+          id: "discount-total",
+          title: `Descuento (Cupón + Puntos GOSU®)`,
           unit_price: -Math.abs(totalDiscount),
           quantity: 1,
           currency_id: formattedCurrency.toUpperCase(),
@@ -285,6 +294,26 @@ export async function POST(req: Request) {
         discountsArray.push({ coupon: coupon.id });
       } catch (couponError) {
         console.error("Error al aplicar cupón en Stripe:", couponError);
+      }
+    }
+
+    if (loyaltyPointsUsed && Number(loyaltyPointsUsed) > 0) {
+      try {
+        const points = Number(loyaltyPointsUsed);
+        const discountPEN = points / 40;
+        const loyaltyDiscount = formattedCurrency === "pen" ? discountPEN : discountPEN / 3.75;
+        const amountOffCents = Math.round(loyaltyDiscount * 100);
+        if (amountOffCents > 0) {
+          const pointsCoupon = await stripe.coupons.create({
+            amount_off: amountOffCents,
+            currency: formattedCurrency,
+            duration: "once",
+            name: `Puntos GOSU® (${points} pts)`,
+          });
+          discountsArray.push({ coupon: pointsCoupon.id });
+        }
+      } catch (ptsErr) {
+        console.error("Error al aplicar cupón de puntos en Stripe:", ptsErr);
       }
     }
 

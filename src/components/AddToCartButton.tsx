@@ -55,6 +55,8 @@ export function AddToCartButton({
 
   return (
     <button
+      id="add-to-cart-button"
+      data-testid="add-to-cart-button"
       onClick={handleAddToCart}
       className={
         className ||

@@ -559,6 +559,8 @@ export function CartDrawer() {
                   </div>
 
                   <button
+                    id="redeem-loyalty-btn"
+                    data-testid="redeem-loyalty-btn"
                     onClick={handleToggleLoyaltyPoints}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-colors ${
                       loyaltyPointsUsed > 0
@@ -576,6 +578,8 @@ export function CartDrawer() {
                     <div className="relative flex-1">
                       <Tag className="w-4 h-4 text-neutral-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
+                        id="coupon-input"
+                        data-testid="coupon-input"
                         type="text"
                         placeholder="Código: GOSU10 o ALEX_TCG"
                         value={couponInput}
@@ -584,6 +588,8 @@ export function CartDrawer() {
                       />
                     </div>
                     <button
+                      id="apply-coupon-btn"
+                      data-testid="apply-coupon-btn"
                       type="submit"
                       disabled={isValidating || !couponInput.trim()}
                       className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1 shrink-0"
@@ -683,6 +689,8 @@ export function CartDrawer() {
 
                 {/* Botón de Checkout */}
                 <button
+                  id="proceed-checkout-btn"
+                  data-testid="proceed-checkout-btn"
                   onClick={handleCheckout}
                   disabled={isRedirectingToCheckout || !isRegionActive}
                   className="w-full btn-pill bg-white text-black font-extrabold text-sm py-3.5 hover:bg-accent-cyan transition-colors flex items-center justify-center gap-2 shadow-lg shadow-white/10 disabled:opacity-50"
