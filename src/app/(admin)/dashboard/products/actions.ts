@@ -65,7 +65,7 @@ export async function quickUpdatePriceAction(id: string, newPriceUSD: number, ne
 
 export async function bulkUpdateProductsAction(
   productIds: string[],
-  action: "activate" | "deactivate" | "delete"
+  action: "activate" | "deactivate" | "delete" | "markNew" | "unmarkNew"
 ) {
   try {
     if (!productIds || productIds.length === 0) {
@@ -82,6 +82,16 @@ export async function bulkUpdateProductsAction(
         where: { id: { in: productIds } },
         data: { isActive: false },
       });
+    } else if (action === "markNew") {
+      await prisma.product.updateMany({
+        where: { id: { in: productIds } },
+        data: { isNew: true },
+      });
+    } else if (action === "unmarkNew") {
+      await prisma.product.updateMany({
+        where: { id: { in: productIds } },
+        data: { isNew: false },
+      });
     } else if (action === "delete") {
       // Eliminar imágenes en cascada y productos en transacción única de Neon DB
       await prisma.$transaction([
@@ -95,6 +105,7 @@ export async function bulkUpdateProductsAction(
     }
 
     revalidatePath("/dashboard/products");
+    revalidatePath("/catalog");
     revalidatePath("/");
     return { success: true, message: `Acción '${action}' completada para ${productIds.length} productos.` };
   } catch (error: any) {

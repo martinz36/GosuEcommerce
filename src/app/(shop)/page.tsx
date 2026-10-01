@@ -14,6 +14,7 @@ export default async function HomePage() {
   const isPEN = userCurrencyPref === "PEN" || (userCountry === "PE" && !userCurrencyPref);
 
   let products: any[] = [];
+  let newReleases: any[] = [];
   try {
     if (process.env.DATABASE_URL) {
       products = await prisma.product.findMany({
@@ -25,10 +26,24 @@ export default async function HomePage() {
         orderBy: { createdAt: "desc" },
         take: 12,
       });
+
+      // Paso 2: Fetch exclusivo de productos con la etiqueta manual isNew = true
+      newReleases = await prisma.product.findMany({
+        where: { isActive: true, isNew: true },
+        include: {
+          category: true,
+          images: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 8,
+      });
     }
   } catch (err) {
     console.error("Error al obtener productos de Neon DB:", err);
   }
+
+  // Fallback si no hay productos marcados manualmente como isNew aún
+  const displayNewReleases = newReleases.length > 0 ? newReleases : products.slice(0, 4);
 
   return (
     <div className="min-h-screen bg-black text-white font-body selection:bg-accent-cyan selection:text-black">
@@ -207,6 +222,86 @@ export default async function HomePage() {
             ))}
           </div>
 
+        </div>
+      </section>
+
+      {/* Paso 2: Nueva Sección 🔥 ÚLTIMOS LANZAMIENTOS */}
+      <section className="py-16 px-4 sm:px-6 bg-neutral-950 border-b border-neutral-900 relative">
+        <div className="max-w-7xl mx-auto space-y-10">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-neutral-800/80 pb-6 text-center sm:text-left">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-pink/10 border border-accent-pink/30 text-accent-pink text-xs font-mono font-bold tracking-wider uppercase mb-2">
+                <Sparkles className="w-3.5 h-3.5 text-accent-pink animate-pulse" />
+                <span>ETIQUETADOS MANUALMENTE POR EL ADMIN</span>
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-black uppercase tracking-tight text-white flex items-center justify-center sm:justify-start gap-3">
+                <span>🔥 ÚLTIMOS LANZAMIENTOS</span>
+              </h2>
+            </div>
+            <p className="text-xs sm:text-sm font-mono text-neutral-400 max-w-sm">
+              Descubre las piezas más recientes agregadas a la tienda con sello de novedad.
+            </p>
+          </div>
+
+          {/* Grid de Productos Novedades */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {displayNewReleases.map((prod) => {
+              const price = isPEN
+                ? `S/. ${Number(prod.pricePEN || Number(prod.basePrice) * 3.75).toFixed(2)}`
+                : `$${Number(prod.priceUSD || prod.basePrice).toFixed(2)}`;
+
+              return (
+                <div
+                  key={prod.id}
+                  className="group relative bg-neutral-900/90 border border-neutral-800 rounded-2xl p-4 flex flex-col justify-between hover:border-accent-cyan transition-all duration-300 shadow-xl"
+                >
+                  <div className="relative aspect-square w-full rounded-xl bg-white overflow-hidden flex items-center justify-center mb-4">
+                    {/* Badge Cyan Condicional de NUEVO */}
+                    <span className="absolute top-2 left-2 z-10 bg-accent-cyan text-black font-mono text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-wider shadow-md">
+                      NUEVO
+                    </span>
+                    {prod.images?.[0]?.url ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={prod.images[0].url}
+                        alt={prod.title}
+                        className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <span className="text-xs font-mono text-neutral-400">Sin Imagen</span>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-mono text-accent-cyan font-bold uppercase tracking-wider block">
+                      {prod.category?.name || "GOSU GEAR"}
+                    </span>
+                    <h3 className="font-bold text-sm text-white truncate">{prod.title}</h3>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="font-mono font-extrabold text-sm text-accent-pink">{price}</span>
+                      <Link
+                        href={`/product/${prod.slug}`}
+                        className="btn-pill bg-white hover:bg-accent-cyan text-black text-[11px] font-mono font-bold py-1.5 px-3 transition-colors"
+                      >
+                        Ver Detalle
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Paso 3: Botón Centrado Call To Action (Ver todas las novedades →) */}
+          <div className="flex justify-center pt-4">
+            <Link
+              href="/catalog?filter=novedades"
+              className="w-full sm:w-auto btn-pill bg-black border border-neutral-700 hover:border-accent-cyan hover:bg-neutral-900 text-white font-mono font-bold text-xs py-3.5 px-8 transition-all flex items-center justify-center gap-2 uppercase shadow-xl group"
+            >
+              <span>Ver todas las novedades</span>
+              <ArrowRight className="w-4 h-4 text-accent-cyan group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
         </div>
       </section>
 

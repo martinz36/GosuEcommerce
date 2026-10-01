@@ -62,6 +62,15 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
         ];
       }
 
+      // Filtro por Novedades (isNew = true)
+      if (
+        (searchParams as any)?.filter === "novedades" ||
+        (searchParams as any)?.filter === "nuevos" ||
+        (searchParams as any)?.filter === "new"
+      ) {
+        whereClause.isNew = true;
+      }
+
       // Filtro por Rango de Precio
       if (searchParams?.minPrice || searchParams?.maxPrice) {
         const min = searchParams.minPrice ? parseFloat(searchParams.minPrice) : undefined;

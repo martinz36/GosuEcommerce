@@ -25,6 +25,7 @@ import {
   X,
   AlertCircle,
   RefreshCw,
+  Sparkles,
 } from "lucide-react";
 import {
   toggleProductStatusAction,
@@ -50,6 +51,7 @@ export interface SerializedProduct {
   isFamily: boolean;
   familyId?: string | null;
   productType?: string | null;
+  isNew?: boolean;
   categoryName: string;
   imageUrl?: string | null;
 }
@@ -188,7 +190,9 @@ export function ProductsTableClient({
   };
 
   // 5. Acciones Masivas (Paso 1)
-  const handleBulkAction = async (action: "activate" | "deactivate" | "delete") => {
+  const handleBulkAction = async (
+    action: "activate" | "deactivate" | "delete" | "markNew" | "unmarkNew"
+  ) => {
     if (selectedIds.length === 0) return;
     setIsProcessing(true);
 
@@ -202,6 +206,16 @@ export function ProductsTableClient({
         prev.map((p) => (selectedIds.includes(p.id) ? { ...p, isActive: false } : p))
       );
       showToast(`ℹ️ ${selectedIds.length} productos desactivados.`);
+    } else if (action === "markNew") {
+      setProducts((prev) =>
+        prev.map((p) => (selectedIds.includes(p.id) ? { ...p, isNew: true } : p))
+      );
+      showToast(`✨ ${selectedIds.length} productos destacados como Novedades.`);
+    } else if (action === "unmarkNew") {
+      setProducts((prev) =>
+        prev.map((p) => (selectedIds.includes(p.id) ? { ...p, isNew: false } : p))
+      );
+      showToast(`ℹ️ ${selectedIds.length} productos quitados de Novedades.`);
     } else if (action === "delete") {
       setProducts((prev) => prev.filter((p) => !selectedIds.includes(p.id)));
       showToast(`🗑️ ${selectedIds.length} productos eliminados.`);
@@ -363,6 +377,24 @@ export function ProductsTableClient({
             </button>
 
             <button
+              onClick={() => handleBulkAction("markNew")}
+              disabled={isProcessing}
+              className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Destacar como Novedad</span>
+            </button>
+
+            <button
+              onClick={() => handleBulkAction("unmarkNew")}
+              disabled={isProcessing}
+              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-colors flex items-center gap-1.5"
+            >
+              <XCircle className="w-3.5 h-3.5 text-slate-400" />
+              <span>Quitar de Novedades</span>
+            </button>
+
+            <button
               onClick={() => setShowBulkStockModal(true)}
               className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition-colors flex items-center gap-1.5"
             >
@@ -503,12 +535,19 @@ export function ProductsTableClient({
 
                       {/* Título */}
                       <td className="px-6 py-4">
-                        <Link
-                          href={`/products/${p.id}`}
-                          className="font-semibold text-slate-900 text-xs hover:text-blue-600 transition-colors block leading-snug"
-                        >
-                          {p.title}
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/products/${p.id}`}
+                            className="font-semibold text-slate-900 text-xs hover:text-blue-600 transition-colors block leading-snug"
+                          >
+                            {p.title}
+                          </Link>
+                          {p.isNew && (
+                            <span className="bg-cyan-100 text-cyan-800 border border-cyan-300 font-mono text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase shrink-0 shadow-sm">
+                              NUEVO
+                            </span>
+                          )}
+                        </div>
                         {p.productType && (
                           <span className="text-[10px] text-slate-400 font-mono block">
                             {p.productType}

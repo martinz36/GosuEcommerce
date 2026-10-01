@@ -58,6 +58,7 @@ export default async function ProductsListPage({ searchParams }: PageProps) {
       isFamily: p.isFamily,
       familyId: p.familyId,
       productType: p.productType,
+      isNew: p.isNew ?? false,
       categoryName: p.category?.name || "General",
       imageUrl: p.images?.[0]?.url || null,
     };
