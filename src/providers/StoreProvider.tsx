@@ -33,19 +33,19 @@ export interface StoreSettingsContextType {
 }
 
 const defaultContext: StoreSettingsContextType = {
-  freeShippingThreshold: 50.0,
-  standardShippingCost: 4.99,
-  currency: "USD",
-  currencySymbol: "$",
-  exchangeRate: 1.0,
-  countryCode: "US",
+  freeShippingThreshold: 150.0,
+  standardShippingCost: 15.0,
+  currency: "PEN",
+  currencySymbol: "S/.",
+  exchangeRate: 3.75,
+  countryCode: "PE",
   isRegionActive: true,
   shippingMethods: [],
   language: "es",
   dictionary: esDict as Dictionary,
   t: (path: string) => path,
-  formatPrice: (usdAmount: number) => `$${usdAmount.toFixed(2)}`,
-  formatRawPrice: (amount: number) => `$${amount.toFixed(2)}`,
+  formatPrice: (usdAmount: number) => `S/.${(usdAmount * 3.75).toFixed(2)}`,
+  formatRawPrice: (amount: number) => `S/.${amount.toFixed(2)}`,
 };
 
 const StoreSettingsContext = createContext<StoreSettingsContextType>(defaultContext);

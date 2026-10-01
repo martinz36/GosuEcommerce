@@ -17,8 +17,8 @@ export default async function ShopLayout({
 
   // Valores predeterminados seguros para StoreSettings
   let storeSettings = {
-    freeShippingThreshold: 50.0,
-    standardShippingCost: 4.99,
+    freeShippingThreshold: 150.0,
+    standardShippingCost: 15.0,
     countryCode: "PE",
     currency: "PEN",
     currencySymbol: "S/.",

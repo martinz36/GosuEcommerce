@@ -95,9 +95,10 @@ export function CartDrawer() {
   const displayLoyaltyDiscount = getLoyaltyDiscountAmount(exchangeRate, isPEN);
 
   // Barra de Envío Gratis
-  const isFreeShipping = displaySubtotal >= freeShippingThreshold;
-  const remainingForFreeShipping = Math.max(0, freeShippingThreshold - displaySubtotal);
-  const shippingProgress = Math.min(100, (displaySubtotal / freeShippingThreshold) * 100);
+  const activeThreshold = Number(freeShippingThreshold) > 0 ? Number(freeShippingThreshold) : 150.0;
+  const isFreeShipping = displaySubtotal >= activeThreshold;
+  const remainingForFreeShipping = Math.max(0, activeThreshold - displaySubtotal);
+  const shippingProgress = Math.min(100, (displaySubtotal / activeThreshold) * 100);
 
   const displayFinalTotal = Math.max(
     0,

@@ -85,7 +85,11 @@ export const useCartStore = create<CartState>()(
 
       removeFromCart: (id) => {
         const newItems = get().items.filter((item) => item.id !== id);
-        set({ items: newItems });
+        if (newItems.length === 0) {
+          set({ items: [], discount: null, loyaltyPointsUsed: 0 });
+        } else {
+          set({ items: newItems });
+        }
 
         const subtotal = newItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
         triggerSilentSync(newItems, subtotal);
