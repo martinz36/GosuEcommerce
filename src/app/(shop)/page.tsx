@@ -57,31 +57,31 @@ export default async function HomePage() {
             {/* Mascotas Flotantes Izquierda (GOSU GANG Desktop) */}
             <div className="hidden lg:flex lg:col-span-3 flex-col gap-8 items-center lg:items-end justify-center">
               {/* Mascota 1: Raccoon */}
-              <div className="group relative w-48 sm:w-56 p-3.5 rounded-2xl bg-neutral-900/90 border border-neutral-700/80 backdrop-blur-md shadow-2xl transition-all duration-300 hover:scale-105 hover:border-accent-cyan/80 -rotate-3 hover:rotate-0 flex flex-col items-center">
-                <div className="w-full aspect-square rounded-xl bg-gradient-to-b from-white/20 via-neutral-800/60 to-black/80 border border-white/10 flex items-center justify-center p-3 overflow-hidden shadow-inner relative">
+              <div className="group relative w-48 sm:w-56 p-3 rounded-2xl bg-neutral-950/90 border-2 border-accent-cyan/80 backdrop-blur-md shadow-[0_0_25px_rgba(0,232,255,0.3)] transition-all duration-300 hover:scale-105 hover:shadow-[0_0_35px_rgba(0,232,255,0.6)] -rotate-3 hover:rotate-0 flex flex-col items-center">
+                <div className="w-full aspect-square rounded-xl bg-white flex items-center justify-center p-2.5 overflow-hidden shadow-md relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/gosu-gang/RACCOON.png"
                     alt="GOSU Raccoon"
-                    className="w-full h-full object-contain filter drop-shadow-[0_0_12px_rgba(255,255,255,0.85)] group-hover:scale-110 transition-transform duration-500"
+                    className="w-full h-full object-contain filter contrast-125 group-hover:scale-105 transition-transform duration-500"
                   />
                 </div>
-                <span className="mt-2.5 bg-accent-cyan/20 border border-accent-cyan/40 text-accent-cyan font-mono text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">
+                <span className="mt-2.5 bg-accent-cyan text-black font-mono text-[10px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow">
                   RACCOON • GOSU GANG
                 </span>
               </div>
 
               {/* Mascota 2: Fox */}
-              <div className="group relative w-48 sm:w-56 p-3.5 rounded-2xl bg-neutral-900/90 border border-neutral-700/80 backdrop-blur-md shadow-2xl transition-all duration-300 hover:scale-105 hover:border-accent-pink/80 rotate-3 hover:rotate-0 flex flex-col items-center">
-                <div className="w-full aspect-square rounded-xl bg-gradient-to-b from-white/20 via-neutral-800/60 to-black/80 border border-white/10 flex items-center justify-center p-3 overflow-hidden shadow-inner relative">
+              <div className="group relative w-48 sm:w-56 p-3 rounded-2xl bg-neutral-950/90 border-2 border-accent-pink/80 backdrop-blur-md shadow-[0_0_25px_rgba(255,9,187,0.3)] transition-all duration-300 hover:scale-105 hover:shadow-[0_0_35px_rgba(255,9,187,0.6)] rotate-3 hover:rotate-0 flex flex-col items-center">
+                <div className="w-full aspect-square rounded-xl bg-white flex items-center justify-center p-2.5 overflow-hidden shadow-md relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/gosu-gang/FOX.png"
                     alt="GOSU Fox"
-                    className="w-full h-full object-contain filter drop-shadow-[0_0_12px_rgba(255,255,255,0.85)] group-hover:scale-110 transition-transform duration-500"
+                    className="w-full h-full object-contain filter contrast-125 group-hover:scale-105 transition-transform duration-500"
                   />
                 </div>
-                <span className="mt-2.5 bg-accent-pink/20 border border-accent-pink/40 text-accent-pink font-mono text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">
+                <span className="mt-2.5 bg-accent-pink text-white font-mono text-[10px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow">
                   FOX • GOSU GANG
                 </span>
               </div>
@@ -155,31 +155,31 @@ export default async function HomePage() {
             {/* Mascotas Flotantes Derecha (GOSU GANG Desktop) */}
             <div className="hidden lg:flex lg:col-span-3 flex-col gap-8 items-center lg:items-start justify-center">
               {/* Mascota 3: Bear */}
-              <div className="group relative w-48 sm:w-56 p-3.5 rounded-2xl bg-neutral-900/90 border border-neutral-700/80 backdrop-blur-md shadow-2xl transition-all duration-300 hover:scale-105 hover:border-accent-yellow/80 rotate-2 hover:rotate-0 flex flex-col items-center">
-                <div className="w-full aspect-square rounded-xl bg-gradient-to-b from-white/20 via-neutral-800/60 to-black/80 border border-white/10 flex items-center justify-center p-3 overflow-hidden shadow-inner relative">
+              <div className="group relative w-48 sm:w-56 p-3 rounded-2xl bg-neutral-950/90 border-2 border-accent-yellow/80 backdrop-blur-md shadow-[0_0_25px_rgba(228,232,0,0.3)] transition-all duration-300 hover:scale-105 hover:shadow-[0_0_35px_rgba(228,232,0,0.6)] rotate-2 hover:rotate-0 flex flex-col items-center">
+                <div className="w-full aspect-square rounded-xl bg-white flex items-center justify-center p-2.5 overflow-hidden shadow-md relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/gosu-gang/BEAR.png"
                     alt="GOSU Bear"
-                    className="w-full h-full object-contain filter drop-shadow-[0_0_12px_rgba(255,255,255,0.85)] group-hover:scale-110 transition-transform duration-500"
+                    className="w-full h-full object-contain filter contrast-125 group-hover:scale-105 transition-transform duration-500"
                   />
                 </div>
-                <span className="mt-2.5 bg-accent-yellow/20 border border-accent-yellow/40 text-accent-yellow font-mono text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">
+                <span className="mt-2.5 bg-accent-yellow text-black font-mono text-[10px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow">
                   BEAR • GOSU GANG
                 </span>
               </div>
 
               {/* Mascota 4: Bunny */}
-              <div className="group relative w-48 sm:w-56 p-3.5 rounded-2xl bg-neutral-900/90 border border-neutral-700/80 backdrop-blur-md shadow-2xl transition-all duration-300 hover:scale-105 hover:border-accent-green/80 -rotate-2 hover:rotate-0 flex flex-col items-center">
-                <div className="w-full aspect-square rounded-xl bg-gradient-to-b from-white/20 via-neutral-800/60 to-black/80 border border-white/10 flex items-center justify-center p-3 overflow-hidden shadow-inner relative">
+              <div className="group relative w-48 sm:w-56 p-3 rounded-2xl bg-neutral-950/90 border-2 border-accent-green/80 backdrop-blur-md shadow-[0_0_25px_rgba(34,239,0,0.3)] transition-all duration-300 hover:scale-105 hover:shadow-[0_0_35px_rgba(34,239,0,0.6)] -rotate-2 hover:rotate-0 flex flex-col items-center">
+                <div className="w-full aspect-square rounded-xl bg-white flex items-center justify-center p-2.5 overflow-hidden shadow-md relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/gosu-gang/BUNNY.png"
                     alt="GOSU Bunny"
-                    className="w-full h-full object-contain filter drop-shadow-[0_0_12px_rgba(255,255,255,0.85)] group-hover:scale-110 transition-transform duration-500"
+                    className="w-full h-full object-contain filter contrast-125 group-hover:scale-105 transition-transform duration-500"
                   />
                 </div>
-                <span className="mt-2.5 bg-accent-green/20 border border-accent-green/40 text-accent-green font-mono text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">
+                <span className="mt-2.5 bg-accent-green text-black font-mono text-[10px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow">
                   BUNNY • GOSU GANG
                 </span>
               </div>
@@ -190,25 +190,25 @@ export default async function HomePage() {
           {/* Versión Mobile: Tira de Mascotas GOSU GANG */}
           <div className="mt-12 lg:hidden flex items-center justify-center gap-3 overflow-x-auto pb-4 scrollbar-none">
             {[
-              { name: "RACCOON", img: "/gosu-gang/RACCOON.png", color: "border-accent-cyan text-accent-cyan" },
-              { name: "FOX", img: "/gosu-gang/FOX.png", color: "border-accent-pink text-accent-pink" },
-              { name: "BEAR", img: "/gosu-gang/BEAR.png", color: "border-accent-yellow text-accent-yellow" },
-              { name: "BUNNY", img: "/gosu-gang/BUNNY.png", color: "border-accent-green text-accent-green" },
-              { name: "TURTLE", img: "/gosu-gang/TURTLE.png", color: "border-accent-orange text-accent-orange" },
+              { name: "RACCOON", img: "/gosu-gang/RACCOON.png", color: "bg-accent-cyan text-black" },
+              { name: "FOX", img: "/gosu-gang/FOX.png", color: "bg-accent-pink text-white" },
+              { name: "BEAR", img: "/gosu-gang/BEAR.png", color: "bg-accent-yellow text-black" },
+              { name: "BUNNY", img: "/gosu-gang/BUNNY.png", color: "bg-accent-green text-black" },
+              { name: "TURTLE", img: "/gosu-gang/TURTLE.png", color: "bg-accent-orange text-white" },
             ].map((m, idx) => (
               <div
                 key={idx}
-                className="bg-neutral-900/90 border border-neutral-700 rounded-xl p-2 flex flex-col items-center min-w-[110px] shrink-0 shadow-lg"
+                className="bg-neutral-950/90 border border-neutral-700 rounded-xl p-2 flex flex-col items-center min-w-[115px] shrink-0 shadow-lg"
               >
-                <div className="w-16 h-16 rounded-lg bg-gradient-to-b from-white/20 to-black/60 flex items-center justify-center p-1">
+                <div className="w-20 h-20 rounded-lg bg-white flex items-center justify-center p-1.5 shadow">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={m.img}
                     alt={m.name}
-                    className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.85)]"
+                    className="w-full h-full object-contain filter contrast-125"
                   />
                 </div>
-                <span className={`mt-1.5 font-mono text-[9px] font-extrabold border px-2 py-0.5 rounded-full uppercase ${m.color}`}>
+                <span className={`mt-1.5 font-mono text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase shadow ${m.color}`}>
                   {m.name}
                 </span>
               </div>
