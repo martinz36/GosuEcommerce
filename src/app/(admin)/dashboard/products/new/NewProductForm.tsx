@@ -192,7 +192,22 @@ export function NewProductForm({ categories }: { categories: CategoryOption[] })
               <ImageIcon className="w-4 h-4 text-slate-500" />
               <span>Imagen del Producto (Cloudinary)</span>
             </h2>
-            <p className="text-xs text-slate-500">Sube imágenes en formato PNG, JPG o WEBP.</p>
+            <p className="text-xs text-slate-500">
+              Ingresa una URL directa de Cloudinary o sube un archivo de imagen desde tu equipo.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              URL Directa de Cloudinary
+            </label>
+            <input
+              type="url"
+              placeholder="Ej: https://res.cloudinary.com/tu-cloud/image/upload/v12345/producto.jpg"
+              value={imageUrl || ""}
+              onChange={(e) => setImageUrl(e.target.value.trim() || null)}
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-slate-900 transition-all"
+            />
           </div>
 
           {imageUrl ? (
@@ -211,35 +226,40 @@ export function NewProductForm({ categories }: { categories: CategoryOption[] })
               </div>
             </div>
           ) : (
-            <label className="border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition-colors bg-slate-50/50">
-              {isUploading ? (
-                <div className="flex flex-col items-center gap-2 text-slate-500">
-                  <Loader2 className="w-8 h-8 animate-spin text-slate-700" />
-                  <span className="text-xs font-semibold">Subiendo a Cloudinary...</span>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center text-center gap-2">
-                  <div className="p-3 bg-white rounded-full border border-slate-200 shadow-xs text-slate-600">
-                    <Upload className="w-6 h-6" />
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                O sube una imagen desde tu dispositivo:
+              </label>
+              <label className="border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition-colors bg-slate-50/50">
+                {isUploading ? (
+                  <div className="flex flex-col items-center gap-2 text-slate-500">
+                    <Loader2 className="w-8 h-8 animate-spin text-slate-700" />
+                    <span className="text-xs font-semibold">Subiendo a Cloudinary...</span>
                   </div>
-                  <div>
-                    <span className="text-xs font-semibold text-slate-800 block">
-                      Haz clic para seleccionar o arrastra una imagen
-                    </span>
-                    <span className="text-[11px] text-slate-400 block mt-0.5">
-                      Sube directo a Cloudinary y obtiene `secure_url`
-                    </span>
+                ) : (
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <div className="p-3 bg-white rounded-full border border-slate-200 shadow-xs text-slate-600">
+                      <Upload className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-semibold text-slate-800 block">
+                        Haz clic para seleccionar o arrastra una imagen
+                      </span>
+                      <span className="text-[11px] text-slate-400 block mt-0.5">
+                        Sube directo a Cloudinary y obtiene `secure_url`
+                      </span>
+                    </div>
                   </div>
-                </div>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageFileChange}
-                disabled={isUploading}
-                className="hidden"
-              />
-            </label>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageFileChange}
+                  disabled={isUploading}
+                  className="hidden"
+                />
+              </label>
+            </div>
           )}
 
           {uploadError && (
