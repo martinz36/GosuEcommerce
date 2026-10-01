@@ -89,32 +89,24 @@ export default async function HomePage() {
 
             {/* Titular Principal Stacked Centrado */}
             <div className="lg:col-span-6 text-center space-y-6">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/80 border border-neutral-700 backdrop-blur-md text-neutral-200 text-xs font-mono font-semibold tracking-wider uppercase shadow-xl">
-                <Sparkles className="w-4 h-4 text-accent-cyan animate-pulse" />
-                <span>GOSU® TCG ACCESSORIES STORE</span>
-              </div>
-
-              {/* Stacked Main Title */}
+              {/* Stacked Main Title in English (Imagen 2) */}
               <div className="flex flex-col items-center justify-center space-y-0 text-center select-none">
                 <h1 className="font-hero-headline text-5xl sm:text-7xl md:text-8xl tracking-tight leading-[0.88] text-white uppercase drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
-                  PARA
+                  FOR THOSE
                 </h1>
                 <h1 className="font-hero-headline text-5xl sm:text-7xl md:text-8xl tracking-tight leading-[0.88] text-white uppercase drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
-                  QUIENES
-                </h1>
-                <h1 className="font-hero-headline text-5xl sm:text-7xl md:text-8xl tracking-tight leading-[0.88] text-white uppercase drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
-                  JUEGAN
+                  WHO PLAY
                 </h1>
                 <div className="pt-1 sm:pt-2">
                   <span className="font-brush-accent text-accent-pink text-5xl sm:text-7xl md:text-8xl tracking-wide leading-[0.9] text-center -rotate-2 transform inline-block drop-shadow-[0_0_30px_rgba(255,9,187,0.8)]">
-                    DIFERENTE
+                    DIFFERENT
                   </span>
                 </div>
               </div>
 
-              {/* Subtítulo Estilo Imagen 1 */}
+              {/* Subtítulo en Inglés (Imagen 2) */}
               <p className="font-sans text-xs sm:text-sm md:text-base font-semibold tracking-[0.12em] sm:tracking-[0.18em] text-neutral-100 max-w-2xl mx-auto uppercase leading-relaxed pt-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
-                ACCESORIOS DE ALTA CALIDAD DISEÑADOS PARA PROTEGER, OPTIMIZAR Y FLEXIBILIZAR TU COLECCIÓN – COMO SE MERECE
+                HIGH QUALITY ACCESSORIES DESIGNED TO PROTECT, OPTIMIZE AND FLEX YOUR COLLECTION – LIKE IT DESERVES
               </p>
 
               {/* Botones Call-to-action */}
